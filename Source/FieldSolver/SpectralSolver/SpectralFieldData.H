@@ -14,6 +14,12 @@ struct SpectralFieldIndex {
   // n_fields is automatically the total number of fields
 };
 
+
+struct PSATDSpectralFieldIndex {
+  enum { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, Jx_old, Jy_old, Jz_old, rho_old, rho_new, n_fields };
+  // n_fields is automatically the total number of fields
+};
+
 /* \brief Class that stores the fields in spectral space, and performs the
  *  Fourier transforms between real space and spectral space
  */
@@ -32,7 +38,8 @@ class SpectralFieldData
     public:
         SpectralFieldData( const amrex::BoxArray& realspace_ba,
                       const SpectralKSpace& k_space,
-                      const amrex::DistributionMapping& dm );
+                      const amrex::DistributionMapping& dm,
+                      const int n_field_required );
         SpectralFieldData() = default; // Default constructor
         SpectralFieldData& operator=(SpectralFieldData&& field_data) = default;
         ~SpectralFieldData();

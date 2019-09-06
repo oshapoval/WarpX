@@ -16,13 +16,16 @@ class PsatdAlgorithm : public SpectralBaseAlgorithm
                          const int norder_z, const bool nodal, const amrex::Real dt);
 
         void InitializeSpectralCoefficients(const SpectralKSpace& spectral_kspace,
-                                    const amrex::DistributionMapping& dm, 
+                                    const amrex::DistributionMapping& dm,
                                     const amrex::Real dt);
 
         void pushSpectralFields(SpectralFieldData& f) const override final;
+        virtual int getRequiredNumberOfFields() const override final {
+            return PSATDSpectralFieldIndex::n_fields;
+        }
 
     private:
-        SpectralRealCoefficients C_coef, S_ck_coef, X1_coef, X2_coef, X3_coef;
+        SpectralRealCoefficients C_coef, S_ck_coef, X1_coef, X2_coef, X3_coef, Ch_coef, Sh_ck_coef, Sh_ckdt_coef, Ch_ck_coef;
 };
 
 #endif // WARPX_PSATD_ALGORITHM_H_

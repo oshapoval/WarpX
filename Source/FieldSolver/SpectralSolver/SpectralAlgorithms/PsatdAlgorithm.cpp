@@ -22,6 +22,14 @@ PsatdAlgorithm::PsatdAlgorithm(const SpectralKSpace& spectral_kspace,
     X2_coef = SpectralRealCoefficients(ba, dm, 1, 0);
     X3_coef = SpectralRealCoefficients(ba, dm, 1, 0);
 
+
+    Ch_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+    Sh_ck_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+    Sh_ckdt_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+    Ch_ck_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+
+
+
     InitializeSpectralCoefficients(spectral_kspace, dm, dt);
 }
 
@@ -43,6 +51,14 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
         Array4<const Real> X1_arr = X1_coef[mfi].array();
         Array4<const Real> X2_arr = X2_coef[mfi].array();
         Array4<const Real> X3_arr = X3_coef[mfi].array();
+
+
+        Array4<const Real> Ch_arr = Ch_coef[mfi].array();
+        Array4<const Real> Sh_ck_arr = Sh_ck_coef[mfi].array();
+        Array4<const Real> Sh_ckdt_arr = Sh_ckdt_coef[mfi].array();
+        Array4<const Real> Ch_ck_arr = Ch_ck_coef[mfi].array();
+
+
         // Extract pointers for the k vectors
         const Real* modified_kx_arr = modified_kx_vec[mfi].dataPtr();
 #if (AMREX_SPACEDIM==3)
@@ -55,7 +71,7 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             // Record old values of the fields to be updated
-            using Idx = SpectralFieldIndex;
+            using Idx = PSATDSpectralFieldIndex;
             const Complex Ex_old = fields(i,j,k,Idx::Ex);
             const Complex Ey_old = fields(i,j,k,Idx::Ey);
             const Complex Ez_old = fields(i,j,k,Idx::Ez);
@@ -68,6 +84,11 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             const Complex Jz = fields(i,j,k,Idx::Jz);
             const Complex rho_old = fields(i,j,k,Idx::rho_old);
             const Complex rho_new = fields(i,j,k,Idx::rho_new);
+
+            const Complex Jx_old = fields(i,j,k,Idx::Jx_old);
+            const Complex Jy_old = fields(i,j,k,Idx::Jy_old);
+            const Complex Jz_old = fields(i,j,k,Idx::Jz_old);
+
             // k vector values, and coefficients
             const Real kx = modified_kx_arr[i];
 #if (AMREX_SPACEDIM==3)
@@ -77,6 +98,18 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             constexpr Real ky = 0;
             const Real kz = modified_kz_arr[j];
 #endif
+
+
+            const Real knorm = std::sqrt(
+                std::pow(modified_kx_arr[i], 2) +
+#if (AMREX_SPACEDIM==3)
+                std::pow(modified_ky_arr[j], 2) +
+                std::pow(modified_kz_arr[k], 2));
+#else
+                std::pow(modified_kz_arr[j], 2));
+#endif
+
+            const Real ck = PhysConst::c*knorm;
             constexpr Real c2 = PhysConst::c*PhysConst::c;
             constexpr Real inv_ep0 = 1./PhysConst::ep0;
             const Complex I = Complex{0,1};
@@ -86,27 +119,61 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             const Real X2 = X2_arr(i,j,k);
             const Real X3 = X3_arr(i,j,k);
 
+            const Real Ch = Ch_arr(i,j,k);
+            const Real Sh_ck = Sh_ck_arr(i,j,k);
+            const Real Sh_ckdt = Sh_ckdt_arr(i,j,k);
+            const Real Ch_ck = Ch_ck_arr(i,j,k);
+
+
+
 
             // Update E (see WarpX online documentation: theory section)
-            fields(i,j,k,Idx::Ex) = C*Ex_old
-                        + S_ck*(c2*I*(ky*Bz_old - kz*By_old) - inv_ep0*Jx)
-                        - I*(X2*rho_new - X3*rho_old)*kx;
-            fields(i,j,k,Idx::Ey) = C*Ey_old
-                        + S_ck*(c2*I*(kz*Bx_old - kx*Bz_old) - inv_ep0*Jy)
-                        - I*(X2*rho_new - X3*rho_old)*ky;
-            fields(i,j,k,Idx::Ez) = C*Ez_old
-                        + S_ck*(c2*I*(kx*By_old - ky*Bx_old) - inv_ep0*Jz)
-                        - I*(X2*rho_new - X3*rho_old)*kz;
+            //PSATD via rho_old and new
+            // fields(i,j,k,Idx::Ex) = C*Ex_old
+            //             + S_ck*(c2*I*(ky*Bz_old - kz*By_old) - inv_ep0*Jx)
+            //             - I*(X2*rho_new - X3*rho_old)*kx;
+            // fields(i,j,k,Idx::Ey) = C*Ey_old
+            //             + S_ck*(c2*I*(kz*Bx_old - kx*Bz_old) - inv_ep0*Jy)
+            //             - I*(X2*rho_new - X3*rho_old)*ky;
+            // fields(i,j,k,Idx::Ez) = C*Ez_old
+            //             + S_ck*(c2*I*(kx*By_old - ky*Bx_old) - inv_ep0*Jz)
+            //             - I*(X2*rho_new - X3*rho_old)*kz;
+            // // Update B (see WarpX online documentation: theory section)
+            // fields(i,j,k,Idx::Bx) = C*Bx_old
+            //             - S_ck*I*(ky*Ez_old - kz*Ey_old)
+            //             +   X1*I*(ky*Jz     - kz*Jy);
+            // fields(i,j,k,Idx::By) = C*By_old
+            //             - S_ck*I*(kz*Ex_old - kx*Ez_old)
+            //             +   X1*I*(kz*Jx     - kx*Jz);
+            // fields(i,j,k,Idx::Bz) = C*Bz_old
+            //             - S_ck*I*(kx*Ey_old - ky*Ex_old)
+            //             +   X1*I*(kx*Jy     - ky*Jx);
+
+
+
+
+            fields(i,j,k,Idx::Ex) = Ex_old
+                        + 2.*Sh_ck* ( ck*I*(ky*Bz_old - kz*By_old)  - Jx_old )
+                        + Sh_ckdt * kx * (kx*Jx_old + ky*Jy_old + kz*Jz_old);
+            fields(i,j,k,Idx::Ey) = Ey_old
+                        + 2.*Sh_ck*( ck*I*(kz*Bx_old - kx*Bz_old) - Jy_old )
+                        + Sh_ckdt * ky * (kx*Jx_old + ky*Jy_old + kz*Jz_old);
+            fields(i,j,k,Idx::Ez) = Ez_old
+                        + 2.*Sh_ck*( ck*I*(kx*By_old - ky*Bx_old) - Jz_old )
+                        + Sh_ckdt * kz * (kx*Jx_old + ky*Jy_old + kz*Jz_old);
+
+
+
             // Update B (see WarpX online documentation: theory section)
-            fields(i,j,k,Idx::Bx) = C*Bx_old
-                        - S_ck*I*(ky*Ez_old - kz*Ey_old)
-                        +   X1*I*(ky*Jz     - kz*Jy);
-            fields(i,j,k,Idx::By) = C*By_old
-                        - S_ck*I*(kz*Ex_old - kx*Ez_old)
-                        +   X1*I*(kz*Jx     - kx*Jz);
-            fields(i,j,k,Idx::Bz) = C*Bz_old
-                        - S_ck*I*(kx*Ey_old - ky*Ex_old)
-                        +   X1*I*(kx*Jy     - ky*Jx);
+            fields(i,j,k,Idx::Bx) = Bx_old
+                        - 2.*S_ck*I*(ky*fields(i,j,k,Idx::Ez) - kz*fields(i,j,k,Idx::Ey))
+                        + I * Ch_ck * (ky * (Jz - Jz_old) - kz*(Jy - Jy_old)) ;
+            fields(i,j,k,Idx::By) = By_old
+                        - 2.*S_ck*I*(kz*fields(i,j,k,Idx::Ex) - kx*fields(i,j,k,Idx::Ez))
+                        + I *  Ch_ck* (kz * (Jx - Jx_old) - kx*(Jz - Jz_old)) ;
+            fields(i,j,k,Idx::Bz) = Bz_old
+                        - 2.*S_ck*I*(kx*fields(i,j,k,Idx::Ey) - ky*fields(i,j,k,Idx::Ex))
+                        + I * Ch_ck * (kx * (Jy - Jy_old) - ky*(Jx - Jx_old)) ;
         });
     }
 };
@@ -136,6 +203,12 @@ void PsatdAlgorithm::InitializeSpectralCoefficients(const SpectralKSpace& spectr
         Array4<Real> X2 = X2_coef[mfi].array();
         Array4<Real> X3 = X3_coef[mfi].array();
 
+        Array4<Real> Ch = C_coef[mfi].array(); //oshapoval
+        Array4<Real> Sh_ck = Sh_ck_coef[mfi].array(); //oshapoval
+        Array4<Real> Sh_ckdt = Sh_ck_coef[mfi].array(); //oshapoval
+        Array4<Real> Ch_ck = Ch_ck_coef[mfi].array(); //oshapoval
+
+
         // Loop over indices within one box
         ParallelFor(bx,
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
@@ -160,12 +233,24 @@ void PsatdAlgorithm::InitializeSpectralCoefficients(const SpectralKSpace& spectr
                 X1(i,j,k) = (1. - C(i,j,k))/(ep0 * c*c * k_norm*k_norm);
                 X2(i,j,k) = (1. - S_ck(i,j,k)/dt)/(ep0 * k_norm*k_norm);
                 X3(i,j,k) = (C(i,j,k) - S_ck(i,j,k)/dt)/(ep0 * k_norm*k_norm);
+
+
+                Ch(i,j,k) = std::cos(c*k_norm*dt/2.);//oshapoval
+                Sh_ck(i,j,k) = std::sin(c*k_norm*dt/2.)/(c*k_norm);//oshapoval
+                Sh_ckdt(i,j,k) = ( 2.*std::sin(c*k_norm*dt/2.)/(c*k_norm) - dt );
+                Ch_ck(i,j,k) = (1. - std::cos(c*k_norm*dt/2.) ) / (c*k_norm);
+
             } else { // Handle k_norm = 0, by using the analytical limit
                 C(i,j,k) = 1.;
                 S_ck(i,j,k) = dt;
                 X1(i,j,k) = 0.5 * dt*dt / ep0;
                 X2(i,j,k) = c*c * dt*dt / (6.*ep0);
                 X3(i,j,k) = - c*c * dt*dt / (3.*ep0);
+
+                Ch(i,j,k) = 1.;//oshapoval
+                Sh_ck(i,j,k) = dt/2.;//oshapoval
+                Sh_ckdt(i,j,k) = 0.;
+                Ch_ck(i,j,k) = 0. ;//c*k_norm*dt*dt/8.;
             }
         });
      }

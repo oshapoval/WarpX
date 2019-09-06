@@ -20,6 +20,7 @@ class SpectralBaseAlgorithm
         // The destructor should also be a virtual function, so that
         // a pointer to subclass of `SpectraBaseAlgorithm` actually
         // calls the subclass's destructor.
+        virtual int getRequiredNumberOfFields() const = 0;
         virtual ~SpectralBaseAlgorithm() {};
 
     protected: // Meant to be used in the subclasses

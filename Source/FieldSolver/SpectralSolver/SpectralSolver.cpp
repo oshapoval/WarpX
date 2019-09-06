@@ -37,6 +37,6 @@ SpectralSolver::SpectralSolver(
      }
 
     // - Initialize arrays for fields in spectral space + FFT plans
-    field_data = SpectralFieldData( realspace_ba, k_space, dm );
-
+    field_data = SpectralFieldData( realspace_ba, k_space, dm,
+            algorithm->getRequiredNumberOfFields() );
 };

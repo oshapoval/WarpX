@@ -487,7 +487,7 @@ WarpX::ReadParameters ()
     {
         ParmParse pp("algo");
         // If not in RZ mode, read use_picsar_deposition
-        // In RZ mode, use_picsar_deposition is on, as the C++ version 
+        // In RZ mode, use_picsar_deposition is on, as the C++ version
         // of the deposition does not support RZ
 #ifndef WARPX_RZ
         pp.query("use_picsar_deposition", use_picsar_deposition);
@@ -658,7 +658,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
       ngy_tmp += 1;
       ngz_tmp += 1;
     }
-    
+
     // Ex, Ey, Ez, Bx, By, and Bz have the same number of ghost cells.
     // jx, jy, jz and rho have the same number of ghost cells.
     // E and B have the same number of ghost cells as j and rho if NCI filter is not used,
@@ -728,7 +728,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         // for nodal, and half the order of the solver for staggered.
         IntVect ngFFT;
         if (do_nodal) {
-            ngFFT = IntVect(AMREX_D_DECL(nox_fft, noy_fft, noz_fft));
+            ngFFT = IntVect(AMREX_D_DECL(32,32,32));
         } else {
             ngFFT = IntVect(AMREX_D_DECL(nox_fft/2, noy_fft/2, noz_fft/2));
         }
@@ -880,7 +880,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         }
 #endif
     }
-
     //
     // Copy of the coarse aux
     //
@@ -922,7 +921,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         costs[lev].reset(new MultiFab(ba, dm, 1, 0));
     }
 }
-
 std::array<Real,3>
 WarpX::CellSize (int lev)
 {
