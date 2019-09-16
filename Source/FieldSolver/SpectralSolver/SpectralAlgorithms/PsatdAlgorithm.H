@@ -21,7 +21,7 @@ class PsatdAlgorithm : public SpectralBaseAlgorithm
 
         void pushSpectralFields(SpectralFieldData& f) const override final;
         virtual int getRequiredNumberOfFields() const override final {
-            return PSATDSpectralFieldIndex::n_fields;
+            return SpectralFieldIndex::n_fields;
         }
 
     private:

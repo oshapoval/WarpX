@@ -71,10 +71,11 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
         [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
             // Record old values of the fields to be updated
-            using Idx = PSATDSpectralFieldIndex;
+            using Idx = SpectralFieldIndex; //PSATDSpectralFieldIndex;
             const Complex Ex_old = fields(i,j,k,Idx::Ex);
             const Complex Ey_old = fields(i,j,k,Idx::Ey);
             const Complex Ez_old = fields(i,j,k,Idx::Ez);
+
             const Complex Bx_old = fields(i,j,k,Idx::Bx);
             const Complex By_old = fields(i,j,k,Idx::By);
             const Complex Bz_old = fields(i,j,k,Idx::Bz);
@@ -85,9 +86,9 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             const Complex rho_old = fields(i,j,k,Idx::rho_old);
             const Complex rho_new = fields(i,j,k,Idx::rho_new);
 
-            const Complex Jx_old = fields(i,j,k,Idx::Jx_old);
-            const Complex Jy_old = fields(i,j,k,Idx::Jy_old);
-            const Complex Jz_old = fields(i,j,k,Idx::Jz_old);
+            // const Complex Jx_old = fields(i,j,k,Idx::Jx_old);
+            // const Complex Jy_old = fields(i,j,k,Idx::Jy_old);
+            // const Complex Jz_old = fields(i,j,k,Idx::Jz_old);
 
             // k vector values, and coefficients
             const Real kx = modified_kx_arr[i];
@@ -126,7 +127,7 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
 
 
 
-
+            //amrex::Print() <<"1"<<"------\n";
             // Update E (see WarpX online documentation: theory section)
             //PSATD via rho_old and new
             // fields(i,j,k,Idx::Ex) = C*Ex_old
@@ -148,32 +149,58 @@ PsatdAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             // fields(i,j,k,Idx::Bz) = C*Bz_old
             //             - S_ck*I*(kx*Ey_old - ky*Ex_old)
             //             +   X1*I*(kx*Jy     - ky*Jx);
+            //amrex::Print() <<"2"<<"------\n";
 
 
 
 
-            fields(i,j,k,Idx::Ex) = Ex_old
-                        + 2.*Sh_ck* ( ck*I*(ky*Bz_old - kz*By_old)  - Jx_old )
-                        + Sh_ckdt * kx * (kx*Jx_old + ky*Jy_old + kz*Jz_old);
-            fields(i,j,k,Idx::Ey) = Ey_old
-                        + 2.*Sh_ck*( ck*I*(kz*Bx_old - kx*Bz_old) - Jy_old )
-                        + Sh_ckdt * ky * (kx*Jx_old + ky*Jy_old + kz*Jz_old);
-            fields(i,j,k,Idx::Ez) = Ez_old
-                        + 2.*Sh_ck*( ck*I*(kx*By_old - ky*Bx_old) - Jz_old )
-                        + Sh_ckdt * kz * (kx*Jx_old + ky*Jy_old + kz*Jz_old);
+            // fields(i,j,k,Idx::Ex) = Ex_old
+            //             + 2.*Sh_ck* ( ck*I*(ky*Bz_old - kz*By_old)  - Jx_old )
+            //             + Sh_ckdt * kx * (kx*Jx_old + ky*Jy_old + kz*Jz_old);
+            // fields(i,j,k,Idx::Ey) = Ey_old
+            //             + 2.*Sh_ck*( ck*I*(kz*Bx_old - kx*Bz_old) - Jy_old )
+            //             + Sh_ckdt * ky * (kx*Jx_old + ky*Jy_old + kz*Jz_old);
+            // fields(i,j,k,Idx::Ez) = Ez_old
+            //             + 2.*Sh_ck*( ck*I*(kx*By_old - ky*Bx_old) - Jz_old )
+            //             + Sh_ckdt * kz * (kx*Jx_old + ky*Jy_old + kz*Jz_old);
+            //
+            //
+            //
+            // // Update B (see WarpX online documentation: theory section)
+            // fields(i,j,k,Idx::Bx) = Bx_old
+            //             - 2.*S_ck*I*(ky*fields(i,j,k,Idx::Ez) - kz*fields(i,j,k,Idx::Ey))
+            //             + I * Ch_ck * (ky * (Jz - Jz_old) - kz*(Jy - Jy_old)) ;
+            // fields(i,j,k,Idx::By) = By_old
+            //             - 2.*S_ck*I*(kz*fields(i,j,k,Idx::Ex) - kx*fields(i,j,k,Idx::Ez))
+            //             + I *  Ch_ck* (kz * (Jx - Jx_old) - kx*(Jz - Jz_old)) ;
+            // fields(i,j,k,Idx::Bz) = Bz_old
+            //             - 2.*S_ck*I*(kx*fields(i,j,k,Idx::Ey) - ky*fields(i,j,k,Idx::Ex))
+            //             + I * Ch_ck * (kx * (Jy - Jy_old) - ky*(Jx - Jx_old)) ;
+            fields(i,j,k,Idx::Ex) = C*Ex_old
+                        + Sh_ck *I*(ky*Bz_old - kz*By_old)  - S_ck*Jx
+                        + (1. - C) * kx * (kx*Ex_old + ky*Ey_old + kz*Ez_old)
+                        + Sh_ckdt * kx * (kx*Jx + ky*Jy + kz*Jz);
+            fields(i,j,k,Idx::Ey) = C*Ey_old
+                        + Sh_ck*I*(kz*Bx_old - kx*Bz_old) - S_ck*Jy
+                        + (1. - C) * ky * (kx*Ex_old + ky*Ey_old + kz*Ez_old)
+                        + Sh_ckdt * ky * (kx*Jx + ky*Jy + kz*Jz);
+            fields(i,j,k,Idx::Ez) = C*Ez_old
+                        + Sh_ck *I*(kx*By_old - ky*Bx_old) - S_ck*Jz
+                        + (1. - C) * kz * (kx*Ex_old + ky*Ey_old + kz*Ez_old)
+                        + Sh_ckdt * kz * (kx*Jx + ky*Jy + kz*Jz);
+            //
+            // // Update B (see WarpX online documentation: theory section)
+            fields(i,j,k,Idx::Bx) = C*Bx_old
+                        - I*Sh_ck*(ky*Ez_old - kz*Ey_old)
+                        + I * Ch_ck * (ky * Jz - kz*Jy) ;
+            fields(i,j,k,Idx::By) =  C*By_old
+                        - I*Sh_ck*(kz*Ex_old - kx*Ez_old)
+                        + I *  Ch_ck* (kz * Jx - kx*Jz) ;
+            fields(i,j,k,Idx::Bz) = C*Bz_old
+                        - I*Sh_ck*(kx*Ey_old - ky*Ex_old)
+                        + I * Ch_ck * (kx * Jy - ky*Jx) ;
 
-
-
-            // Update B (see WarpX online documentation: theory section)
-            fields(i,j,k,Idx::Bx) = Bx_old
-                        - 2.*S_ck*I*(ky*fields(i,j,k,Idx::Ez) - kz*fields(i,j,k,Idx::Ey))
-                        + I * Ch_ck * (ky * (Jz - Jz_old) - kz*(Jy - Jy_old)) ;
-            fields(i,j,k,Idx::By) = By_old
-                        - 2.*S_ck*I*(kz*fields(i,j,k,Idx::Ex) - kx*fields(i,j,k,Idx::Ez))
-                        + I *  Ch_ck* (kz * (Jx - Jx_old) - kx*(Jz - Jz_old)) ;
-            fields(i,j,k,Idx::Bz) = Bz_old
-                        - 2.*S_ck*I*(kx*fields(i,j,k,Idx::Ey) - ky*fields(i,j,k,Idx::Ex))
-                        + I * Ch_ck * (kx * (Jy - Jy_old) - ky*(Jx - Jx_old)) ;
+            //amrex::Print() <<"Bz_old"<<Jx<< "||||" <<"Bx_old"<<Jz<<"------\n";
         });
     }
 };
@@ -233,24 +260,21 @@ void PsatdAlgorithm::InitializeSpectralCoefficients(const SpectralKSpace& spectr
                 X1(i,j,k) = (1. - C(i,j,k))/(ep0 * c*c * k_norm*k_norm);
                 X2(i,j,k) = (1. - S_ck(i,j,k)/dt)/(ep0 * k_norm*k_norm);
                 X3(i,j,k) = (C(i,j,k) - S_ck(i,j,k)/dt)/(ep0 * k_norm*k_norm);
-
-
-                Ch(i,j,k) = std::cos(c*k_norm*dt/2.);//oshapoval
-                Sh_ck(i,j,k) = std::sin(c*k_norm*dt/2.)/(c*k_norm);//oshapoval
-                Sh_ckdt(i,j,k) = ( 2.*std::sin(c*k_norm*dt/2.)/(c*k_norm) - dt );
-                Ch_ck(i,j,k) = (1. - std::cos(c*k_norm*dt/2.) ) / (c*k_norm);
+                //Ch(i,j,k) = std::cos(c*k_norm*dt/2.);//oshapoval
+                Sh_ck(i,j,k) = std::sin(c*k_norm*dt);//std::sin(c*k_norm*dt)/(c*k_norm);//oshapoval
+                Sh_ckdt(i,j,k) = std::sin(c*k_norm*dt)/(c*k_norm) - dt;//( 2.*std::sin(c*k_norm*dt/2.)/(c*k_norm) - dt );
+                Ch_ck(i,j,k) = ( 1. - std::cos(c*k_norm*dt) ) / (c*k_norm);//(1. - std::cos(c*k_norm*dt/2.) ) / (c*k_norm);
 
             } else { // Handle k_norm = 0, by using the analytical limit
                 C(i,j,k) = 1.;
                 S_ck(i,j,k) = dt;
-                X1(i,j,k) = 0.5 * dt*dt / ep0;
-                X2(i,j,k) = c*c * dt*dt / (6.*ep0);
-                X3(i,j,k) = - c*c * dt*dt / (3.*ep0);
-
-                Ch(i,j,k) = 1.;//oshapoval
-                Sh_ck(i,j,k) = dt/2.;//oshapoval
-                Sh_ckdt(i,j,k) = 0.;
-                Ch_ck(i,j,k) = 0. ;//c*k_norm*dt*dt/8.;
+                X1(i,j,k) = 0.5 * dt * dt / ep0;
+                X2(i,j,k) = c*c * dt * dt / (6.*ep0);
+                X3(i,j,k) = - c*c * dt * dt / (3.*ep0);
+                //Ch(i,j,k) = 1.;//oshapoval
+                Sh_ck(i,j,k) = 0.0;//dt/2.;//oshapoval
+                Sh_ckdt(i,j,k) = 0.;//0.;
+                Ch_ck(i,j,k) = c*k_norm*dt*dt/2. ;//c*k_norm*dt*dt/8.;
             }
         });
      }

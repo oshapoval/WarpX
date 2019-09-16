@@ -16,7 +16,7 @@ struct SpectralFieldIndex {
 
 
 struct PSATDSpectralFieldIndex {
-  enum { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz, Jx_old, Jy_old, Jz_old, rho_old, rho_new, n_fields };
+  enum { Ex=0, Ey, Ez, Bx, By, Bz, Jx, Jy, Jz,Jx_old, Jy_old, Jz_old, rho_old, rho_new, n_fields };
   // n_fields is automatically the total number of fields
 };
 
