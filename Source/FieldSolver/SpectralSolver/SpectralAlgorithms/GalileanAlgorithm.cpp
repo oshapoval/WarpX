@@ -345,28 +345,28 @@ GalileanAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
                         +      X1*I*(kx*Jy     - ky*Jx);
 
 
-            fields(i,j,k,Idx::Exp) = 0.* Exp_old + Psi1*Ex_old
-                        - Psi2*c2*I*(ky*Bz_old - kz*By_old)
-                        + Jcoef*Jx*inv_ep0 + ( CRhonew * rho_new +  CRhoold*rho_old )*kx;
-            fields(i,j,k,Idx::Eyp) =  0.* Eyp_old + Psi1*Ey_old
-                        - Psi2*c2*I*(kz*Bx_old - kx*Bz_old)
-                        + Jcoef*Jy*inv_ep0 +( CRhonew * rho_new +  CRhoold*rho_old )*ky;
-            fields(i,j,k,Idx::Ezp) =  0.* Ezp_old  + Psi1*Ez_old
-                        - Psi2*c2*I*(kx*By_old - ky*Bx_old)
-                        + Jcoef*Jz*inv_ep0 + ( CRhonew * rho_new +  CRhoold*rho_old )*kz;
-            // Update B (see the original Galilean article)
-            // Note: here X1 is T2*x1/(ep0*c*c*k_norm*k_norm), where
-            // x1 has the same definition as in the original paper
-            fields(i,j,k,Idx::Bxp) = 0.* Bxp_old  + Psi1*Bx_old
-                        + I*Psi2*(ky*Ez_old - kz*Ey_old);
-                        + A1*I*(ky*Jz     - kz*Jy)*inv_ep0;
-            fields(i,j,k,Idx::Byp) = 0.* Byp_old  + Psi1*By_old
-                        + I*Psi2*(kz*Ex_old - kx*Ez_old);
-                        + A1*I*(kz*Jx     - kx*Jz)*inv_ep0;
-            fields(i,j,k,Idx::Bzp) = 0.* Bzp_old + Psi1*Bz_old
-                        + I*Psi2*(kx*Ey_old - ky*Ex_old);
-                        + A1*I*(kx*Jy     - ky*Jx)*inv_ep0;
-            Print()<<"------------------ "<<i<<'|'<<j<<'|'<<k<<'|'<<kz<<'*****'<<'|||'<<'\n';
+            // fields(i,j,k,Idx::Exp) = 0.* Exp_old + Psi1*Ex_old
+            //             - Psi2*c2*I*(ky*Bz_old - kz*By_old)
+            //             + Jcoef*Jx*inv_ep0 + ( CRhonew * rho_new +  CRhoold*rho_old )*kx;
+            // fields(i,j,k,Idx::Eyp) =  0.* Eyp_old + Psi1*Ey_old
+            //             - Psi2*c2*I*(kz*Bx_old - kx*Bz_old)
+            //             + Jcoef*Jy*inv_ep0 +( CRhonew * rho_new +  CRhoold*rho_old )*ky;
+            // fields(i,j,k,Idx::Ezp) =  0.* Ezp_old  + Psi1*Ez_old
+            //             - Psi2*c2*I*(kx*By_old - ky*Bx_old)
+            //             + Jcoef*Jz*inv_ep0 + ( CRhonew * rho_new +  CRhoold*rho_old )*kz;
+            // // Update B (see the original Galilean article)
+            // // Note: here X1 is T2*x1/(ep0*c*c*k_norm*k_norm), where
+            // // x1 has the same definition as in the original paper
+            // fields(i,j,k,Idx::Bxp) = 0.* Bxp_old  + Psi1*Bx_old
+            //             + I*Psi2*(ky*Ez_old - kz*Ey_old);
+            //             + A1*I*(ky*Jz     - kz*Jy)*inv_ep0;
+            // fields(i,j,k,Idx::Byp) = 0.* Byp_old  + Psi1*By_old
+            //             + I*Psi2*(kz*Ex_old - kx*Ez_old);
+            //             + A1*I*(kz*Jx     - kx*Jz)*inv_ep0;
+            // fields(i,j,k,Idx::Bzp) = 0.* Bzp_old + Psi1*Bz_old
+            //             + I*Psi2*(kx*Ey_old - ky*Ex_old);
+            //             + A1*I*(kx*Jy     - ky*Jx)*inv_ep0;
+            // Print()<<"------------------ "<<i<<'|'<<j<<'|'<<k<<'|'<<kz<<'*****'<<'|||'<<'\n';
 
         });
     }
