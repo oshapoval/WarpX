@@ -27,10 +27,18 @@ namespace {
         SpectralSolver& solver,
         std::array<std::unique_ptr<amrex::MultiFab>,3>& Efield,
         std::array<std::unique_ptr<amrex::MultiFab>,3>& Bfield,
-        std::array<std::unique_ptr<amrex::MultiFab>,3>& current,
-        std::unique_ptr<amrex::MultiFab>& rho ) {
 
-        using Idx = SpectralFieldIndex;
+        std::array<std::unique_ptr<amrex::MultiFab>,3>& Efield_avg, //oshapoval
+        std::array<std::unique_ptr<amrex::MultiFab>,3>& Bfield_avg, //oshapoval
+
+
+        std::array<std::unique_ptr<amrex::MultiFab>,3>& current,
+        std::unique_ptr<amrex::MultiFab>& rho,
+        bool galilean_averaged) {
+
+        //using Idx = SpectralFieldIndex;
+        using Idx = SpectralAvgFieldIndex; //oshapoval
+
 
         // Perform forward Fourier transform
         solver.ForwardTransform(*Efield[0], Idx::Ex);
@@ -53,6 +61,16 @@ namespace {
         solver.BackwardTransform(*Bfield[0], Idx::Bx);
         solver.BackwardTransform(*Bfield[1], Idx::By);
         solver.BackwardTransform(*Bfield[2], Idx::Bz);
+
+        if (galilean_averaged) {
+            solver.BackwardTransform(*Efield_avg[0], Idx::Ex_avg); //oshapoval
+            solver.BackwardTransform(*Efield_avg[1], Idx::Ey_avg);//oshapoval
+            solver.BackwardTransform(*Efield_avg[2], Idx::Ez_avg);//oshapoval
+            solver.BackwardTransform(*Bfield_avg[0], Idx::Bx_avg);//oshapoval
+            solver.BackwardTransform(*Bfield_avg[1], Idx::By_avg);//oshapoval
+            solver.BackwardTransform(*Bfield_avg[2], Idx::Bz_avg);//oshapoval
+      }
+
     }
 }
 
@@ -81,10 +99,10 @@ WarpX::PushPSATD_localFFT (int lev, amrex::Real /* dt */)
 {
     // Update the fields on the fine and coarse patch
     PushPSATDSinglePatch( *spectral_solver_fp[lev],
-        Efield_fp[lev], Bfield_fp[lev], current_fp[lev], rho_fp[lev] );
+        Efield_fp[lev], Bfield_fp[lev], Efield_avg_fp[lev], Bfield_avg_fp[lev], current_fp[lev], rho_fp[lev],galilean_averaged ); //oshapoval
     if (spectral_solver_cp[lev]) {
         PushPSATDSinglePatch( *spectral_solver_cp[lev],
-             Efield_cp[lev], Bfield_cp[lev], current_cp[lev], rho_cp[lev] );
+             Efield_cp[lev], Bfield_cp[lev], Efield_cp[lev], Bfield_cp[lev], current_cp[lev], rho_cp[lev],galilean_averaged ); //WRONG!!!! oshapoval
     }
 }
 #endif

@@ -286,6 +286,7 @@ protected:
     amrex::Array<amrex::Real,3> v_galilean = {0,0,0};
     std::map<std::string, int> particle_comps;
     std::map<std::string, int> particle_icomps;
+    bool galilean_averaged = false; //oshapoval
 
     int species_id;
 

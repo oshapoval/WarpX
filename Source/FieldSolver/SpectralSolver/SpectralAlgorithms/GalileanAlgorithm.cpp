@@ -268,12 +268,12 @@ GalileanAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             const Complex Bz_old = fields(i,j,k,Idx::Bz);
 
 
-            const Complex Exp_old = fields(i,j,k,Idx::Exp);
-            const Complex Eyp_old = fields(i,j,k,Idx::Eyp);
-            const Complex Ezp_old = fields(i,j,k,Idx::Ezp);
-            const Complex Bxp_old = fields(i,j,k,Idx::Bxp);
-            const Complex Byp_old = fields(i,j,k,Idx::Byp);
-            const Complex Bzp_old = fields(i,j,k,Idx::Bzp);
+            // const Complex Exp_old = fields(i,j,k,Idx::Exp);
+            // const Complex Eyp_old = fields(i,j,k,Idx::Eyp);
+            // const Complex Ezp_old = fields(i,j,k,Idx::Ezp);
+            // const Complex Bxp_old = fields(i,j,k,Idx::Bxp);
+            // const Complex Byp_old = fields(i,j,k,Idx::Byp);
+            // const Complex Bzp_old = fields(i,j,k,Idx::Bzp);
 
 
             // Shortcut for the values of J and rho

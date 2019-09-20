@@ -82,6 +82,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     ppsatd.query("v_galilean", v_galilean);
     // Scale the velocity by the speed of light
     for (int i=0; i<3; i++) v_galilean[i] *= PhysConst::c;
+    ppsatd.query("galilean_averaged", galilean_averaged); //oshapoval
 
 }
 
@@ -944,12 +945,14 @@ void
 PhysicalParticleContainer::Evolve (int lev,
                                    const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                    const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+                                   const MultiFab& Ex_avg, const MultiFab& Ey_avg, const MultiFab& Ez_avg,
+                                   const MultiFab& Bx_avg, const MultiFab& By_avg, const MultiFab& Bz_avg,
                                    MultiFab& jx, MultiFab& jy, MultiFab& jz,
                                    MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
                                    MultiFab* rho, MultiFab* crho,
                                    const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
                                    const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
-                                   Real t, Real dt)
+                                   Real t, Real dt) //oshapoval
 {
     BL_PROFILE("PPC::Evolve()");
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
@@ -1025,12 +1028,22 @@ PhysicalParticleContainer::Evolve (int lev,
             const long np = pti.numParticles();
 
             // Data on the grid
-            FArrayBox const* exfab = &(Ex[pti]);
-            FArrayBox const* eyfab = &(Ey[pti]);
-            FArrayBox const* ezfab = &(Ez[pti]);
-            FArrayBox const* bxfab = &(Bx[pti]);
-            FArrayBox const* byfab = &(By[pti]);
-            FArrayBox const* bzfab = &(Bz[pti]);
+            if (galilean_averaged){
+              FArrayBox const* exfab = &(Ex_avg[pti]);
+              FArrayBox const* eyfab = &(Ey_avg[pti]);
+              FArrayBox const* ezfab = &(Ez_avg[pti]);
+              FArrayBox const* bxfab = &(Bx_avg[pti]);
+              FArrayBox const* byfab = &(By_avg[pti]);
+              FArrayBox const* bzfab = &(Bz_avg[pti]);
+            } else if{
+              FArrayBox const* exfab = &(Ex[pti]);
+              FArrayBox const* eyfab = &(Ey[pti]);
+              FArrayBox const* ezfab = &(Ez[pti]);
+              FArrayBox const* bxfab = &(Bx[pti]);
+              FArrayBox const* byfab = &(By[pti]);
+              FArrayBox const* bzfab = &(Bz[pti]);
+            }
+
 
             Elixir exeli, eyeli, ezeli, bxeli, byeli, bzeli;
             if (WarpX::use_fdtd_nci_corr)

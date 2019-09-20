@@ -3,7 +3,7 @@
 #include <PsatdAlgorithm.H>
 #include <GalileanAlgorithm.H>
 #include <PMLPsatdAlgorithm.H>
-
+#include <AvgGalileanAlgorithm.H>
 
 /* \brief Initialize the spectral Maxwell solver
  *
@@ -26,7 +26,7 @@ SpectralSolver::SpectralSolver(
                 const int norder_z, const bool nodal,
                 const amrex::Array<amrex::Real,3>& v_galilean,
                 const amrex::RealVect dx, const amrex::Real dt,
-                const bool pml ) {
+                const bool pml, const bool galilean_averaged ) {
 
     // Initialize all structures using the same distribution mapping dm
 
@@ -37,8 +37,10 @@ SpectralSolver::SpectralSolver(
 
     // - Select the algorithm depending on the input parameters
     //   Initialize the corresponding coefficients over k space
-
-    if (pml) {
+    if (galilean_averaged) {
+        algorithm = std::unique_ptr<AvgGalileanAlgorithm>( new AvgGalileanAlgorithm(
+            k_space, dm, norder_x, norder_y, norder_z, nodal, v_galilean, dt, galilean_averaged) );
+    } else if (pml) {
         algorithm = std::unique_ptr<PMLPsatdAlgorithm>( new PMLPsatdAlgorithm(
             k_space, dm, norder_x, norder_y, norder_z, nodal, dt ) );
     } else if ((v_galilean[0]==0) && (v_galilean[1]==0) && (v_galilean[2]==0)){

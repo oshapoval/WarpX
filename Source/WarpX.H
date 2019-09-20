@@ -616,9 +616,12 @@ private:
     void PushPSATD_localFFT (int lev, amrex::Real dt);
 
     bool fft_hybrid_mpi_decomposition = false;
+    bool galilean_averaged = true;
+
     int ngroups_fft = 4;
     int fftw_plan_measure = 1;
     amrex::Array<amrex::Real,3> v_galilean = {0,0,0};
+
     int nox_fft = 16;
     int noy_fft = 16;
     int noz_fft = 16;
