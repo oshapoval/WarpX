@@ -475,7 +475,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     const bool galilean_averaged = false;
     realspace_ba.enclosedCells().grow(nge); // cell-centered + guard cells
     spectral_solver_fp.reset( new SpectralSolver( realspace_ba, dm,
-        nox_fft, noy_fft, noz_fft, do_nodal, v_galilean_zero, dx, dt, in_pml, galilean_averaged ) ); //oshapoval
+        nox_fft, noy_fft, noz_fft, do_nodal, v_galilean, dx, dt, in_pml, galilean_averaged ) ); //oshapoval
 #endif
 
     if (cgeom)
