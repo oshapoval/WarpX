@@ -1,6 +1,7 @@
 #ifndef WARPX_H_
 #define WARPX_H_
 
+#include "WarpXDtType.H"
 #include <MultiParticleContainer.H>
 #include <PML.H>
 #include <BoostedFrameDiagnostic.H>
@@ -37,13 +38,6 @@ namespace amrex {
 class AmrMeshInSituBridge;
 }
 #endif
-
-enum struct DtType : int
-{
-    Full = 0,
-    FirstHalf,
-    SecondHalf
-};
 
 enum struct PatchType : int
 {
@@ -201,7 +195,7 @@ public:
 
     void CopyJPML ();
 
-    void PushParticlesandDepose (int lev, amrex::Real cur_time);
+    void PushParticlesandDepose (int lev, amrex::Real cur_time, DtType a_dt_type=DtType::Full);
     void PushParticlesandDepose (         amrex::Real cur_time);
 
     // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
@@ -609,6 +603,9 @@ private:
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp_fft;
 #endif
 
+
+amrex::Vector<amrex::Real> v_galilean = {0.,0.,0.};
+
 #ifdef WARPX_USE_PSATD
 private:
     void EvolvePSATD (int numsteps);
@@ -620,8 +617,6 @@ private:
 
     int ngroups_fft = 4;
     int fftw_plan_measure = 1;
-    amrex::Array<amrex::Real,3> v_galilean = {0,0,0};
-
     int nox_fft = 16;
     int noy_fft = 16;
     int noz_fft = 16;

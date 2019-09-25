@@ -547,10 +547,9 @@ WarpX::ReadParameters ()
         pp.query("nox", nox_fft);
         pp.query("noy", noy_fft);
         pp.query("noz", noz_fft);
-        pp.query("galilean_averaged", galilean_averaged); //oshapoval
-        pp.query("v_galilean", v_galilean);
-	    // Scale the velocity by the speed of light
-	    for (int i=0; i<3; i++) v_galilean[i] *= PhysConst::c;
+        pp.queryarr("v_galilean", v_galilean);
+        // Scale the velocity by the speed of light
+        for (int i=0; i<3; i++) v_galilean[i] *= PhysConst::c;
     }
 #endif
 
@@ -762,7 +761,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         // for nodal, and half the order of the solver for staggered.
         IntVect ngFFT;
         if (do_nodal) {
-            ngFFT = IntVect(AMREX_D_DECL(nox_fft, noy_fft,noz_fft));
+            ngFFT = IntVect(AMREX_D_DECL(nox_fft, noy_fft, noz_fft));
         } else {
             ngFFT = IntVect(AMREX_D_DECL(nox_fft/2, noy_fft/2, noz_fft/2));
         }
@@ -810,18 +809,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     Efield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,ncomps,ngE));
     Efield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,ncomps,ngE));
 
-    Bfield_avg_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,ncomps,ngE)); //oshapoval
-    Bfield_avg_fp[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,ncomps,ngE)); //oshapoval
-    Bfield_avg_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,ncomps,ngE)); //oshapoval
-
-    Efield_avg_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,ncomps,ngE)); //oshapoval
-    Efield_avg_fp[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,ncomps,ngE)); //oshapoval
-    Efield_avg_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,ncomps,ngE)); //oshapoval
-
-    current_fp[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
-    current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
-    current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
-
     current_fp[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,ncomps,ngJ));
     current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,ncomps,ngJ));
     current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,ncomps,ngJ));
@@ -860,7 +847,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
         // Define spectral solver
         spectral_solver_fp[lev].reset( new SpectralSolver( realspace_ba, dm,
-            nox_fft, noy_fft, noz_fft, do_nodal, v_galilean, dx_vect, dt[lev], galilean_averaged ) ); //oshapoval
+            nox_fft, noy_fft, noz_fft, do_nodal, v_galilean, dx_vect, dt[lev] ) );
     }
 #endif
 
@@ -933,7 +920,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             realspace_ba.enclosedCells().grow(ngE); // cell-centered + guard cells
             // Define spectral solver
             spectral_solver_cp[lev].reset( new SpectralSolver( realspace_ba, dm,
-                nox_fft, noy_fft, noz_fft, do_nodal, v_galilean, cdx_vect, dt[lev],galilean_averaged ) ); //oshapoval
+                nox_fft, noy_fft, noz_fft, do_nodal, v_galilean, cdx_vect, dt[lev] ) );
         }
 #endif
     }
@@ -941,12 +928,13 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     //
     // Copy of the coarse aux
     //
-    if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0))
+    if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0 ||
+                    mypc->nSpeciesGatherFromMainGrid() > 0))
     {
         BoxArray cba = ba;
         cba.coarsen(refRatio(lev-1));
 
-        if (n_field_gather_buffer > 0) {
+        if (n_field_gather_buffer > 0 || mypc->nSpeciesGatherFromMainGrid() > 0) {
             // Create the MultiFabs for B
             Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,ncomps,ngE));
             Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,ncomps,ngE));
