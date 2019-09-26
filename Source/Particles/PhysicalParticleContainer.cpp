@@ -1028,14 +1028,15 @@ PhysicalParticleContainer::Evolve (int lev,
             const long np = pti.numParticles();
 
             // Data on the grid
-            if (galilean_averaged){
+            if (galilean_averaged)
+            {
               FArrayBox const* exfab = &(Ex_avg[pti]);
               FArrayBox const* eyfab = &(Ey_avg[pti]);
               FArrayBox const* ezfab = &(Ez_avg[pti]);
               FArrayBox const* bxfab = &(Bx_avg[pti]);
               FArrayBox const* byfab = &(By_avg[pti]);
               FArrayBox const* bzfab = &(Bz_avg[pti]);
-            } else if{
+            } else {
               FArrayBox const* exfab = &(Ex[pti]);
               FArrayBox const* eyfab = &(Ey[pti]);
               FArrayBox const* ezfab = &(Ez[pti]);
@@ -1043,7 +1044,19 @@ PhysicalParticleContainer::Evolve (int lev,
               FArrayBox const* byfab = &(By[pti]);
               FArrayBox const* bzfab = &(Bz[pti]);
             }
+            // FArrayBox const* exfab = &(Ex[pti]);
+            // FArrayBox const* eyfab = &(Ey[pti]);
+            // FArrayBox const* ezfab = &(Ez[pti]);
+            // FArrayBox const* bxfab = &(Bx[pti]);
+            // FArrayBox const* byfab = &(By[pti]);
+            // FArrayBox const* bzfab = &(Bz[pti]);
 
+              // FArrayBox const* exfab = &(Ex_avg[pti]);
+              // FArrayBox const* eyfab = &(Ey_avg[pti]);
+              // FArrayBox const* ezfab = &(Ez_avg[pti]);
+              // FArrayBox const* bxfab = &(Bx_avg[pti]);
+              // FArrayBox const* byfab = &(By_avg[pti]);
+              // FArrayBox const* bzfab = &(Bz_avg[pti]);
 
             Elixir exeli, eyeli, ezeli, bxeli, byeli, bzeli;
             if (WarpX::use_fdtd_nci_corr)
