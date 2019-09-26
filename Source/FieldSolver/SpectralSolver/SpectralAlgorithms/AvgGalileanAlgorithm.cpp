@@ -9,7 +9,7 @@ AvgGalileanAlgorithm::AvgGalileanAlgorithm(const SpectralKSpace& spectral_kspace
                          const DistributionMapping& dm,
                          const int norder_x, const int norder_y,
                          const int norder_z, const bool nodal,
-                         const Array<Real, 3>& v_galilean,
+                         const Vector <Real>& v_galilean,
                          const Real dt, const bool galilean_averaged)
      // Initialize members of base classinde
      : SpectralBaseAlgorithm( spectral_kspace, dm,
