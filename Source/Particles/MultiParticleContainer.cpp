@@ -252,6 +252,7 @@ MultiParticleContainer::Evolve (int lev,
                                 const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
                                 Real t, Real dt, DtType a_dt_type)
 {
+    amrex::Print() <<lev<<"$$$$$$\n"; //oshapoval
     jx.setVal(0.0);
     jy.setVal(0.0);
     jz.setVal(0.0);

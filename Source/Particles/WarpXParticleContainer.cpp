@@ -109,6 +109,8 @@ void
 WarpXParticleContainer::ReadParameters ()
 {
     static bool initialized = false;
+    //const bool galilean_averaged= true; //
+
     if (!initialized)
     {
         ParmParse pp("particles");

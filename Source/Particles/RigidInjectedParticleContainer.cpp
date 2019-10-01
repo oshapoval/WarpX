@@ -320,6 +320,8 @@ RigidInjectedParticleContainer::Evolve (int lev,
 {
 
     // Update location of injection plane in the boosted frame
+    amrex::Print() <<lev<<"RigidPC\n"; //oshapoval
+
     zinject_plane_lev_previous = zinject_plane_levels[lev];
     zinject_plane_levels[lev] -= dt*WarpX::beta_boost*PhysConst::c;
     zinject_plane_lev = zinject_plane_levels[lev];

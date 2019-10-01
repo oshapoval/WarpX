@@ -428,6 +428,8 @@ LaserParticleContainer::Evolve (int lev,
                                 const MultiFab*, const MultiFab*, const MultiFab*,
                                 Real t, Real dt, DtType a_dt_type)
 {
+    amrex::Print() <<lev<<"LasernPC\n"; //oshapoval
+
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
     BL_PROFILE_VAR_NS("Laser::ParticlePush", blp_pp);
