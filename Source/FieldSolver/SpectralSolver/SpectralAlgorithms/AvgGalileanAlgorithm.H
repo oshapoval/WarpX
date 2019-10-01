@@ -14,13 +14,17 @@ class AvgGalileanAlgorithm : public SpectralBaseAlgorithm
                          const int norder_x, const int norder_y,
                          const int norder_z, const bool nodal,
                          const amrex::Vector<amrex::Real>& v_galilean,
-                         const amrex::Real dt, const bool galilean_averaged);
+                         const amrex::Real dt, const bool galilean_averaged); //oshapovals
         // Redefine update equation from base class
         virtual void pushSpectralFields(SpectralFieldData& f) const override final;
         virtual int getRequiredNumberOfFields() const override final {
              return SpectralAvgFieldIndex::n_fields;
     }
 
+        void InitializeSpectralCoefficients(const SpectralKSpace& spectral_kspace,
+                                        const amrex::DistributionMapping& dm,
+                                        const amrex::Vector<amrex::Real>& v_galilean,
+                                        const amrex::Real dt);
     private:
         SpectralRealCoefficients C_coef, S_ck_coef, C1_coef, C3_coef, S1_coef,S3_coef;
         SpectralComplexCoefficients Theta2_coef, X1_coef, X2_coef, X3_coef, X4_coef, Psi1_coef, Psi2_coef, Psi3_coef, Psi4_coef, A1_coef, A2_coef, Rhoold_coef, Rhonew_coef, Jcoef_coef;

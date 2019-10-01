@@ -44,6 +44,19 @@ AvgGalileanAlgorithm::AvgGalileanAlgorithm(const SpectralKSpace& spectral_kspace
     Rhonew_coef = SpectralComplexCoefficients(ba, dm, 1, 0);
     Jcoef_coef = SpectralComplexCoefficients(ba, dm, 1, 0);
 
+    InitializeSpectralCoefficients(spectral_kspace, dm, v_galilean, dt);
+}
+void AvgGalileanAlgorithm::InitializeSpectralCoefficients(const SpectralKSpace& spectral_kspace,
+                                        const amrex::DistributionMapping& dm,
+                                        const Vector<Real>& v_galilean,
+                                        const amrex::Real dt)
+{
+    Real vx = v_galilean[0];
+    Real vy = v_galilean[1];
+    Real vz = v_galilean[2];
+
+    const BoxArray& ba = spectral_kspace.spectralspace_ba;
+
     // Fill them with the right values:
     // Loop over boxes and allocate the corresponding coefficients
     // for each box owned by the local MPI proc
@@ -79,10 +92,6 @@ AvgGalileanAlgorithm::AvgGalileanAlgorithm(const SpectralKSpace& spectral_kspace
         Array4<Complex> CRhoold = Rhoold_coef[mfi].array();
         Array4<Complex> CRhonew = Rhonew_coef[mfi].array();
         Array4<Complex> Jcoef   = Jcoef_coef[mfi].array();
-        // Extract reals (for portability on GPU)
-        Real vx = v_galilean[0];
-        Real vy = v_galilean[1];
-        Real vz = v_galilean[2];
 
         // Loop over indices within one box
         ParallelFor(bx,
@@ -121,8 +130,10 @@ AvgGalileanAlgorithm::AvgGalileanAlgorithm(const SpectralKSpace& spectral_kspace
 #else
                                  modified_kz[j]*vz;
 #endif
-
+                amrex::Print() <<"kv = "<<kv<<"+++\n"; //oshapoval
                 const Real nu = kv/(k_norm*c);
+                amrex::Print() <<"nu="<<nu<<"------\n"; //oshapoval
+
                 const Complex theta = std::exp( 0.5*I*kv*dt );
                 const Complex theta_star = std::exp( -0.5*I*kv*dt );
                 const Complex e_theta = std::exp( I*c*k_norm*dt );
@@ -282,7 +293,7 @@ AvgGalileanAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             // k vector values, and coefficients
             const Real kx = modified_kx_arr[i];
 
-            //Print()<<"------------------ "<<kx<<'------------------'<<'\n';
+            Print()<<"------------------ "<<kx<<'------------------'<<'\n';
 #if (AMREX_SPACEDIM==3)
             const Real ky = modified_ky_arr[j];
             const Real kz = modified_kz_arr[k];
