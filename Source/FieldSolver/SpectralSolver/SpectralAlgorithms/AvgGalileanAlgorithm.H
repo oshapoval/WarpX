@@ -22,9 +22,9 @@ class AvgGalileanAlgorithm : public SpectralBaseAlgorithm
     }
 
     private:
-        SpectralRealCoefficients C_coef, S_ck_coef, C1_coef, C3_coef, S1_coef,S3_coef;
-        SpectralComplexCoefficients Theta2_coef, X1_coef, X2_coef, X3_coef, X4_coef, Psi1_coef, Psi2_coef, Psi3_coef, Psi4_coef, A1_coef, A2_coef, Rhoold_coef, Rhonew_coef, Jcoef_coef;
-
+        SpectralRealCoefficients C_coef, S_coef, S_ck_coef, C1_coef, C3_coef, S1_coef,S3_coef;
+        SpectralComplexCoefficients Theta2_coef, X1_coef, X2_coef, X3_coef, X4_coef, Psi1_coef, Psi2_coef, Psi3_coef,Psi4_coef, A1_coef, A2_coef, Rhoold_coef, Rhonew_coef, Jcoef_coef, EpJmult_coef, BpJmult_coef,EBpmult_coef, BEpmult_coef, EJmult_coef, BJmult_coef, ERhomult_coef, ERhooldmult_coef, Rhocoef_coef, EpRhomult_coef, EpRhooldmult_coef;
+        std::complex<long double> Psi0, Psi0_arr;
 };
 
 #endif // WARPX_GALILEAN_ALGORITHM_H_

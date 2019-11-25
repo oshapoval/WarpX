@@ -792,7 +792,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         IntVect ngFFT;
         if (do_nodal) {
             //ngFFT = IntVect(AMREX_D_DECL(nox_fft, noy_fft, noz_fft));
-            ngFFT = IntVect(AMREX_D_DECL(32,32,32));
+            //ngFFT = IntVect(AMREX_D_DECL(8,8,8));
+            //ngFFT = IntVect(AMREX_D_DECL(50,50,50));
 
         } else {
             ngFFT = IntVect(AMREX_D_DECL(nox_fft/2, noy_fft/2, noz_fft/2));

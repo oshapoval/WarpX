@@ -1,6 +1,7 @@
 #include <WarpXConst.H>
 #include <SpectralKSpace.H>
 #include <cmath>
+#include <math.h> //oshapoval
 
 using namespace amrex;
 using namespace Gpu;
@@ -83,6 +84,8 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm,
         // Fill the k vector
         IntVect fft_size = realspace_ba[mfi].length();
         const Real dk = 2*MathConst::pi/(fft_size[i_dim]*dx[i_dim]);
+        //Print()<<"Parameters:"<< dk << ' '<<MathConst::pi << ' '<<fft_size[i_dim]<< ' '<<dx[i_dim]<<' '<<'\n';
+
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.smallEnd(i_dim) == 0,
             "Expected box to start at 0, in spectral space.");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( bx.bigEnd(i_dim) == N-1,
@@ -92,6 +95,8 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm,
             // (typically: first axis, in a real-to-complex FFT)
             for (int i=0; i<N; i++ ){
                 k[i] = i*dk;
+                Print()<<" k[i]"<< ' '<<i <<' '<<k[i]<<' '<<'\n';
+
             }
         } else {
             const int mid_point = (N+1)/2;
@@ -108,6 +113,8 @@ SpectralKSpace::getKComponent( const DistributionMapping& dm,
         }
         // TODO: this will be different for the hybrid FFT scheme
     }
+    //Print()<<" kxxxxxx:"<< ' '<< i << ' ' <<k[i]<<' '<<coefs[n]<<' '<<'\n';
+
     return k_comp;
 }
 
@@ -193,10 +200,16 @@ SpectralKSpace::getModifiedKComponent( const DistributionMapping& dm,
         // Fill the modified k vector
         for (int i=0; i<k.size(); i++ ){
             modified_k[i] = 0;
-            for (int n=1; n<stencil_coef.size(); n++){
+            //for (int n=1; n<stencil_coef.size(); n++){//
+
+            for (int n=0; n<stencil_coef.size(); n++){// oshapoval
                 if (nodal){
-                    modified_k[i] += stencil_coef[n]* \
-                        std::sin( k[i]*n*delta_x )/( n*delta_x );
+                    //modified_k[i] = k[i]; //oshapoval
+                    modified_k[i] += 2.*stencil_coef[n]* \
+                        std::sin( k[i]*(n+1)*delta_x )/( delta_x ); //oshapoval
+                    // //
+                    // modified_k[i] += stencil_coef[n]* \
+                    //     std::sin( k[i]*n*delta_x )/( n*delta_x );
                 } else {
                     modified_k[i] += stencil_coef[n]* \
                         std::sin( k[i]*(n-0.5)*delta_x )/( (n-0.5)*delta_x );
@@ -229,10 +242,21 @@ getFonbergStencilCoefficients( const int n_order, const bool nodal )
     // by recurrence.
 
     // Coefficients for nodal (a.k.a. centered) finite-difference
+    // if (nodal == true) {
+    //     coefs[0] = -2.; // First coefficient
+    //     for (int n=1; n<m+1; n++){ // Get the other coefficients by recurrence
+    //         coefs[n] = - (m+1-n)*1./(m+n)*coefs[n-1];
+    //         Print()<<" Fonberg coeffs:"<< ' '<<n<<' '<<coefs[n]<<' '<<'\n';
+
     if (nodal == true) {
-        coefs[0] = -2.; // First coefficient
-        for (int n=1; n<m+1; n++){ // Get the other coefficients by recurrence
-            coefs[n] = - (m+1-n)*1./(m+n)*coefs[n-1];
+        for (int n=0; n<m; n++){ // Get the other coefficients by recurrence
+            int l = n+1;
+            double lognumer = 2.*std::log(tgamma(m+1));
+            double logdenom = std::log(tgamma(m+1+l)) + std::log(tgamma(m+1-l)) + std::log(l);
+            coefs[n] = std::pow(-1,l+1) * std::exp(lognumer - logdenom);
+            Print()<<" Fonberg coeffs:"<< ' '<<n <<' '<<coefs[n]<<' '<<'\n';
+
+
         }
     }
     // Coefficients for staggered finite-difference

@@ -29,7 +29,7 @@ static_assert( sizeof(Complex) == sizeof(fftw_complex),
 #endif // WARPX_USE_PSATD
 
 #endif // AMREX_USE_GPU
-static_assert(sizeof(Complex) == sizeof(amrex::Real[2]),
+static_assert(sizeof(Complex) ==sizeof(amrex::Real[2]),
               "Unexpected complex type.");
 
 // wrapper around math functions, to run on CPU or accelerator.
