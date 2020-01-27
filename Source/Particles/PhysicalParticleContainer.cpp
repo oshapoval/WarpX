@@ -1222,10 +1222,10 @@ PhysicalParticleContainer::Evolve (int lev,
                     ion_lev = nullptr;
                 }
                 DepositCharge(pti, wp, ion_lev, rho, 0, 0,
-                              np_current, thread_num, lev, lev);
+                              np_current, thread_num, lev, lev, dt);
                 if (has_buffer){
                     DepositCharge(pti, wp, ion_lev, crho, 0, np_current,
-                                  np-np_current, thread_num, lev, lev-1);
+                                  np-np_current, thread_num, lev, lev-1, dt);
                 }
             }
 
@@ -1341,10 +1341,10 @@ PhysicalParticleContainer::Evolve (int lev,
                     ion_lev = nullptr;
                 }
                 DepositCharge(pti, wp, ion_lev, rho, 1, 0,
-                              np_current, thread_num, lev, lev);
+                              np_current, thread_num, lev, lev, dt);
                 if (has_buffer){
                     DepositCharge(pti, wp, ion_lev, crho, 1, np_current,
-                                  np-np_current, thread_num, lev, lev-1);
+                                  np-np_current, thread_num, lev, lev-1, dt);
                 }
             }
 
@@ -1712,8 +1712,10 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                 UpdateMomentumBoris( ux[i], uy[i], uz[i],
                                      Ex[i], Ey[i], Ez[i], Bx[i],
                                      By[i], Bz[i], qp, m, dt);
-                UpdatePositionGalilean( x[i], y[i], z[i],
-                                ux[i], uy[i], uz[i], vx, vy, vz, dt );
+                // UpdatePositionGalilean( x[i], y[i], z[i],
+                //                 ux[i], uy[i], uz[i], vx, vy, vz, dt );
+                UpdatePosition( x[i], y[i], z[i],
+                                     ux[i], uy[i], uz[i], dt );
             }
         );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::Vay) {
@@ -1725,8 +1727,10 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                 UpdateMomentumVay( ux[i], uy[i], uz[i],
                                    Ex[i], Ey[i], Ez[i], Bx[i],
                                    By[i], Bz[i], qp, m, dt);
-                UpdatePositionGalilean( x[i], y[i], z[i],
-                                ux[i], uy[i], uz[i], vx, vy, vz, dt );
+                // UpdatePositionGalilean( x[i], y[i], z[i],
+                //                 ux[i], uy[i], uz[i], vx, vy, vz, dt );
+                UpdatePosition( x[i], y[i], z[i],
+                                     ux[i], uy[i], uz[i], dt );
             }
         );
     } else if (WarpX::particle_pusher_algo == ParticlePusherAlgo::HigueraCary) {
@@ -2234,7 +2238,22 @@ PhysicalParticleContainer::FieldGather (WarpXParIter& pti,
     const ParticleReal * const AMREX_RESTRICT yp = m_yp[thread_num].dataPtr() + offset;
 
     // Lower corner of tile box physical domain
-    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(box, gather_lev);
+    Real cur_time = WarpX::GetInstance().gett_new(lev); //oshapoval
+    //cur_time += dt;
+    //amrex::Print() <<"FieldGather:"<<' '<< "dt = "<<  dt << "------\n"; //oshapoval
+
+    const auto& time_of_last_gal_shift = WarpX::GetInstance().time_of_last_gal_shift;
+    //amrex::Print() <<"FieldGather:"<<' '<< "time_of_last_gal_shift = "<<  time_of_last_gal_shift << "------\n"; //oshapoval
+
+    //amrex::Print() <<"FieldGather:"<<' '<< "cur_time = "<<  cur_time << "------\n"; //oshapoval
+
+    Real time_shift = (cur_time - time_of_last_gal_shift); //oshapoval ????
+    amrex::Array<amrex::Real,3> galilean_shift = { v_galilean[0]*time_shift, v_galilean[1]*time_shift, v_galilean[2]*time_shift };
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(box, gather_lev, galilean_shift); //oshapoval ???
+    //amrex::Print() <<"FieldGather:"<<' '<< "cur_time= "<<  cur_time << "------\n"; //oshapoval
+    amrex::Print() <<"FieldGather:"<<' '<< "time_shift= "<<  time_shift<< "------\n"; //oshapoval
+
+
 
     const Dim3 lo = lbound(box);
 

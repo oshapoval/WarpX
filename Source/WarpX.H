@@ -50,6 +50,8 @@ enum struct PatchType : int
     coarse
 };
 
+
+
 class WarpX
     : public amrex::AmrCore
 {
@@ -157,7 +159,7 @@ public:
     static int do_subcycling;
 
     // buffers
-    static int n_field_gather_buffer;       //! in number of cells from the edge (identical for each dimension)
+    static int n_field_gather_buffer;        //! in number of cells from the edge (identical for each dimension)
     static int n_current_deposition_buffer; //! in number of cells from the edge (identical for each dimension)
 
     // do nodal
@@ -167,7 +169,7 @@ public:
     const amrex::MultiFab& getEfield  (int lev, int direction) {return *Efield_aux[lev][direction];}
     const amrex::MultiFab& getBfield  (int lev, int direction) {return *Bfield_aux[lev][direction];}
 
-    const amrex::MultiFab& getcurrent_cp (int lev, int direction) {return *current_cp[lev][direction];}
+    const amrex::MultiFab& getcurrent_cp (int lev, int direction) {return  *current_cp[lev][direction];}
     const amrex::MultiFab& getEfield_cp  (int lev, int direction) {return  *Efield_cp[lev][direction];}
     const amrex::MultiFab& getBfield_cp  (int lev, int direction) {return  *Bfield_cp[lev][direction];}
 
@@ -188,6 +190,8 @@ public:
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_exeybz;
     amrex::Vector< std::unique_ptr<NCIGodfreyFilter> > nci_godfrey_filter_bxbyez;
 
+    amrex::Real time_of_last_gal_shift  = 0; //oshapoval
+
     static int num_mirrors;
     amrex::Vector<amrex::Real> mirror_z;
     amrex::Vector<amrex::Real> mirror_z_width;
@@ -198,6 +202,7 @@ public:
     void ComputeDt ();
     // Compute max_step automatically for simulations in a boosted frame.
     void computeMaxStepBoostAccelerator(const amrex::Geometry& geom);
+    void GalileanShift ();
     int  MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
@@ -280,11 +285,11 @@ public:
 
     static std::array<amrex::Real,3> CellSize (int lev);
     static amrex::RealBox getRealBox(const amrex::Box& bx, int lev);
-    static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
+    static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev, std::array<amrex::Real,3> galilean_shift); //oshapoval
     static std::array<amrex::Real,3> UpperCorner (const amrex::Box& bx, int lev);
     // Returns the locations of the lower corner of the box, shifted up
     // a half cell if cell centered.
-    static std::array<amrex::Real,3> LowerCornerWithCentering (const amrex::Box& bx, int lev);
+    //static std::array<amrex::Real,3> LowerCornerWithCentering (const amrex::Box& bx, int lev, std::array<amrex::Real,3> galilean_shift); //oshapoval
 
     static amrex::IntVect RefRatio (int lev);
 

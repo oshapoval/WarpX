@@ -15,7 +15,7 @@ void ReadBoostedFrameParameters(amrex::Real& gamma_boost, amrex::Real& beta_boos
 void ConvertLabParamsToBoost();
 
 void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin,
-               amrex::Real zmax);
+               amrex::Real zmax, amrex::Real dt, amrex::Vector<amrex::Real>& v_galilean);
 
 /**
  * \brief Parse a string (typically a mathematical expression) from the

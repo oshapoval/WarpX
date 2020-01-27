@@ -328,6 +328,70 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir,
     }
 }
 
+
+void
+WarpX::GalileanShift ()
+{
+
+    // Update the continuous position of the moving window,
+    // and of the plasma injection
+    Real cur_time = t_new[0];    //oshapoval
+
+    WarpX:: time_of_last_gal_shift;
+
+    //Real cur_time = WarpX::GetInstance().gett_new(lev); //oshapoval
+    //const auto& time_of_last_gal_shift = WarpX::GetInstance().time_of_last_gal_shift;
+    amrex::Print() <<"ResetProbDomain:" << ' '  << "cur_time= " <<  cur_time << "------\n"; //oshapoval
+    amrex::Print() <<"ResetProbDomain:" << ' '  << "time_of_last_gal_shift= " <<  time_of_last_gal_shift << "------\n"; //oshapoval
+    amrex::Print() <<"ResetProbDomain:" << ' '  << "cur_time== " <<  cur_time << "------\n"; //oshapoval
+
+
+    Real new_lo[AMREX_SPACEDIM];
+    Real new_hi[AMREX_SPACEDIM];
+    const Real* current_lo = geom[0].ProbLo();
+    const Real* current_hi = geom[0].ProbHi();
+
+    // update the problem domain. Note the we only do this on the base level because
+    // amrex::Geometry objects share the same, static RealBox.
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        new_lo[i] = current_lo[i];
+        new_hi[i] = current_hi[i];
+        amrex::Print() <<"i = " << ' ' << i << ' ' << "new_locations= " <<  ' ' <<  new_lo[i] << ' ' <<new_hi[i]  << "------\n"; //oshapoval
+
+    }
+
+    Real time_shift = (cur_time - time_of_last_gal_shift);
+    amrex::Array<amrex::Real,3> galilean_shift = { v_galilean[0]* time_shift, v_galilean[1]*time_shift, v_galilean[2]*time_shift };
+    amrex::Print() <<"ResetProbDomain:" << ' ' << "time_shift= " <<  time_shift<< "------\n"; //oshapoval
+    amrex::Print() <<"ResetProbDomain:" << ' ' << "v_galilean[2]= " <<  v_galilean[2]<< "------\n"; //oshapoval
+
+    // new_lo[2] = current_lo[2] + galilean_shift[2];
+    // new_hi[2] = current_hi[2] + galilean_shift[2];
+
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        new_lo[i] = current_lo[i] + galilean_shift[i];
+        new_hi[i] = current_hi[i] + galilean_shift[i];
+        amrex::Print() <<"i = " << ' ' << i << ' ' << "galilean_shift= " <<  ' ' <<  galilean_shift[i]<< "------\n"; //oshapoval
+        amrex::Print() <<"i = " << ' ' << i << ' ' << "v_galilean= " <<  ' ' << v_galilean[i]<< "------\n"; //oshapoval
+        //amrex::Print() <<"i = " << ' ' << i << ' ' << "new_locations= " <<  ' ' <<  new_lo[i] << ' ' <<new_hi[i]  << "------\n"; //oshapoval
+
+    }
+
+    time_of_last_gal_shift = cur_time; //oshapoval
+    //amrex::Print() <<"ResetProbDomain:" <<' '<< "galilean_shift[2]= " <<  galilean_shift[2] << "------\n"; //oshapoval
+    amrex::Print() <<"ResetProbDomain:" << ' '  << "UPDATED: time_of_last_gal_shift= " <<  time_of_last_gal_shift << "------\n"; //oshapoval
+
+    // for (int i=0; i<AMREX_SPACEDIM; i++) {
+    //     new_lo[i] = current_lo[i] + galilean_shift[i];
+    //     new_hi[i] = current_hi[i] + galilean_shift[i];
+    // }
+
+    amrex::Print() <<"ResetProbDomain:" << ' '  << "time_of_last_gal_shift= " <<  time_of_last_gal_shift << "------\n"; //oshapoval
+
+    ResetProbDomain(RealBox(new_lo, new_hi));
+}
+
+
 void
 WarpX::ResetProbDomain (const RealBox& rb)
 {

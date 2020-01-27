@@ -117,15 +117,21 @@ void ConvertLabParamsToBoost()
 /* \brief Function that sets the value of MultiFab MF to zero for z between
  * zmin and zmax.
  */
-void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin, amrex::Real zmax){
+  void NullifyMF(amrex::MultiFab& mf, int lev, amrex::Real zmin, amrex::Real zmax, amrex::Real dt, amrex::Vector<amrex::Real>& v_galilean){
     BL_PROFILE("WarpX::NullifyMF()");
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for(amrex::MFIter mfi(mf, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi){
+
+
         const amrex::Box& bx = mfi.tilebox();
         // Get box lower and upper physical z bound, and dz
-        const amrex::Real zmin_box = WarpX::LowerCorner(bx, lev)[2];
+        //Real cur_time = WarpX::GetInstance().gett_new(lev); //oshapoval
+        //Real time_shift = ( cur_time + dt*time_of_last_gal_shift );//oshapoval
+        amrex::Array<amrex::Real,3> galilean_shift = {0., 0., 0.};//oshapoval
+
+        const amrex::Real zmin_box = WarpX::LowerCorner(bx, lev, galilean_shift)[2]; //oshapoval
         const amrex::Real zmax_box = WarpX::UpperCorner(bx, lev)[2];
         amrex::Real dz  = WarpX::CellSize(lev)[2];
         // Get box lower index in the z direction

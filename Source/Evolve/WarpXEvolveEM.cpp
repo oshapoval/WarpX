@@ -166,6 +166,11 @@ WarpX::EvolveEM (int numsteps)
         // If is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
         // We might need to move j because we are going to make a plotfile.
 
+
+        amrex::Print()<< "print-1 " << ' ' << time_of_last_gal_shift << "\n";
+        GalileanShift( );
+        amrex::Print()<< "print-2 " << ' ' << time_of_last_gal_shift << "\n";
+
         int num_moved = MoveWindow(move_j);
 
         if (max_level == 0) {
@@ -655,12 +660,13 @@ WarpX::computeMaxStepBoostAccelerator(const amrex::Geometry& a_geom){
 }
 
 /* \brief Apply perfect mirror condition inside the box (not at a boundary).
- * In practice, set all fields to 0 on a section of the simulation domain
+ * In practice, set all fields to 0 on a  section of the simulation domain
  * (as for a perfect conductor with a given thickness).
  * The mirror normal direction has to be parallel to the z axis.
  */
 void
 WarpX::applyMirrors(Real time){
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(((v_galilean[0]==0) && (v_galilean[1]==0) && (v_galilean[2]==0)), "applyMirrors + galilean PSATD (or averaged galilean) not implemented yet." );
     // Loop over the mirrors
     for(int i_mirror=0; i_mirror<num_mirrors; ++i_mirror){
         // Get mirror properties (lower and upper z bounds)
@@ -686,12 +692,12 @@ WarpX::applyMirrors(Real time){
             MultiFab& By = *Bfield_fp[lev][1].get();
             MultiFab& Bz = *Bfield_fp[lev][2].get();
             // Set each field to zero between z_min and z_max
-            NullifyMF(Ex, lev, z_min, z_max);
-            NullifyMF(Ey, lev, z_min, z_max);
-            NullifyMF(Ez, lev, z_min, z_max);
-            NullifyMF(Bx, lev, z_min, z_max);
-            NullifyMF(By, lev, z_min, z_max);
-            NullifyMF(Bz, lev, z_min, z_max);
+            NullifyMF(Ex, lev, z_min, z_max, dt[lev], v_galilean); //oshapoval ???
+            NullifyMF(Ey, lev, z_min, z_max, dt[lev], v_galilean); //oshapoval
+            NullifyMF(Ez, lev, z_min, z_max, dt[lev], v_galilean); //oshapoval
+            NullifyMF(Bx, lev, z_min, z_max, dt[lev], v_galilean); //oshapoval
+            NullifyMF(By, lev, z_min, z_max, dt[lev], v_galilean); //oshapoval
+            NullifyMF(Bz, lev, z_min, z_max, dt[lev], v_galilean); //oshapoval
             if (lev>0){
                 // Get coarse patch field MultiFabs
                 MultiFab& cEx = *Efield_cp[lev][0].get();
@@ -701,12 +707,12 @@ WarpX::applyMirrors(Real time){
                 MultiFab& cBy = *Bfield_cp[lev][1].get();
                 MultiFab& cBz = *Bfield_cp[lev][2].get();
                 // Set each field to zero between z_min and z_max
-                NullifyMF(cEx, lev, z_min, z_max);
-                NullifyMF(cEy, lev, z_min, z_max);
-                NullifyMF(cEz, lev, z_min, z_max);
-                NullifyMF(cBx, lev, z_min, z_max);
-                NullifyMF(cBy, lev, z_min, z_max);
-                NullifyMF(cBz, lev, z_min, z_max);
+                NullifyMF(cEx, lev, z_min, z_max, dt[lev], v_galilean);
+                NullifyMF(cEy, lev, z_min, z_max, dt[lev], v_galilean);
+                NullifyMF(cEz, lev, z_min, z_max, dt[lev], v_galilean);
+                NullifyMF(cBx, lev, z_min, z_max, dt[lev], v_galilean);
+                NullifyMF(cBy, lev, z_min, z_max, dt[lev], v_galilean);
+                NullifyMF(cBz, lev, z_min, z_max, dt[lev], v_galilean);
             }
         }
     }

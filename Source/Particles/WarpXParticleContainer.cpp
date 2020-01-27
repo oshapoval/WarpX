@@ -350,7 +350,36 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
     // Lower corner of tile box physical domain
     // Note that this includes guard cells since it is after tilebox.ngrow
     const Dim3 lo = lbound(tilebox);
-    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
+
+    Real cur_time = WarpX::GetInstance().gett_new(lev); //oshapoval
+    //Real cur_time_new = t_new[0]; //oshapoval
+    //cur_time += dt;
+    amrex::Print() <<  "DepositCurrent:"<< ' ' <<" dt= " << dt <<"------\n"; //oshapoval
+    //amrex::Print() <<  "DepositCurrent:"<< ' ' <<" dt[0]= " << dt[0] <<"------\n"; //oshapoval
+
+    // amrex::Array<amrex::Real,3>& gal_vec;
+    // for (int i = 0; i < 3; i++){
+    //     gal_vec[i] = i;
+    // }
+    //amrex::Array<amrex::Real,3>& galilean_shift = {{ v_galilean[0],v_galilean[1], v_galilean[2] }}; //oshapoval
+    //Real time_of_last_gal_shift = WarpX::time_of_last_gal_shift;
+    const auto& time_of_last_gal_shift = WarpX::GetInstance().time_of_last_gal_shift;
+    Real time_shift = (cur_time + 0.5*dt - time_of_last_gal_shift);
+    amrex::Array<amrex::Real,3> galilean_shift = { v_galilean[0]* time_shift, v_galilean[1]*time_shift, v_galilean[2]*time_shift };
+    //galilean_shift[1] *= (cur_time + 0.5*dt - time_of_last_gal_shift);
+    // for (int i = 0; i < 3; i++){
+    //     galilean_shift[i] *= (cur_time + 0.5*dt - time_of_last_gal_shift);
+    // }
+    //amrex::Print() <<  "^^^^^^" <<' ' << " v_galilean[2] = " << v_galilean[2]<<"------\n"; //oshapoval
+    //amrex::Print() <<  "^^^^^^" <<" DepositCurrent " << cur_time << ' ' <<"------\n"; //oshapoval
+    //amrex::Print() <<  "DepositCurrent:"<< ' ' <<" time_of_last_gal_shift= " << time_of_last_gal_shift <<"------\n"; //oshapoval
+    //amrex::Print() <<  "DepositCurrent" <<" GalileanShift[2]= " << galilean_shift[2] <<"------\n"; //oshapoval
+    //amrex::Print() <<  "DepositCurrent:"<< ' ' <<" cur_time= " << cur_time <<"------\n"; //oshapoval
+    amrex::Print() <<  "DepositCurrent:"<< ' ' <<" time_shift= " << time_shift <<"------\n"; //oshapoval
+
+    //const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev, galilean_shift); //oshapoval
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev, galilean_shift); //oshapoval
+
 
     BL_PROFILE_VAR_START(blp_deposit);
     if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
@@ -430,7 +459,8 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
                                        const int * const ion_lev,
                                        amrex::MultiFab* rho, int icomp,
                                        const long offset, const long np_to_depose,
-                                       int thread_num, int lev, int depos_lev)
+                                       int thread_num, int lev, int depos_lev,
+                                       Real dt)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE((depos_lev==(lev-1)) ||
                                      (depos_lev==(lev  )),
@@ -488,7 +518,34 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 
     // Lower corner of tile box physical domain
     // Note that this includes guard cells since it is after tilebox.ngrow
-    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev);
+    //Real cur_time = t_new[0]; //oshapoval
+    Real cur_time = WarpX::GetInstance().gett_new(lev); //oshapoval
+    //cur_time += dt;
+    //amrex::Print() <<  "DepositCurrent:"<< ' ' <<" dt[0]= " << dt[0] <<"------\n"; //oshapoval
+    //amrex::Print() <<  "DepositCurrent:"<< ' ' <<" dt= " << dt <<"------\n"; //oshapoval
+
+    const auto& time_of_last_gal_shift = WarpX::GetInstance().time_of_last_gal_shift;
+
+    Real time_shift_rho_new = (cur_time + dt - time_of_last_gal_shift);
+    Real time_shift_rho_old = (cur_time  - time_of_last_gal_shift);
+
+    amrex::Array<amrex::Real,3> galilean_shift;
+
+    if (icomp==0){
+        galilean_shift = { v_galilean[0]*time_shift_rho_old, v_galilean[1]*time_shift_rho_old, v_galilean[2]*time_shift_rho_old };
+    } if (icomp ==1){
+        galilean_shift = { v_galilean[0]*time_shift_rho_new, v_galilean[1]*time_shift_rho_new, v_galilean[2]*time_shift_rho_new };
+    } else{}
+
+    const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, depos_lev, galilean_shift); //oshapoval
+    //amrex::Print() <<  "ChargeCurrent:"<< ' ' << "icomp = "<< ' '<< icomp<< ' '<<" time_of_last_gal_shift= " << time_of_last_gal_shift <<"------\n"; //oshapoval
+  //  amrex::Print() <<  "ChargeCurrent" <<' ' << "icomp = "<< ' '<< icomp<< ' '<<" GalileanShift[2]= " << galilean_shift[2] <<"------\n"; //oshapoval
+    //amrex::Print() <<  "ChargeCurrent" <<' ' << "cur_time = "<< ' '<< cur_time<< "------\n"; //oshapoval
+    amrex::Print() <<  "DepositCharge" <<' ' << "time_shift_rho_new = "<< ' '<< time_shift_rho_new << "------\n"; //oshapoval
+    amrex::Print() <<  "DepositCharge" <<' ' << "time_shift_rho_old = "<< ' '<< time_shift_rho_old << "------\n"; //oshapoval
+
+
+    //amrex::Array<amrex::Real,3> galilean_shift = {{ v_galilean[0]* time_shift,v_galilean[1]*time_shift, v_galilean[2]*time_shift }};
 
     // Indices of the lower bound
     const Dim3 lo = lbound(tilebox);
@@ -516,7 +573,7 @@ WarpXParticleContainer::DepositCharge (WarpXParIter& pti, RealVector& wp,
 }
 
 void
-WarpXParticleContainer::DepositCharge (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+WarpXParticleContainer::DepositCharge (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, Real dt,
                                         bool local, bool reset,
                                         bool do_rz_volume_scaling)
 {
@@ -549,7 +606,7 @@ WarpXParticleContainer::DepositCharge (amrex::Vector<std::unique_ptr<amrex::Mult
                 ion_lev = nullptr;
             }
 
-            DepositCharge(pti, wp, ion_lev, rho[lev].get(), 0, 0, np, thread_num, lev, lev);
+            DepositCharge(pti, wp, ion_lev, rho[lev].get(), 0, 0, np, thread_num, lev, lev, dt);
         }
 #ifdef _OPENMP
         }
@@ -582,7 +639,7 @@ WarpXParticleContainer::DepositCharge (amrex::Vector<std::unique_ptr<amrex::Mult
 }
 
 std::unique_ptr<MultiFab>
-WarpXParticleContainer::GetChargeDensity (int lev, bool local)
+WarpXParticleContainer::GetChargeDensity (int lev, Real dt, bool local)
 {
     const auto& gm = m_gdb->Geom(lev);
     const auto& ba = m_gdb->ParticleBoxArray(lev);
@@ -620,7 +677,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
             }
 
             DepositCharge(pti, wp, ion_lev, rho.get(), 0, 0, np,
-                          thread_num, lev, lev);
+                          thread_num, lev, lev, dt);
         }
 #ifdef _OPENMP
     }

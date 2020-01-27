@@ -733,7 +733,11 @@ WarpX::ApplyInverseVolumeScalingToCurrentDensity (MultiFab* Jx, MultiFab* Jy, Mu
         // Lower corner of tile box physical domain
         // Note that this is done before the tilebox.grow so that
         // these do not include the guard cells.
-        const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, lev);
+
+        
+        //Real cur_time = t_new[0]; //oshapoval
+        //Real galilean_shift  = cur_time + 0.5*dt - time_of_last_gal_shift;//oshapoval
+        const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, lev, galilean_shift = ?); //oshapoval
         const Dim3 lo = lbound(tilebox);
         const Real rmin = xyzmin[0];
         const int irmin = lo.x;
@@ -875,7 +879,7 @@ WarpX::ApplyInverseVolumeScalingToChargeDensity (MultiFab* Rho, int lev)
         // Lower corner of tile box physical domain
         // Note that this is done before the tilebox.grow so that
         // these do not include the guard cells.
-        const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, lev);
+        const std::array<Real, 3>& xyzmin = WarpX::LowerCorner(tilebox, lev, galilean_shift = ?); //shapoval
         const Dim3 lo = lbound(tilebox);
         const Real rmin = xyzmin[0];
         const int irmin = lo.x;

@@ -347,34 +347,34 @@ AvgGalileanAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
                         +      X1*I*(kx*Jy     - ky*Jx);
 
 //Update teh averaged fields
-            fields(i,j,k,Idx::Ex_avg) = Psi1*Ex_old
-                          - Psi2*c2*I*(ky*Bz_old - kz*By_old)
-                          + Jcoef*Jx + ( CRhonew * rho_new +  CRhoold*rho_old )*kx;
-            fields(i,j,k,Idx::Ey_avg) =  Psi1*Ey_old
-                          - Psi2*c2*I*(kz*Bx_old - kx*Bz_old)
-                          + Jcoef*Jy +( CRhonew * rho_new +  CRhoold*rho_old )*ky;
-            fields(i,j,k,Idx::Ez_avg) =  Psi1*Ez_old
-                          - Psi2*c2*I*(kx*By_old - ky*Bx_old)
-                          + Jcoef*Jz     + ( CRhonew * rho_new +  CRhoold*rho_old )*kz;
-
-            fields(i,j,k,Idx::Bx_avg) =  Psi1*Bx_old
-                          + I*Psi2*(ky*Ez_old - kz*Ey_old)
-                          + A1*I*(ky*Jz     - kz*Jy)*inv_ep0;
-            fields(i,j,k,Idx::By_avg) =  Psi1*By_old
-                          + I*Psi2*(kz*Ex_old - kx*Ez_old)
-                          + A1*I*(kz*Jx     - kx*Jz)*inv_ep0;
-            fields(i,j,k,Idx::Bz_avg) =  Psi1*Bz_old
-                          + I*Psi2*(kx*Ey_old - ky*Ex_old)
-                          + A1*I*(kx*Jy     - ky*Jx)*inv_ep0;
-
+            // fields(i,j,k,Idx::Ex_avg) = Psi1*Ex_old
+            //               - Psi2*c2*I*(ky*Bz_old - kz*By_old)
+            //               + Jcoef*Jx + ( CRhonew * rho_new +  CRhoold*rho_old )*kx;
+            // fields(i,j,k,Idx::Ey_avg) =  Psi1*Ey_old
+            //               - Psi2*c2*I*(kz*Bx_old - kx*Bz_old)
+            //               + Jcoef*Jy +( CRhonew * rho_new +  CRhoold*rho_old )*ky;
+            // fields(i,j,k,Idx::Ez_avg) =  Psi1*Ez_old
+            //               - Psi2*c2*I*(kx*By_old - ky*Bx_old)
+            //               + Jcoef*Jz     + ( CRhonew * rho_new +  CRhoold*rho_old )*kz;
             //
-            // fields(i,j,k,Idx::Ex_avg) =  fields(i,j,k,Idx::Ex);
-            // fields(i,j,k,Idx::Ey_avg) =  fields(i,j,k,Idx::Ey);
-            // fields(i,j,k,Idx::Ez_avg) =  fields(i,j,k,Idx::Ez);
-            //
-            // fields(i,j,k,Idx::Bx_avg) =  fields(i,j,k,Idx::Bx);
-            // fields(i,j,k,Idx::By_avg) =  fields(i,j,k,Idx::By);
-            // fields(i,j,k,Idx::Bz_avg) =  fields(i,j,k,Idx::Bz);
+            // fields(i,j,k,Idx::Bx_avg) =  Psi1*Bx_old
+            //               + I*Psi2*(ky*Ez_old - kz*Ey_old)
+            //               + A1*I*(ky*Jz     - kz*Jy)*inv_ep0;
+            // fields(i,j,k,Idx::By_avg) =  Psi1*By_old
+            //               + I*Psi2*(kz*Ex_old - kx*Ez_old)
+            //               + A1*I*(kz*Jx     - kx*Jz)*inv_ep0;
+            // fields(i,j,k,Idx::Bz_avg) =  Psi1*Bz_old
+            //               + I*Psi2*(kx*Ey_old - ky*Ex_old)
+            //               + A1*I*(kx*Jy     - ky*Jx)*inv_ep0;
+
+
+            fields(i,j,k,Idx::Ex_avg) =  fields(i,j,k,Idx::Ex);
+            fields(i,j,k,Idx::Ey_avg) =  fields(i,j,k,Idx::Ey);
+            fields(i,j,k,Idx::Ez_avg) =  fields(i,j,k,Idx::Ez);
+
+            fields(i,j,k,Idx::Bx_avg) =  fields(i,j,k,Idx::Bx);
+            fields(i,j,k,Idx::By_avg) =  fields(i,j,k,Idx::By);
+            fields(i,j,k,Idx::Bz_avg) =  fields(i,j,k,Idx::Bz);
 
 
             //Print()<<"Ez_avg "<< ' ' << i<<' '<< j<<' '<<k<<' '<< fields(i,j,k,Idx::Ez)<< fields(i,j,k,Idx::Ez_avg)<<'-------------'<<'\n';

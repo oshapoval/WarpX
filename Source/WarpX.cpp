@@ -25,6 +25,7 @@
 using namespace amrex;
 
 Vector<Real> WarpX::B_external_particle(3, 0.0);
+
 Vector<Real> WarpX::E_external_particle(3, 0.0);
 
 Vector<Real> WarpX::E_external_grid(3, 0.0);
@@ -231,15 +232,12 @@ WarpX::WarpX ()
 #endif // WARPX_DO_ELECTROSTATIC
 
     costs.resize(nlevs_max);
-    //std::cout << "V_gal before" << v_galilean<< "\n"; //oshapoval
 
-    //v_galilean.resize(3, 0.0);
 #ifdef WARPX_USE_PSATD
     spectral_solver_fp.resize(nlevs_max);
     spectral_solver_cp.resize(nlevs_max);
 #endif
 
-     //std::cout << "V_gal after" << v_galilean<< "\n"; //oshapoval
 
 #ifdef WARPX_USE_PSATD_HYBRID
     Efield_fp_fft.resize(nlevs_max);
@@ -571,6 +569,9 @@ WarpX::ReadParameters ()
         pp.query("load_balance_knapsack_factor", load_balance_knapsack_factor);
 
         pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
+
+        pp.query("time_of_last_gal_shift", time_of_last_gal_shift);
+
         // pp.queryarr("v_galilean", v_galilean);
         // // Scale the velocity by the speed of light
         // for (int i=0; i<3; i++) v_galilean[i] *= PhysConst::c;
@@ -616,6 +617,8 @@ WarpX::ReadParameters ()
         }
     }
 
+
+
 #ifdef WARPX_USE_PSATD
     {
         ParmParse pp("psatd");
@@ -628,6 +631,7 @@ WarpX::ReadParameters ()
         pp.queryarr("v_galilean", v_galilean);
         // Scale the velocity by the speed of light
         for (int i=0; i<3; i++) v_galilean[i] *= PhysConst::c;
+
     }
 #endif
 
@@ -1149,14 +1153,22 @@ WarpX::getRealBox(const Box& bx, int lev)
 }
 
 std::array<Real,3>
-WarpX::LowerCorner(const Box& bx, int lev)
+WarpX::LowerCorner(const Box& bx, int lev, std::array<amrex::Real,3> galilean_shift) // oshapoval
 {
-    const RealBox grid_box = getRealBox( bx, lev );
+    RealBox grid_box = getRealBox( bx, lev );
+
     const Real* xyzmin = grid_box.lo();
+
 #if (AMREX_SPACEDIM == 3)
-    return { xyzmin[0], xyzmin[1], xyzmin[2] };
+    //xyzmin[0] += galilean_shift[0];
+    //xyzmin[1] += galilean_shift[1];
+    //xyzmin[2] += galilean_shift[2];
+    return { xyzmin[0]+galilean_shift[0], xyzmin[1]+galilean_shift[1], xyzmin[2]+galilean_shift[2] };
+
 #elif (AMREX_SPACEDIM == 2)
-    return { xyzmin[0], std::numeric_limits<Real>::lowest(), xyzmin[1] };
+    //xyzmin[0] += galilean_shift[0];
+    //xyzmin[1] += galilean_shift[1];
+    return { xyzmin[0]+galilean_shift[0], std::numeric_limits<Real>::lowest(), xyzmin[1]+galilean_shift[1] };
 #endif
 }
 
@@ -1172,20 +1184,19 @@ WarpX::UpperCorner(const Box& bx, int lev)
 #endif
 }
 
-std::array<Real,3>
-WarpX::LowerCornerWithCentering(const Box& bx, int lev)
-{
-    std::array<Real,3> corner = LowerCorner(bx, lev);
-    std::array<Real,3> dx = CellSize(lev);
-    if (!bx.type(0)) corner[0] += 0.5*dx[0];
-#if (AMREX_SPACEDIM == 3)
-    if (!bx.type(1)) corner[1] += 0.5*dx[1];
-    if (!bx.type(2)) corner[2] += 0.5*dx[2];
-#else
-    if (!bx.type(1)) corner[2] += 0.5*dx[2];
-#endif
-    return corner;
-}
+// std::array<Real,3>
+// WarpX::LowerCornerWithCentering(const Box& bx, int lev, std::array<amrex::Real,3> galilean_shift)
+// {
+//     std::array<Real,3> corner = LowerCorner(bx, lev, galilean_shift);
+//     if (!bx.type(0)) corner[0] += 0.5*dx[0];
+// #if (AMREX_SPACEDIM == 3)
+//     if (!bx.type(1)) corner[1] += 0.5*dx[1];
+//     if (!bx.type(2)) corner[2] += 0.5*dx[2];
+// #else
+//     if (!bx.type(1)) corner[2] += 0.5*dx[2];
+// #endif
+//     return corner;
+// }
 
 IntVect
 WarpX::RefRatio (int lev)
