@@ -104,9 +104,9 @@ WarpX::Evolve (int numsteps)
             // on first step, push p by -0.5*dt
             for (int lev = 0; lev <= finest_level; ++lev)
             {
-                mypc->PushP(lev, -0.5*dt[lev],
-                            *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
-                            *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+                //mypc->PushP(lev, -0.5*dt[lev],
+                //            *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                //            *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
             is_synchronized = false;
         } else {
@@ -138,7 +138,6 @@ WarpX::Evolve (int numsteps)
             amrex::Print() << "Error: do_subcycling = " << do_subcycling << std::endl;
             amrex::Abort("Unsupported do_subcycling type");
         }
-
         if (num_mirrors>0){
             applyMirrors(cur_time);
             // E : guard cells are NOT up-to-date
@@ -162,7 +161,7 @@ WarpX::Evolve (int numsteps)
             }
             is_synchronized = true;
         }
-
+////////////////////////////////////////////////        
 #ifdef WARPX_USE_PY
         if (warpx_py_afterEsolve) warpx_py_afterEsolve();
 #endif
@@ -183,13 +182,13 @@ WarpX::Evolve (int numsteps)
             }
             myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
         }
-
+/////////////////////////////////////////////////////
         bool move_j = is_synchronized || do_insitu;
         // If is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
         // We might need to move j because we are going to make a plotfile.
 
         ShiftGalileanBoundary();
-
+///////////////////////        
         int num_moved = MoveWindow(move_j);
 
         // Electrostatic solver: particles can move by an arbitrary number of cells
