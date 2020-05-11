@@ -319,7 +319,14 @@ AvgGalileanAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             const Complex CRhonew= Rhonew_arr(i,j,k);
             const Complex Jcoef = Jcoef_arr(i,j,k);
 
-
+            fields(i,j,k,Idx::Ex_avg) = i;
+            fields(i,j,k,Idx::Ey_avg) = j;
+            fields(i,j,k,Idx::Ez_avg) = k;
+            fields(i,j,k,Idx::Bx_avg) = 0.; // 3.e-8*i;
+            fields(i,j,k,Idx::By_avg) = 0.; // 3.e-8*j;
+            fields(i,j,k,Idx::Bz_avg) = 0.; // 3.e-8*k;
+            
+/*
             //Update E (see the original Galilean article)
             fields(i,j,k,Idx::Ex) = T2*C*Ex_old
                         + T2*S_ck*c2*I*(ky*Bz_old - kz*By_old)
@@ -363,7 +370,8 @@ AvgGalileanAlgorithm::pushSpectralFields(SpectralFieldData& f) const{
             fields(i,j,k,Idx::Bz_avg) =  Psi1*Bz_old
                           + I*Psi2*(kx*Ey_old - ky*Ex_old)
                           + A1*I*(kx*Jy     - ky*Jx)*inv_ep0;
-
+*/
+            
             // fields(i,j,k,Idx::Ex_avg) =  fields(i,j,k,Idx::Ex);
             // fields(i,j,k,Idx::Ey_avg) =  fields(i,j,k,Idx::Ey);
             // fields(i,j,k,Idx::Ez_avg) =  fields(i,j,k,Idx::Ez);

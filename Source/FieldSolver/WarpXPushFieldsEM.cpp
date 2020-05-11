@@ -91,13 +91,29 @@ namespace {
         solver.BackwardTransform(*Bfield[2], Idx::Bz);
 
         if (solver.fft_do_time_averaging){
+            /*
             solver.BackwardTransform(*Efield_avg[0], Idx::Ex_avg);
             solver.BackwardTransform(*Efield_avg[1], Idx::Ey_avg);
             solver.BackwardTransform(*Efield_avg[2], Idx::Ez_avg);
-
             solver.BackwardTransform(*Bfield_avg[0], Idx::Bx_avg);
             solver.BackwardTransform(*Bfield_avg[1], Idx::By_avg);
             solver.BackwardTransform(*Bfield_avg[2], Idx::Bz_avg);
+            */
+
+            solver.BackwardTransform(*Efield[0], Idx::Ex_avg);
+            solver.BackwardTransform(*Efield[1], Idx::Ey_avg);
+            solver.BackwardTransform(*Efield[2], Idx::Ez_avg);
+            solver.BackwardTransform(*Bfield[0], Idx::Bx_avg);
+            solver.BackwardTransform(*Bfield[1], Idx::By_avg);
+            solver.BackwardTransform(*Bfield[2], Idx::Bz_avg);
+
+            solver.BackwardTransform(*Efield_avg[0], Idx::Ex_avg);
+            solver.BackwardTransform(*Efield_avg[1], Idx::Ey_avg);
+            solver.BackwardTransform(*Efield_avg[2], Idx::Ez_avg);
+            solver.BackwardTransform(*Bfield_avg[0], Idx::Bx_avg);
+            solver.BackwardTransform(*Bfield_avg[1], Idx::By_avg);
+            solver.BackwardTransform(*Bfield_avg[2], Idx::Bz_avg);
+
         }
     }
 }
@@ -113,6 +129,51 @@ WarpX::PushPSATD (amrex::Real a_dt)
         if (do_pml && pml[lev]->ok()) {
             pml[lev]->PushPSATD();
         }
+        MultiFab& Ex = *Efield_aux[lev][0];
+        MultiFab& Ey = *Efield_aux[lev][0];
+        MultiFab& Ez = *Efield_aux[lev][0];
+        MultiFab& Ex_avg = *Efield_avg_aux[lev][0];
+        MultiFab& Ey_avg = *Efield_avg_aux[lev][0];
+        MultiFab& Ez_avg = *Efield_avg_aux[lev][0];
+        MultiFab& Bx = *Bfield_aux[lev][0];
+        MultiFab& By = *Bfield_aux[lev][0];
+        MultiFab& Bz = *Bfield_aux[lev][0];
+        MultiFab& Bx_avg = *Bfield_avg_aux[lev][0];
+        MultiFab& By_avg = *Bfield_avg_aux[lev][0];
+        MultiFab& Bz_avg = *Bfield_avg_aux[lev][0];
+        DistributionMapping dm { Ex.boxArray(), ParallelDescriptor::NProcs() };
+        MultiFab diff(Ex.boxArray(), dm, 1, Ex.nGrow());
+        Print()<<"RIGHT AFTER PushPSATD\n";
+        diff.setVal(0.,0,1,Ex.nGrow());
+        diff.plus(Ex,0,1,Ex.nGrow());
+        diff.minus(Ex_avg,0,1,Ex.nGrow());
+        Print()<<"Ex.max(0) "<<Ex.max(0,Ex.nGrow())<<'\n';
+        Print()<<"diff.max(0) "<<diff.max(0,Ex.nGrow())<<'\n';
+        diff.setVal(0.,0,1,Ey.nGrow());
+        diff.plus(Ey,0,1,Ey.nGrow());
+        diff.minus(Ey_avg,0,1,Ey.nGrow());
+        Print()<<"Ey.max(0) "<<Ey.max(0,Ey.nGrow())<<'\n';
+        Print()<<"diff.max(0) "<<diff.max(0,Ey.nGrow())<<'\n';
+        diff.setVal(0.,0,1,Ez.nGrow());
+        diff.plus(Ez,0,1,Ez.nGrow());
+        diff.minus(Ez_avg,0,1,Ez.nGrow());
+        Print()<<"Ez.max(0) "<<Ez.max(0,Ez.nGrow())<<'\n';
+        Print()<<"diff.max(0) "<<diff.max(0,Ez.nGrow())<<'\n';
+        diff.setVal(0.,0,1,Bx.nGrow());
+        diff.plus(Bx,0,1,Bx.nGrow());
+        diff.minus(Bx_avg,0,1,Bx.nGrow());
+        Print()<<"Bx.max(0) "<<Bx.max(0,Bx.nGrow())<<'\n';
+        Print()<<"diff.max(0) "<<diff.max(0,Bx.nGrow())<<'\n';
+        diff.setVal(0.,0,1,By.nGrow());
+        diff.plus(By,0,1,By.nGrow());
+        diff.minus(By_avg,0,1,By.nGrow());
+        Print()<<"By.max(0) "<<By.max(0,By.nGrow())<<'\n';
+        Print()<<"diff.max(0) "<<diff.max(0,By.nGrow())<<'\n';
+        diff.setVal(0.,0,1,Bz.nGrow());
+        diff.plus(Bz,0,1,Bz.nGrow());
+        diff.minus(Bz_avg,0,1,Bz.nGrow());
+        Print()<<"Bz.max(0) "<<Bz.max(0,Bz.nGrow())<<'\n';
+        Print()<<"diff.max(0) "<<diff.max(0,Bz.nGrow())<<'\n';
     }
 }
 

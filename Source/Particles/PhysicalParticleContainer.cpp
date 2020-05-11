@@ -1015,18 +1015,53 @@ PhysicalParticleContainer::FieldGather (int lev,
 }
 
 void
-PhysicalParticleContainer::Evolve (int lev,
-                                   const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                                   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-                                   const MultiFab& Ex_avg, const MultiFab& Ey_avg, const MultiFab& Ez_avg,
-                                   const MultiFab& Bx_avg, const MultiFab& By_avg, const MultiFab& Bz_avg,
-                                   MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                   MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
-                                   MultiFab* rho, MultiFab* crho,
-                                   const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
-                                   const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
-                                   Real /*t*/, Real dt, DtType a_dt_type)
+PhysicalParticleContainer::Evolve (
+    int lev,
+    const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+    const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+    const MultiFab& Ex_avg, const MultiFab& Ey_avg, const MultiFab& Ez_avg,
+    const MultiFab& Bx_avg, const MultiFab& By_avg, const MultiFab& Bz_avg,
+    MultiFab& jx, MultiFab& jy, MultiFab& jz,
+    MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
+    MultiFab* rho, MultiFab* crho,
+    const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
+    const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
+    Real /*t*/, Real dt, DtType a_dt_type)
 {
+    DistributionMapping dm { Ex.boxArray(), ParallelDescriptor::NProcs() };
+    MultiFab diff(Ex.boxArray(), dm, 1, Ex.nGrow());
+    Print()<<"BEFORE\n";
+    diff.setVal(0.,0,1,Ex.nGrow());
+    diff.plus(Ex,0,1,Ex.nGrow());
+    diff.minus(Ex_avg,0,1,Ex.nGrow());
+    Print()<<"Ex.max(0) "<<Ex.max(0,Ex.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,Ex.nGrow())<<'\n';
+    diff.setVal(0.,0,1,Ey.nGrow());
+    diff.plus(Ey,0,1,Ey.nGrow());
+    diff.minus(Ey_avg,0,1,Ey.nGrow());
+    Print()<<"Ey.max(0) "<<Ey.max(0,Ey.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,Ey.nGrow())<<'\n';
+    diff.setVal(0.,0,1,Ez.nGrow());
+    diff.plus(Ez,0,1,Ez.nGrow());
+    diff.minus(Ez_avg,0,1,Ez.nGrow());
+    Print()<<"Ez.max(0) "<<Ez.max(0,Ez.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,Ez.nGrow())<<'\n';
+
+    diff.setVal(0.,0,1,Bx.nGrow());
+    diff.plus(Bx,0,1,Bx.nGrow());
+    diff.minus(Bx_avg,0,1,Bx.nGrow());
+    Print()<<"Bx.max(0) "<<Bx.max(0,Bx.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,Bx.nGrow())<<'\n';
+    diff.setVal(0.,0,1,By.nGrow());
+    diff.plus(By,0,1,By.nGrow());
+    diff.minus(By_avg,0,1,By.nGrow());
+    Print()<<"By.max(0) "<<By.max(0,By.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,By.nGrow())<<'\n';
+    diff.setVal(0.,0,1,Bz.nGrow());
+    diff.plus(Bz,0,1,Bz.nGrow());
+    diff.minus(Bz_avg,0,1,Bz.nGrow());
+    Print()<<"Bz.max(0) "<<Bz.max(0,Bz.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,Bz.nGrow())<<'\n';
 
     bool fft_do_time_averaging;
     ParmParse pp("psatd");
@@ -1113,6 +1148,7 @@ PhysicalParticleContainer::Evolve (int lev,
             FArrayBox const* byfab;
             FArrayBox const* bzfab;
 
+
             if (fft_do_time_averaging){
                 exfab = &(Ex_avg[pti]);
                 eyfab = &(Ey_avg[pti]);
@@ -1122,6 +1158,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 bzfab = &(Bz_avg[pti]);
                 }
             else {
+
                 exfab = &(Ex[pti]);
                 eyfab = &(Ey[pti]);
                 ezfab = &(Ez[pti]);
@@ -1179,7 +1216,45 @@ PhysicalParticleContainer::Evolve (int lev,
                                   np-np_current, thread_num, lev, lev-1);
                 }
             }
+/*
+        }
+    }
 
+    Print()<<"AFTER\n";
+    diff.setVal(0.,0,1,Ex.nGrow());
+    diff.plus(Ex,0,1,Ex.nGrow());
+    diff.minus(Ex_avg,0,1,Ex.nGrow());
+    Print()<<"Ex.max(0) "<<Ex.max(0,Ex.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,Ex.nGrow())<<'\n';
+    diff.setVal(0.,0,1,Ey.nGrow());
+    diff.plus(Ey,0,1,Ey.nGrow());
+    diff.minus(Ey_avg,0,1,Ey.nGrow());
+    Print()<<"Ey.max(0) "<<Ey.max(0,Ey.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,Ey.nGrow())<<'\n';
+    diff.setVal(0.,0,1,Ez.nGrow());
+    diff.plus(Ez,0,1,Ez.nGrow());
+    diff.minus(Ez_avg,0,1,Ez.nGrow());
+    Print()<<"Ez.max(0) "<<Ez.max(0,Ez.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,Ez.nGrow())<<'\n';
+
+    diff.setVal(0.,0,1,Bx.nGrow());
+    diff.plus(Bx,0,1,Bx.nGrow());
+    diff.minus(Bx_avg,0,1,Bx.nGrow());
+    Print()<<"Bx.max(0) "<<Bx.max(0,Bx.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,Bx.nGrow())<<'\n';
+    diff.setVal(0.,0,1,By.nGrow());
+    diff.plus(By,0,1,By.nGrow());
+    diff.minus(By_avg,0,1,By.nGrow());
+    Print()<<"By.max(0) "<<By.max(0,By.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,By.nGrow())<<'\n';
+    diff.setVal(0.,0,1,Bz.nGrow());
+    diff.plus(Bz,0,1,Bz.nGrow());
+    diff.minus(Bz_avg,0,1,Bz.nGrow());
+    Print()<<"Bz.max(0) "<<Bz.max(0,Bz.nGrow())<<'\n';
+    Print()<<"diff.max(0) "<<diff.max(0,Bz.nGrow())<<'\n';
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+*/
             if (! do_not_push)
             {
                 const long np_gather = (cEx) ? nfine_gather : np;
@@ -1300,7 +1375,8 @@ PhysicalParticleContainer::Evolve (int lev,
             }
         }
     }
-    // Split particles at the end of the timestep.
+
+// Split particles at the end of the timestep.
     // When subcycling is ON, the splitting is done on the last call to
     // PhysicalParticleContainer::Evolve on the finest level, i.e., at the
     // end of the large timestep. Otherwise, the pushes on different levels
