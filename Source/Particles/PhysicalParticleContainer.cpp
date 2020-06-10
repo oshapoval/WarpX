@@ -956,7 +956,7 @@ PhysicalParticleContainer::FieldGather (int lev,
             auto& Bzp = attribs[PIdx::Bz];
 
             const long np = pti.numParticles();
-            
+
             // Data on the grid
             FArrayBox const* exfab;
             FArrayBox const* eyfab;
