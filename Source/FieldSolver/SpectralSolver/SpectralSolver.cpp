@@ -55,8 +55,9 @@ SpectralSolver::SpectralSolver(
     //   Initialize the corresponding coefficients over k space
 
     if (pml) {
-        algorithm = std::unique_ptr<PMLPsatdAlgorithm>( new PMLPsatdAlgorithm(
-            k_space, dm, norder_x, norder_y, norder_z, nodal, dt ) );
+        algorithm = std::unique_ptr<PMLPsatdAlgorithm>(
+            new PMLPsatdAlgorithm(
+                k_space, dm, norder_x, norder_y, norder_z, nodal, dt ) );
     }
     else {
         if (fft_do_time_averaging){
@@ -75,6 +76,7 @@ SpectralSolver::SpectralSolver(
           }
             }
         }
+    }
 
     // - Initialize arrays for fields in spectral space + FFT plans
     field_data = SpectralFieldData( realspace_ba, k_space, dm,
