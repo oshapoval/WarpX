@@ -916,6 +916,91 @@ PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 }
 
 void
+PhysicalParticleContainer::FieldGather (int lev,
+                                        const amrex::MultiFab& Ex,
+                                        const amrex::MultiFab& Ey,
+                                        const amrex::MultiFab& Ez,
+                                        const amrex::MultiFab& Bx,
+                                        const amrex::MultiFab& By,
+                                        const amrex::MultiFab& Bz,
+                                        const amrex::MultiFab& Ex_avg,
+                                        const amrex::MultiFab& Ey_avg,
+                                        const amrex::MultiFab& Ez_avg,
+                                        const amrex::MultiFab& Bx_avg,
+                                        const amrex::MultiFab& By_avg,
+                                        const amrex::MultiFab& Bz_avg)
+{
+    BL_ASSERT(OnSameGrids(lev,Ex));
+
+    amrex::LayoutData<amrex::Real>* cost = WarpX::getCosts(lev);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            if (cost && WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
+            {
+                amrex::Gpu::synchronize();
+            }
+            Real wt = amrex::second();
+
+            auto& attribs = pti.GetAttribs();
+
+            auto& Exp = attribs[PIdx::Ex];
+            auto& Eyp = attribs[PIdx::Ey];
+            auto& Ezp = attribs[PIdx::Ez];
+            auto& Bxp = attribs[PIdx::Bx];
+            auto& Byp = attribs[PIdx::By];
+            auto& Bzp = attribs[PIdx::Bz];
+
+            const long np = pti.numParticles();
+            
+            // Data on the grid
+            FArrayBox const* exfab;
+            FArrayBox const* eyfab;
+            FArrayBox const* ezfab;
+            FArrayBox const* bxfab;
+            FArrayBox const* byfab;
+            FArrayBox const* bzfab;
+
+            if (WarpX::fft_do_time_averaging){
+                exfab = &(Ex_avg[pti]);
+                eyfab = &(Ey_avg[pti]);
+                ezfab = &(Ez_avg[pti]);
+                bxfab = &(Bx_avg[pti]);
+                byfab = &(By_avg[pti]);
+                bzfab = &(Bz_avg[pti]);
+            } else {
+                exfab = &(Ex[pti]);
+                eyfab = &(Ey[pti]);
+                ezfab = &(Ez[pti]);
+                bxfab = &(Bx[pti]);
+                byfab = &(By[pti]);
+                bzfab = &(Bz[pti]);
+            }
+
+            //
+            // Field Gather
+            //
+            int e_is_nodal = Ex.is_nodal() and Ey.is_nodal() and Ez.is_nodal();
+            FieldGather(pti, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+                        exfab, eyfab, ezfab, bxfab, byfab, bzfab,
+                        Ex.nGrow(), e_is_nodal,
+                        0, np, lev, lev);
+
+            if (cost && WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
+            {
+                amrex::Gpu::synchronize();
+                wt = amrex::second() - wt;
+                amrex::HostDevice::Atomic::Add( &(*cost)[pti.index()], wt);
+            }
+        }
+    }
+}
+
+void
 PhysicalParticleContainer::Evolve (int lev,
                                    const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                    const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
