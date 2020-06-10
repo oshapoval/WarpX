@@ -41,6 +41,7 @@ SpectralSolver::SpectralSolver(
                 const amrex::Array<amrex::Real,3>& v_galilean,
                 const amrex::RealVect dx, const amrex::Real dt,
                 const bool pml, const bool periodic_single_box,
+                const bool fft_do_time_averaging,
                 const bool update_with_rho ) {
 
     // Initialize all structures using the same distribution mapping dm
@@ -52,9 +53,6 @@ SpectralSolver::SpectralSolver(
 
     // - Select the algorithm depending on the input parameters
     //   Initialize the corresponding coefficients over k space
-
-    ParmParse pp("psatd");
-    pp.query("do_time_averaging", fft_do_time_averaging);
 
     if (pml) {
         algorithm = std::unique_ptr<PMLPsatdAlgorithm>( new PMLPsatdAlgorithm(
