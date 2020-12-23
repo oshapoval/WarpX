@@ -3,6 +3,7 @@
 #include <cmath>
 
 using namespace amrex;
+#include <AMReX_ParmParse.H>
 
 /* \brief Initialize coefficients for the update equation */
 AvgGalileanAlgorithm::AvgGalileanAlgorithm(const SpectralKSpace& spectral_kspace,
@@ -115,6 +116,15 @@ void AvgGalileanAlgorithm::InitializeSpectralCoefficients(
             constexpr Real c2 = PhysConst::c*PhysConst::c;
             constexpr Real ep0 = PhysConst::ep0;
             const Complex I{0.,1.};
+
+            Real width = 1._rt;
+            Real offset = 0._rt;
+
+            ParmParse pp("psatd");
+            pp.query("time_adveraging_width", width);
+            pp.query("time_adveraging_offset", offset);
+
+
             if (k_norm != 0){
 
                 C(i,j,k) = std::cos(c*k_norm*dt);
@@ -139,6 +149,17 @@ void AvgGalileanAlgorithm::InitializeSpectralCoefficients(
                 const Complex theta_star = amrex::exp( -0.5_rt*I*kv*dt );
                 const Complex e_theta = amrex::exp( I*c*k_norm*dt );
 
+
+
+                const Complex theta_width = amrex::exp( 0.5_rt*I*kv*dt*width );
+                const Complex theta_offset = amrex::exp( 0.5_rt*I*kv*dt * (-2._rt + offset) ) ;
+                const Complex theta_width_star =  amrex::exp( -0.5_rt*I*kv*dt * width );
+                const Complex theta_offset_star = amrex::exp( -0.5_rt*I*kv*dt * (-2._rt + offset) );
+
+                const Real arg_p = 0.5_rt* c * k_norm * ( -2._rt + offset  + width) * dt;
+                const Real arg_m = 0.5_rt* c * k_norm * ( -2._rt + offset  - width) * dt;
+
+
                 Theta2(i,j,k) = theta*theta;
 
                 if ( (nu != 1.) && (nu != 0) ) {
@@ -152,16 +173,13 @@ void AvgGalileanAlgorithm::InitializeSpectralCoefficients(
                         (theta_star - C(i,j,k)*theta + I*kv*S_ck(i,j,k)*theta);
 
                     Complex C_rho = I* c2 /( (1._rt-theta*theta) * ep0);
-
-                    Psi1(i,j,k) = theta * ((S1(i,j,k) + I*nu*C1(i,j,k))
-                                  - Theta2(i,j,k) * (S3(i,j,k) + I*nu*C3(i,j,k))) /(c*k_norm*dt * (nu*nu - 1._rt));
-                    Psi2(i,j,k) = theta * ((C1(i,j,k) - I*nu*S1(i,j,k))
-                                  - Theta2(i,j,k) * (C3(i,j,k) - I*nu*S3(i,j,k))) /(c2*k_norm*k_norm*dt * (nu*nu - 1._rt));
-                    Psi3(i,j,k) = I * theta * (1._rt - theta*theta) /(c*k_norm*dt*nu);
-
+                    Psi1(i,j,k) = theta_offset_star * (theta_width * (std::sin(arg_m) - I*nu*std::cos(arg_m))
+                                  + I * theta_width_star * (nu*std::cos(arg_p) + I*std::sin(arg_p)) )/(c*k_norm*dt * (nu*nu - 1._rt) * width);
+                    Psi2(i,j,k) = - theta_offset_star * (theta_width * (std::cos(arg_m) + I*nu*std::sin(arg_m))
+                                  - theta_width_star * (I * nu*std::sin(arg_p) + std::cos(arg_p)) )/(c2*k_norm*k_norm*dt * (nu*nu - 1._rt) * width);
+                    Psi3(i,j,k) = I * theta_width_star * theta_offset_star* (1._rt - theta_width*theta_width) /(c*k_norm*dt*nu*width);
                     A1(i,j,k) = (Psi1(i,j,k)  - 1._rt + I * kv*Psi2(i,j,k)    )/ (c2* k_norm*k_norm * (nu*nu - 1._rt));
                     A2(i,j,k) = (Psi3(i,j,k) - Psi1(i,j,k)) / (c2*k_norm*k_norm);
-
                     CRhoold(i,j,k) = C_rho * (theta*theta * A1(i,j,k) - A2(i,j,k));
                     CRhonew(i,j,k) = C_rho * (A2(i,j,k) - A1(i,j,k));
                     Jcoef(i,j,k) = (I*kv*A1(i,j,k) + Psi2(i,j,k))/ep0;
@@ -181,16 +199,19 @@ void AvgGalileanAlgorithm::InitializeSpectralCoefficients(
                     X3(i,j,k) = (C(i,j,k) - S_ck(i,j,k)/dt) / (ep0*k_norm*k_norm);
                     X4(i,j,k) = -S_ck(i,j,k)/ep0;
 
-                    Psi1(i,j,k) = (-S1(i,j,k) + S3(i,j,k)) / (c*k_norm*dt);
-                    Psi2(i,j,k) = (-C1(i,j,k) + C3(i,j,k)) / (c2*k_norm*k_norm*dt);
+                    Psi1(i,j,k) = ( -std::sin(arg_m) + std::sin(arg_p) ) / (c*k_norm*dt*width);
+                    Psi2(i,j,k) = (  std::cos(arg_m) - std::cos(arg_p) ) / (c2*k_norm*k_norm*dt*width);
                     Psi3(i,j,k) = 1._rt;
-                    A1(i,j,k) = (c*k_norm*dt + S1(i,j,k) - S3(i,j,k)) / (c*c2 * k_norm*k_norm*k_norm * dt);
-                    A2(i,j,k) =  (c*k_norm*dt + S1(i,j,k) - S3(i,j,k)) / (c*c2 * k_norm*k_norm*k_norm * dt);
-                    CRhoold(i,j,k) = 2._rt * I * S1(i,j,k)  * ( dt*C(i,j,k) - S_ck(i,j,k))
-                                    / (c*k_norm*k_norm*k_norm*dt*dt*ep0);
-                    CRhonew(i,j,k) =  - I * (c2* k_norm*k_norm * dt*dt - C1(i,j,k) + C3(i,j,k))
-                                    / (c2 * k_norm*k_norm*k_norm*k_norm * ep0 * dt*dt);
-                    Jcoef(i,j,k) = (-C1(i,j,k) + C3(i,j,k)) / (c2*ep0*k_norm*k_norm*dt);
+
+                    A1(i,j,k) = (c*k_norm*dt*width + std::sin(arg_m) - std::sin(arg_p)) / (c*c2 * k_norm*k_norm*k_norm * dt * width);
+                    A2(i,j,k) = (c*k_norm*dt*width + std::sin(arg_m)  - std::sin(arg_p) ) / (c*c2 * k_norm*k_norm*k_norm * dt * width);
+
+                    CRhoold(i,j,k) = -I * ( -2._rt*std::cos(arg_m) + 2._rt*std::cos(arg_p)  + c*k_norm*dt*(c*k_norm * dt*offset*width + 2._rt * std::sin(arg_m) - 2._rt * std::sin(arg_p)) )
+                                    / (2._rt * c2*k_norm*k_norm*k_norm*k_norm*dt*dt*ep0 * width);
+                    CRhonew(i,j,k) =  I * (c2* k_norm*k_norm * dt*dt * (-2._rt + offset) * width + 2._rt * (std::cos(arg_p) - std::cos(arg_m) ) )
+                                    / (2._rt * c2 * k_norm*k_norm*k_norm*k_norm * ep0 * dt*dt);
+
+                    Jcoef(i,j,k) = ( std::cos(arg_m) - std::cos(arg_p) ) / (c2*ep0*k_norm*k_norm*dt*width);
                 }
                 if ( nu == 1.) {
                     X1(i,j,k) = (1._rt - e_theta*e_theta + 2._rt*I*c*k_norm*dt) / (4._rt*c*c*ep0*k_norm*k_norm);
@@ -214,13 +235,15 @@ void AvgGalileanAlgorithm::InitializeSpectralCoefficients(
               Theta2(i,j,k) = 1._rt;
 
               Psi1(i,j,k) = 1._rt;
-              Psi2(i,j,k) = -dt;
+              Psi2(i,j,k) = 0.5_rt * (-2._rt + offset)* dt;
               Psi3(i,j,k) = 1._rt;
-              A1(i,j,k) = 13._rt * dt*dt /24._rt;
-              A2(i,j,k) = 13._rt * dt*dt /24._rt;
-              CRhoold(i,j,k) = -I*c2 * dt*dt / (3._rt * ep0);
-              CRhonew(i,j,k) = -5._rt*I*c2 * dt*dt / (24._rt * ep0);
-              Jcoef(i,j,k) = -dt/ep0;
+
+              A1(i,j,k) = (12._rt - 12._rt*offset + 3._rt*offset*offset + width*width ) * dt*dt /24._rt;
+              A2(i,j,k) = (12._rt - 12._rt*offset + 3._rt*offset*offset + width*width) * dt*dt /24._rt;
+
+              CRhoold(i,j,k) = -I*c2 * dt*dt * ( 16._rt + offset*offset*offset + offset*(-12._rt + width*width) ) / (48._rt * ep0);
+              CRhonew(i,j,k) = I*c2 * dt*dt * (-2._rt+offset) * (4._rt - 4._rt*offset + offset*offset + width*width) / (48._rt * ep0);
+              Jcoef(i,j,k) = dt * (-2._rt + offset) /(2._rt * ep0);
             }
 
         });
