@@ -267,15 +267,18 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
             {
                 fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
                                        + I * c2 * T2 * S_ck * (ky * Bz_old - kz * By_old)
-                                       + X4 * Jx - I * (X2 * rho_new - T2 * X3 * rho_old) * kx;
+                                       + X4 * Jx;
+                                       //- I * (X2 * rho_new - T2 * X3 * rho_old) * kx;
 
                 fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
                                        + I * c2 * T2 * S_ck * (kz * Bx_old - kx * Bz_old)
-                                       + X4 * Jy - I * (X2 * rho_new - T2 * X3 * rho_old) * ky;
+                                       + X4 * Jy;
+                                       // - I * (X2 * rho_new - T2 * X3 * rho_old) * ky;
 
                 fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
                                        + I * c2 * T2 * S_ck * (kx * By_old - ky * Bx_old)
-                                       + X4 * Jz - I * (X2 * rho_new - T2 * X3 * rho_old) * kz;
+                                       + X4 * Jz;
+                                       //- I * (X2 * rho_new - T2 * X3 * rho_old) * kz;
             }
 
             // Update equations for E in the formulation without rho
@@ -974,36 +977,30 @@ void PsatdAlgorithm::InitializeSpectralCoefficientsMultiJ (
 
             if (om_s != 0.)
             {
-                X7(i,j,k) = (om2_s * dt2 * C(i,j,k) + 8._rt * C(i,j,k)
-                            - 2._rt * c * om2_s * dt * S_ck(i,j,k) + 4._rt * c * om_s * S_ck(i,j,k)
-                            + om2_s * dt2 - 8._rt) / (2._rt * om4_s * dt2);
+              X7(i,j,k) =  - ( 4._rt * ( 1._rt - C(i,j,k) ) - S_ck(i,j,k) * om2_s * dt - om2_s * dt2 ) / (om4_s * dt2);
             }
             else
             {
-                X7(i,j,k) = dt2 / 12._rt;
+                X7(i,j,k) = - dt2/ 6._rt;
             }
 
             if (om_s != 0.)
             {
-                X8(i,j,k) = (2._rt * om2_s * dt2 * (C(i,j,k) + 1._rt)
-                            - 4._rt * om2_s * dt * S_ck(i,j,k)
-                            + (C(i,j,k) - 1._rt) * (om2_s * dt2 - 8._rt)
-                            - 4._rt * om_s * S_ck(i,j,k) - 2._rt * om2_s * dt2 * S_ck(i,j,k)
-                            + 2._rt * om2_s * dt3) / (2._rt * om4_s * dt2);
+                X8(i,j,k) = ( C(i,j,k) * om2_s * dt2  - 3._rt * om2_s * dt * S_ck(i,j,k) + 4._rt * (1._rt - C(i,j,k)) ) / (om4_s * dt2);
             }
             else
             {
-                X8(i,j,k) = dt2 * (2._rt * dt - 7._rt) / 12._rt;
+                X8(i,j,k) = 0._rt;
             }
 
             if (om_s != 0.)
             {
-                X9(i,j,k) = ((C(i,j,k) - 1._rt) * (om2_s * dt2 - 8._rt) - 4._rt * om_s * S_ck(i,j,k))
+                X9(i,j,k) = -( (1._rt - C(i,j,k)) * (om2_s * dt2 - 8._rt) + 4._rt * om2_s * dt * S_ck(i,j,k) )
                             / (om4_s * dt2);
             }
             else
             {
-                X9(i,j,k) = -5._rt * dt2 / 6._rt;
+                X9(i,j,k) = dt2 / 6._rt;
             }
         });
     }
