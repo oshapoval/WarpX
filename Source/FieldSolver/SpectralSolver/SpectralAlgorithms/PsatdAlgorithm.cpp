@@ -353,17 +353,17 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
                 const Complex Jz_new = fields(i,j,k,Idx.Jz_new);
 
                 fields(i,j,k,Idx.Ex) += -X1 * ((Jx_new - Jx) / dt + I * c2 * rho_mid * kx)
-                    - I * c2 / ep0 * X7 * rho_new * kx
+                    + I * c2 / ep0 * X7 * rho_new * kx
                     + I * c2 / ep0 * X8 * rho_old * kx
-                    - I * c2 / ep0 * X9 * rho_mid * kx;
+                    + I * c2 / ep0 * X9 * rho_mid * kx;
                 fields(i,j,k,Idx.Ey) += -X1 * ((Jy_new - Jy) / dt + I * c2 * rho_mid * ky)
-                    - I * c2 / ep0 * X7 * rho_new * ky
+                    + I * c2 / ep0 * X7 * rho_new * ky
                     + I * c2 / ep0 * X8 * rho_old * ky
-                    - I * c2 / ep0 * X9 * rho_mid * ky;
+                    + I * c2 / ep0 * X9 * rho_mid * ky;
                 fields(i,j,k,Idx.Ez) += -X1 * ((Jz_new - Jz) / dt + I * c2 * rho_mid * kz)
-                    - I * c2 / ep0 * X7 * rho_new * kz
+                    + I * c2 / ep0 * X7 * rho_new * kz
                     + I * c2 / ep0 * X8 * rho_old * kz
-                    - I * c2 / ep0 * X9 * rho_mid * kz;
+                    + I * c2 / ep0 * X9 * rho_mid * kz;
 
                 fields(i,j,k,Idx.Bx) += I * X2/c2 * (ky * (Jz_new - Jz) - kz * (Jy_new - Jy));
                 fields(i,j,k,Idx.By) += I * X2/c2 * (kz * (Jx_new - Jx) - kx * (Jz_new - Jz));
@@ -977,11 +977,11 @@ void PsatdAlgorithm::InitializeSpectralCoefficientsMultiJ (
 
             if (om_s != 0.)
             {
-              X7(i,j,k) =  - ( 4._rt * ( 1._rt - C(i,j,k) ) - S_ck(i,j,k) * om2_s * dt - om2_s * dt2 ) / (om4_s * dt2);
+              X7(i,j,k) =  ( 4._rt * ( 1._rt - C(i,j,k) ) - S_ck(i,j,k) * om2_s * dt - om2_s * dt2 ) / (om4_s * dt2);
             }
             else
             {
-                X7(i,j,k) = - dt2/ 6._rt;
+                X7(i,j,k) = 0._rt;
             }
 
             if (om_s != 0.)
@@ -990,12 +990,12 @@ void PsatdAlgorithm::InitializeSpectralCoefficientsMultiJ (
             }
             else
             {
-                X8(i,j,k) = 0._rt;
+                X8(i,j,k) = - dt2/ 6._rt;
             }
 
             if (om_s != 0.)
             {
-                X9(i,j,k) = -( (1._rt - C(i,j,k)) * (om2_s * dt2 - 8._rt) + 4._rt * om2_s * dt * S_ck(i,j,k) )
+                X9(i,j,k) = ( (1._rt - C(i,j,k)) * (om2_s * dt2 - 8._rt) + 4._rt * om2_s * dt * S_ck(i,j,k) )
                             / (om4_s * dt2);
             }
             else
