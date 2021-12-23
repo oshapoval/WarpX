@@ -86,9 +86,20 @@ PsatdAlgorithm::PsatdAlgorithm(
     if (do_multi_J)
     {
         X7_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+        P1_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+        P2_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+        P3_coef = SpectralRealCoefficients(ba, dm, 1, 0);
         InitializeSpectralCoefficientsMultiJ(spectral_kspace, dm, dt);
+
     }
 
+    // if (do_multi_J && dive_cleaning)
+    // {
+    //     P1_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+    //     P2_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+    //     P3_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+    //     InitializeSpectralCoefficientsMultiJ(spectral_kspace, dm, dt);
+    // }
     // Allocate these coefficients only with time averaging
     if (time_averaging && !do_multi_J)
     {
@@ -188,10 +199,17 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
         }
 
         amrex::Array4<const amrex::Real> X7_arr;
+        amrex::Array4<const amrex::Real> P1_arr;
+        amrex::Array4<const amrex::Real> P2_arr;
+        amrex::Array4<const amrex::Real> P3_arr;
         if (do_multi_J)
         {
             X7_arr = X7_coef[mfi].array();
+            P1_arr = P1_coef[mfi].array();
+            P2_arr = P2_coef[mfi].array();
+            P3_arr = P3_coef[mfi].array();
         }
+
 
         // Extract pointers for the k vectors
         const amrex::Real* modified_kx_arr = modified_kx_vec[mfi].dataPtr();
@@ -335,6 +353,10 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
             if (do_multi_J)
             {
                 const amrex::Real X7 = X7_arr(i,j,k);
+                const amrex::Real P1 = P1_arr(i,j,k);
+                const amrex::Real P2 = P2_arr(i,j,k);
+                const amrex::Real P3 = P3_arr(i,j,k);
+
 
                 const Complex rho_mid = fields(i,j,k,Idx.rho_mid);
                 const Complex Jx_new = fields(i,j,k,Idx.Jx_new);
@@ -356,7 +378,8 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
                 {
                     const Complex k_dot_dJ = kx * (Jx_new - Jx) + ky * (Jy_new - Jy) + kz * (Jz_new - Jz);
 
-                    fields(i,j,k,Idx.F) += -I * X2/c2 * k_dot_dJ;
+                    fields(i,j,k,Idx.F) += P1 * rho_new + P2 * rho_old + P3 * rho_mid;
+                    //-I * X2/c2 * k_dot_dJ;
                 }
 
                 if (time_averaging)
@@ -966,6 +989,10 @@ void PsatdAlgorithm::InitializeSpectralCoefficientsMultiJ (
 
         amrex::Array4<amrex::Real> X7 = X7_coef[mfi].array();
 
+        amrex::Array4<amrex::Real> P1 = P1_coef[mfi].array();
+        amrex::Array4<amrex::Real> P2 = P2_coef[mfi].array();
+        amrex::Array4<amrex::Real> P3 = P3_coef[mfi].array();
+
         // Loop over indices within one box
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
@@ -978,8 +1005,8 @@ void PsatdAlgorithm::InitializeSpectralCoefficientsMultiJ (
                 std::pow(kz_s[j], 2));
 #endif
             // Physical constants and imaginary unit
-            constexpr amrex::Real c = PhysConst::c;
-            constexpr amrex::Real c2 = std::pow(c, 2);
+            const amrex::Real c = PhysConst::c;
+            const amrex::Real c2 = std::pow(c, 2);
             constexpr amrex::Real ep0 = PhysConst::ep0;
 
             // Auxiliary coefficients
@@ -993,11 +1020,19 @@ void PsatdAlgorithm::InitializeSpectralCoefficientsMultiJ (
             {
                 X7(i,j,k) = c2 / ep0 * ((1._rt - C(i,j,k)) * (om2_s * dt2 - 8._rt)
                             + 4._rt * om2_s * dt * S_ck(i,j,k)) / (om4_s * dt2);
+                P1(i,j,k) = -(C(i,j,k) - 1._rt)/(dt*ep0) + (-3._rt*dt*C(i,j,k) - 5._rt*dt + 8._rt*S_ck(i,j,k))/(dt2*ep0*om2_s);
+                P2(i,j,k)  =  (dt*om_s*(C(i,j,k) - 1._rt) - 5._rt*dt*C(i,j,k) - 3._rt*dt + 8._rt*S_ck(i,j,k))/(dt2*ep0*om2_s);
+                P3(i,j,k) =( 8._rt*dt*C(i,j,k) + 8._rt*dt- 16._rt*S_ck(i,j,j) )/(dt2*ep0*om2_s);
+
             }
             else
             {
                 X7(i,j,k) = - c2 / ep0 * dt2 / 6._rt;
+                P1(i,j,k) =  dt/(6_rt*ep0);
+                P2(i,j,k) =  7._rt *dt/(6_rt*ep0);
+                P3(i,j,k) = -4._rt*dt/(3._rt*ep0);
             }
+
         });
     }
 }
