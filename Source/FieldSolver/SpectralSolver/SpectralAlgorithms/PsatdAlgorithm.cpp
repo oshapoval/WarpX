@@ -378,8 +378,8 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
                 {
                     const Complex k_dot_dJ = kx * (Jx_new - Jx) + ky * (Jy_new - Jy) + kz * (Jz_new - Jz);
 
-                    fields(i,j,k,Idx.F) += P1 * rho_new + P2 * rho_old + P3 * rho_mid;
-                    //-I * X2/c2 * k_dot_dJ;
+                    fields(i,j,k,Idx.F) += -I * X2/c2 * k_dot_dJ + (P1 * rho_new + P2 * rho_old + P3 * rho_mid);
+
                 }
 
                 if (time_averaging)
@@ -1022,7 +1022,7 @@ void PsatdAlgorithm::InitializeSpectralCoefficientsMultiJ (
                             + 4._rt * om2_s * dt * S_ck(i,j,k)) / (om4_s * dt2);
                 P1(i,j,k) = -(C(i,j,k) - 1._rt)/(dt*ep0) + (-3._rt*dt*C(i,j,k) - 5._rt*dt + 8._rt*S_ck(i,j,k))/(dt2*ep0*om2_s);
                 P2(i,j,k)  =  (dt*om_s*(C(i,j,k) - 1._rt) - 5._rt*dt*C(i,j,k) - 3._rt*dt + 8._rt*S_ck(i,j,k))/(dt2*ep0*om2_s);
-                P3(i,j,k) =( 8._rt*dt*C(i,j,k) + 8._rt*dt- 16._rt*S_ck(i,j,j) )/(dt2*ep0*om2_s);
+                P3(i,j,k) = (8._rt*dt*C(i,j,k) + 8._rt*dt- 16._rt*S_ck(i,j,j) )/(dt2*ep0*om2_s);
 
             }
             else
