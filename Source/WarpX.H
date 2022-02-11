@@ -1357,6 +1357,11 @@ private:
     void PSATDForwardTransformJ ();
 
     /**
+     * \brief Backward FFT of J on all mesh refinement levels
+     */
+    void PSATDBackwardTransformJ ();
+
+    /**
      * \brief Forward FFT of rho on all mesh refinement levels,
      *        with k-space filtering (if needed)
      *
@@ -1399,6 +1404,11 @@ private:
      * \brief Backward FFT of G on all mesh refinement levels
      */
     void PSATDBackwardTransformG ();
+
+    /**
+     * \brief Correct current in Fourier space so that the continuity equation is satisfied
+     */
+    void PSATDCurrentCorrection ();
 
     /**
      * \brief Update all necessary fields in spectral space
