@@ -496,9 +496,83 @@ void PsatdAlgorithmJLinearInTime::CurrentCorrection (SpectralFieldData& field_da
 {
     // Profiling
     BL_PROFILE("PsatdAlgorithmJLinearInTime::CurrentCorrection");
+    const SpectralFieldIndex& Idx = m_spectral_index;
 
-    amrex::ignore_unused(field_data);
-    amrex::Abort("Current correction not implemented for multi-J PSATD algorithm");
+    // Loop over boxes
+    for (amrex::MFIter mfi(field_data.fields); mfi.isValid(); ++mfi){
+
+    const amrex::Box& bx = field_data.fields[mfi].box();
+
+        // Extract arrays for the fields to be updated
+    amrex::Array4<Complex> fields = field_data.fields[mfi].array();
+
+        // Extract pointers for the k vectors
+    const amrex::Real* const modified_kx_arr = modified_kx_vec[mfi].dataPtr();
+
+#if defined(WARPX_DIM_3D)
+    const amrex::Real* const modified_ky_arr = modified_ky_vec[mfi].dataPtr();
+#endif
+    const amrex::Real* const modified_kz_arr = modified_kz_vec[mfi].dataPtr();
+
+    // Local copy of member variables before GPU loop
+    const amrex::Real dt = m_dt;
+
+    // Loop over indices within one box
+    ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+    {
+            // Shortcuts for the values of J and rho
+        const Complex Jx = fields(i,j,k,Idx.Jx);
+        const Complex Jy = fields(i,j,k,Idx.Jy);
+        const Complex Jz = fields(i,j,k,Idx.Jz);
+
+        const Complex Jx_new = fields(i,j,k,Idx.Jx_new);
+        const Complex Jy_new = fields(i,j,k,Idx.Jy_new);
+        const Complex Jz_new = fields(i,j,k,Idx.Jz_new);
+
+        const Complex rho_old = fields(i,j,k,Idx.rho_old);
+        const Complex rho_new = fields(i,j,k,Idx.rho_new);
+        const Complex rho_mid = fields(i,j,k,Idx.rho_mid);
+
+            // k vector values, and coefficients
+        const amrex::Real kx = modified_kx_arr[i];
+#if defined(WARPX_DIM_3D)
+        const amrex::Real ky = modified_ky_arr[j];
+        const amrex::Real kz = modified_kz_arr[k];
+
+#else
+        constexpr amrex::Real ky = 0._rt;
+        const     amrex::Real kz = modified_kz_arr[j];
+        constexpr amrex::Real ky_c = 0._rt;
+#endif
+        constexpr Complex I = Complex{0._rt, 1._rt};
+
+        const amrex::Real k_norm = std::sqrt(kx * kx + ky * ky + kz * kz);
+
+        // Correct J
+        if (k_norm != 0._rt)
+        {
+            fields(i,j,k,Idx.Jx_new) = I * (3._rt*rho_new  + rho_old - 4._rt*rho_mid)
+                          * kx / (k_norm * k_norm);
+
+            fields(i,j,k,Idx.Jy_new) =  I * (3._rt*rho_new  + rho_old  - 4._rt*rho_mid)
+                          * ky / (k_norm * k_norm);
+
+            fields(i,j,k,Idx.Jz_new) = I * (3._rt*rho_new  + rho_old  - 4._rt*rho_mid)
+                          * kz / (k_norm * k_norm);
+
+
+            fields(i,j,k,Idx.Jx) = -I * (rho_new + 3._rt*rho_old - 4._rt*rho_mid)
+                          * kx / (k_norm * k_norm);
+
+            fields(i,j,k,Idx.Jy) = -I * (rho_new + 3._rt*rho_old - 4._rt*rho_mid)
+                          * ky / (k_norm * k_norm);
+
+            fields(i,j,k,Idx.Jz) = -I * (rho_new + 3._rt*rho_old - 4._rt*rho_mid)
+                          * kz / (k_norm * k_norm);
+        }
+
+    });
+}
 }
 
 void

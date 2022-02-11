@@ -575,7 +575,12 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
                 // Forward FFT of rho
                 PSATDForwardTransformRho(0, 1);
             }
-
+            
+            if (WarpX::current_correction)
+            {
+                PSATDCurrentCorrection();
+                PSATDBackwardTransformJ();
+            }
             // Advance E,B,F,G fields in time and update the average fields
             PSATDPushSpectralFields();
 
