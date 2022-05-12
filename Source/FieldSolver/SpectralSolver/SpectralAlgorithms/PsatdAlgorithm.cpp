@@ -218,20 +218,21 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
             // k vector values
             const amrex::Real kx = modified_kx_arr[i];
             const amrex::Real kx_q = modified_kx_q_arr[i];
-            const amrex::Real kx_r = kx*kx/kx_q;
+
+            const amrex::Real kx_r = (kx_q==0._rt) ? 0._rt : kx*kx/kx_q;
+
+
 
 
 #if defined(WARPX_DIM_3D)
             const amrex::Real ky = modified_ky_arr[j];
             const amrex::Real ky_q = modified_ky_q_arr[j];
-            const amrex::Real ky_r = ky*ky/ky_q
+            const amrex::Real ky_r = (ky_q==0._rt) ? 0._rt : ky*ky/ky_q;
 
 
             const amrex::Real kz = modified_kz_arr[k];
             const amrex::Real kz_q = modified_kz_q_arr[k];
-            const amrex::Real kz_r = kz*kz/kz_q
-
-
+            const amrex::Real kz_r = (kz_q==0._rt) ? 0._rt : kz*kz/kz_q;
 
 #else
             constexpr amrex::Real ky = 0._rt;
@@ -241,7 +242,7 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
 
             const     amrex::Real kz = modified_kz_arr[j];
             const     amrex::Real kz_q = modified_kz_q_arr[j];
-            const     amrex::Real kz_r = kz*kz/kz_q;
+            const     amrex::Real kz_r = (kz_q==0._rt) ? 0._rt : kz*kz/kz_q;
 
 
 #endif
@@ -281,15 +282,14 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
             // T2 = 1 always with standard PSATD (zero Galilean velocity)
 
             else {
-                amrex::Print() << " kx | kx_q | kx_r =  " << kx << '|' <<kx_q << '|' << kx_r <<'|'  << "\n";
-
-
                 Complex kq_dot_J = kx_q * Jx + ky_q * Jy + kz_q * Jz;
                 Complex k_dot_J = kx * Jx + ky * Jy + kz * Jz;
                 Complex kr_dot_J = kx_r * Jx + ky_r * Jy + kz_r * Jz;
 
                 Complex k_dot_E = kx * Ex_old + ky * Ey_old + kz * Ez_old;
                 Complex kq_dot_E = kx_q * Ex_old + ky_q * Ey_old + kz_q * Ez_old;
+                Complex kr_dot_E = kx_r * Ex_old + ky_r * Ey_old + kz_r * Ez_old;
+
 
                 fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
                                        + I * c2 * T2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
@@ -302,6 +302,7 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
                 fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
                                        + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
                                        + X4 * Jz + X2 * kq_dot_E * kz_r + X3 * kq_dot_J * kz_r;
+
             }
 
             // Update equations for B
