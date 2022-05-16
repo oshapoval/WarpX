@@ -244,7 +244,6 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
             const     amrex::Real kz_q = modified_kz_q_arr[j];
             const     amrex::Real kz_r = (kz_q==0._rt) ? 0._rt : kz*kz/kz_q;
 
-
 #endif
             // Physical constants and imaginary unit
             constexpr Real c2 = PhysConst::c * PhysConst::c;
@@ -290,35 +289,82 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
                 Complex kq_dot_E = kx_q * Ex_old + ky_q * Ey_old + kz_q * Ez_old;
                 Complex kr_dot_E = kx_r * Ex_old + ky_r * Ey_old + kz_r * Ez_old;
 
+                // # 3
+                // fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
+                //                        + I * c2 * T2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
+                //                        + X4 * Jx + X2 * kq_dot_E * kx_r + X3 * kq_dot_J * kx_r;
+                //
+                // fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
+                //                        + I * c2 * T2 * S_ck * (kz_q * Bx_old - kx_q * Bz_old)
+                //                        + X4 * Jy + X2 * kq_dot_E * ky_r + X3 * kq_dot_J * ky_r;
+                //
+                // fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
+                //                        + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
+                //                        + X4 * Jz + X2 * kq_dot_E * kz_r + X3 * kq_dot_J * kz_r;
+                // # 2
+                // fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
+                //                        + I * c2 * T2 * S_ck * (ky * Bz_old - kz * By_old)
+                //                        + X4 * Jx + X2 * k_dot_E * kx + X3 * kq_dot_J * kx;
+                //
+                // fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
+                //                        + I * c2 * T2 * S_ck * (kz * Bx_old - kx * Bz_old)
+                //                        + X4 * Jy + X2 * k_dot_E * ky + X3 * kq_dot_J * ky;
+                //
+                // fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
+                //                        + I * c2 * T2 * S_ck * (kx * By_old - ky * Bx_old)
+                //                        + X4 * Jz + X2 * k_dot_E * kz + X3 * kq_dot_J * kz;
+              // Equations # 3
+              fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
+                                     + I * c2 * T2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
+                                     + X4 * Jx + X2 * kq_dot_E * kx + X3 * kq_dot_J * kx;
 
-                fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
-                                       + I * c2 * T2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
-                                       + X4 * Jx + X2 * kq_dot_E * kx_r + X3 * kq_dot_J * kx_r;
+              fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
+                                     + I * c2 * T2 * S_ck * (kz_q * Bx_old - kx_q * Bz_old)
+                                     + X4 * Jy + X2 * kq_dot_E * ky + X3 * kq_dot_J * ky;
 
-                fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
-                                       + I * c2 * T2 * S_ck * (kz_q * Bx_old - kx_q * Bz_old)
-                                       + X4 * Jy + X2 * kq_dot_E * ky_r + X3 * kq_dot_J * ky_r;
-
-                fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
-                                       + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
-                                       + X4 * Jz + X2 * kq_dot_E * kz_r + X3 * kq_dot_J * kz_r;
-
+              fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
+                                     + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
+                                     + X4 * Jz + X2 * kq_dot_E * kz + X3 * kq_dot_J * kz;
             }
 
             // Update equations for B
             // T2 = 1 always with standard PSATD (zero Galilean velocity)
-
+            // # 1
+            // fields(i,j,k,Idx.Bx) = T2 * C * Bx_old
+            //                        - I * T2 * S_ck * (ky_r * Ez_old - kz_r * Ey_old)
+            //                        + I * X1 * (ky_r * Jz - kz_r * Jy);
+            //
+            // fields(i,j,k,Idx.By) = T2 * C * By_old
+            //                        - I * T2 * S_ck * (kz_r * Ex_old - kx_r * Ez_old)
+            //                        + I * X1 * (kz_r * Jx - kx_r * Jz);
+            //
+            // fields(i,j,k,Idx.Bz) = T2 * C * Bz_old
+            //                        - I * T2 * S_ck * (kx_r* Ey_old - ky_r * Ex_old)
+            //                        + I * X1 * (kx_r * Jy - ky_r * Jx);
+            // # 2
             fields(i,j,k,Idx.Bx) = T2 * C * Bx_old
-                                   - I * T2 * S_ck * (ky_r * Ez_old - kz_r * Ey_old)
-                                   + I * X1 * (ky_r * Jz - kz_r * Jy);
+                                   - I * T2 * S_ck * (ky * Ez_old - kz * Ey_old)
+                                   + I * X1 * (ky * Jz - kz * Jy);
 
             fields(i,j,k,Idx.By) = T2 * C * By_old
-                                   - I * T2 * S_ck * (kz_r * Ex_old - kx_r * Ez_old)
-                                   + I * X1 * (kz_r * Jx - kx_r * Jz);
+                                   - I * T2 * S_ck * (kz * Ex_old - kx * Ez_old)
+                                   + I * X1 * (kz * Jx - kx * Jz);
 
             fields(i,j,k,Idx.Bz) = T2 * C * Bz_old
-                                   - I * T2 * S_ck * (kx_r * Ey_old - ky_r * Ex_old)
-                                   + I * X1 * (kx_r * Jy - ky_r * Jx);
+                                   - I * T2 * S_ck * (kx* Ey_old - ky * Ex_old)
+                                   + I * X1 * (kx * Jy - ky * Jx);
+            // Equations # 3
+            // fields(i,j,k,Idx.Bx) = T2 * C * Bx_old
+            //                       - I * T2 * S_ck * (ky * Ez_old - kz * Ey_old)
+            //                     + I * X1 * (ky * Jz - kz * Jy);
+            //
+            // fields(i,j,k,Idx.By) = T2 * C * By_old
+            //                     - I * T2 * S_ck * (kz * Ex_old - kx * Ez_old)
+            //                   + I * X1 * (kz * Jx - kx * Jz);
+            //
+            // fields(i,j,k,Idx.Bz) = T2 * C * Bz_old
+            //                         - I * T2 * S_ck * (kx* Ey_old - ky * Ex_old)
+            //                       + I * X1 * (kx * Jy - ky * Jx);
 
             if (dive_cleaning)
             {
@@ -401,12 +447,17 @@ void PsatdAlgorithm::InitializeSpectralCoefficients (
         // Extract pointers for the k vectors
         const amrex::Real* kx_s = modified_kx_vec[mfi].dataPtr();
         const amrex::Real* kx_c = modified_kx_vec_centered[mfi].dataPtr();
+        const amrex::Real* kx_q = modified_kx_q_vec_centered[mfi].dataPtr();
+
 #if defined(WARPX_DIM_3D)
         const amrex::Real* ky_s = modified_ky_vec[mfi].dataPtr();
         const amrex::Real* ky_c = modified_ky_vec_centered[mfi].dataPtr();
+        const amrex::Real* ky_q = modified_ky_q_vec_centered[mfi].dataPtr();
+
 #endif
         const amrex::Real* kz_s = modified_kz_vec[mfi].dataPtr();
         const amrex::Real* kz_c = modified_kz_vec_centered[mfi].dataPtr();
+        const amrex::Real* kz_q = modified_kz_q_vec_centered[mfi].dataPtr();
 
         // Coefficients always allocated
         amrex::Array4<amrex::Real> C = C_coef[mfi].array();
@@ -441,6 +492,14 @@ void PsatdAlgorithm::InitializeSpectralCoefficients (
 #else
                 std::pow(kz_s[j], 2));
 #endif
+            // Calculate norm of k vector
+            const amrex::Real knorm_0 = std::sqrt(
+                kx_s[i] * kx_q[i] +
+#if defined(WARPX_DIM_3D)
+                ky_s[j] * ky_q[j]  + kz_s[k] * kz_q[k]);
+#else
+                kz_s[j] * kz_q[j]);
+#endif
             // Physical constants and imaginary unit
             constexpr amrex::Real c = PhysConst::c;
             constexpr amrex::Real ep0 = PhysConst::ep0;
@@ -462,20 +521,25 @@ void PsatdAlgorithm::InitializeSpectralCoefficients (
 #endif
             const amrex::Real w2_c = std::pow(w_c, 2);
 
+
             const amrex::Real om_s = c * knorm_s;
+            const amrex::Real om_0 = c * knorm_0; //oshapoval: swith between #2 and #3
+
             const amrex::Real om2_s = std::pow(om_s, 2);
+            const amrex::Real om2_0 = std::pow(om_0, 2);
+
 
             const Complex theta_c      = amrex::exp( I * w_c * dt * 0.5_rt);
             const Complex theta2_c     = amrex::exp( I * w_c * dt);
             const Complex theta_c_star = amrex::exp(-I * w_c * dt * 0.5_rt);
 
             // C
-            C(i,j,k) = std::cos(om_s * dt);
+            C(i,j,k) = std::cos(om_0 * dt);
 
             // S_ck
             if (om_s != 0.)
             {
-                S_ck(i,j,k) = std::sin(om_s * dt) / om_s;
+                S_ck(i,j,k) = std::sin(om_0 * dt) / om_0;
             }
             else // om_s = 0
             {
@@ -486,7 +550,7 @@ void PsatdAlgorithm::InitializeSpectralCoefficients (
             amrex::Real tmp;
             if (om_s != 0.)
             {
-                tmp = (1._rt - C(i,j,k)) / (ep0 * om2_s);
+                tmp = (1._rt - C(i,j,k)) / (ep0 * om2_0);
             }
             else // om_s = 0
             {
@@ -503,7 +567,7 @@ void PsatdAlgorithm::InitializeSpectralCoefficients (
             if ((om_s != 0.) || (w_c != 0.))
             {
                 X1(i,j,k) = (1._rt - theta2_c * C(i,j,k) + I * w_c * theta2_c * S_ck(i,j,k))
-                            / (ep0 * (om2_s - w2_c));
+                            / (ep0 * (om2_0 - w2_c));
             }
             else // om_s = 0 and w_c = 0
             {
@@ -567,7 +631,7 @@ void PsatdAlgorithm::InitializeSpectralCoefficients (
                 {
                     if (om_s != 0.)
                     {
-                        X3(i,j,k) = c2 * (S_ck(i,j,k) - dt) / (ep0 * om2_s);
+                        X3(i,j,k) = c2 * (S_ck(i,j,k) - dt) / (ep0 * om2_0);
                     }
                     else // om_s = 0 and w_c = 0
                     {
@@ -600,12 +664,16 @@ void PsatdAlgorithm::InitializeSpectralCoefficientsAveraging (
         // Extract pointers for the k vectors
         const amrex::Real* kx_s = modified_kx_vec[mfi].dataPtr();
         const amrex::Real* kx_c = modified_kx_vec_centered[mfi].dataPtr();
+        const amrex::Real* kx_q = modified_kx_q_vec_centered[mfi].dataPtr();
 #if defined(WARPX_DIM_3D)
         const amrex::Real* ky_s = modified_ky_vec[mfi].dataPtr();
         const amrex::Real* ky_c = modified_ky_vec_centered[mfi].dataPtr();
+        const amrex::Real* ky_q = modified_ky_q_vec_centered[mfi].dataPtr();
+
 #endif
         const amrex::Real* kz_s = modified_kz_vec[mfi].dataPtr();
         const amrex::Real* kz_c = modified_kz_vec_centered[mfi].dataPtr();
+        const amrex::Real* kz_q = modified_kz_q_vec_centered[mfi].dataPtr();
 
         // Coefficients allocated only with averaged Galilean PSATD
         amrex::Array4<Complex> Psi1 = Psi1_coef[mfi].array();
