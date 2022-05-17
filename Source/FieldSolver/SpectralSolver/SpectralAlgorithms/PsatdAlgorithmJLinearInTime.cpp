@@ -45,7 +45,16 @@ PsatdAlgorithmJLinearInTime::PsatdAlgorithmJLinearInTime(
     m_dt(dt),
     m_time_averaging(time_averaging),
     m_dive_cleaning(dive_cleaning),
-    m_divb_cleaning(divb_cleaning)
+    m_divb_cleaning(divb_cleaning),
+
+    modified_kx_q_vec_centered(spectral_kspace.getModifiedKComponent(dm, 0, PhysConst::nom, true)),
+
+#if defined(WARPX_DIM_3D)
+    modified_ky_q_vec_centered(spectral_kspace.getModifiedKComponent(dm, 1, PhysConst::nom, true)),
+    modified_kz_q_vec_centered(spectral_kspace.getModifiedKComponent(dm, 2, PhysConst::nom, true)),
+#else
+    modified_kz_q_vec_centered(spectral_kspace.getModifiedKComponent(dm, 1, PhysConst::nom, true))
+#endif
 {
     const amrex::BoxArray& ba = spectral_kspace.spectralspace_ba;
 
@@ -103,10 +112,16 @@ PsatdAlgorithmJLinearInTime::pushSpectralFields (SpectralFieldData& f) const
 
         // Extract pointers for the k vectors
         const amrex::Real* modified_kx_arr = modified_kx_vec[mfi].dataPtr();
+        const amrex::Real* modified_kx_q_arr = modified_kx_q_vec_centered[mfi].dataPtr();
+
 #if defined(WARPX_DIM_3D)
         const amrex::Real* modified_ky_arr = modified_ky_vec[mfi].dataPtr();
+        const amrex::Real* modified_ky_q_arr = modified_ky_q_vec_centered[mfi].dataPtr();
+
 #endif
         const amrex::Real* modified_kz_arr = modified_kz_vec[mfi].dataPtr();
+        const amrex::Real* modified_kz_q_arr = modified_kz_q_vec_centered[mfi].dataPtr();
+
 
         // Loop over indices within one box
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
@@ -135,12 +150,22 @@ PsatdAlgorithmJLinearInTime::pushSpectralFields (SpectralFieldData& f) const
 
             // k vector values
             const amrex::Real kx = modified_kx_arr[i];
+            const amrex::Real kx_q = modified_kx_q_arr[i];
+
 #if defined(WARPX_DIM_3D)
             const amrex::Real ky = modified_ky_arr[j];
+            const amrex::Real ky_q = modified_ky_q_arr[j];
+
             const amrex::Real kz = modified_kz_arr[k];
+            const amrex::Real kz_q = modified_kz_q_arr[k];
+
 #else
             constexpr amrex::Real ky = 0._rt;
+            constexpr amrex::Real ky_q = 0._rt;
+
             const     amrex::Real kz = modified_kz_arr[j];
+            const     amrex::Real kz_q = modified_kz_q_arr[j];
+
 #endif
             // Physical constants and imaginary unit
             constexpr amrex::Real c2 = PhysConst::c * PhysConst::c;
@@ -158,17 +183,30 @@ PsatdAlgorithmJLinearInTime::pushSpectralFields (SpectralFieldData& f) const
 
             // Update equations for E in the formulation with rho
 
+            // fields(i,j,k,Idx.Ex) = C * Ex_old
+            //     + I * c2 * S_ck * (ky * Bz_old - kz * By_old)
+            //     + X4 * Jx_old - I * (X2 * rho_new - X3 * rho_old) * kx - X1 * (Jx_new - Jx_old) / dt;
+            //
+            // fields(i,j,k,Idx.Ey) = C * Ey_old
+            //     + I * c2 * S_ck * (kz * Bx_old - kx * Bz_old)
+            //     + X4 * Jy_old - I * (X2 * rho_new - X3 * rho_old) * ky - X1 * (Jy_new - Jy_old) / dt;
+            //
+            // fields(i,j,k,Idx.Ez) = C * Ez_old
+            //     + I * c2 * S_ck * (kx * By_old - ky * Bx_old)
+            //     + X4 * Jz_old - I * (X2 * rho_new - X3 * rho_old) * kz - X1 * (Jz_new - Jz_old) / dt;
+            //
+            //   //#2
             fields(i,j,k,Idx.Ex) = C * Ex_old
-                + I * c2 * S_ck * (ky * Bz_old - kz * By_old)
-                + X4 * Jx_old - I * (X2 * rho_new - X3 * rho_old) * kx - X1 * (Jx_new - Jx_old) / dt;
+                    + I * c2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
+                    + X4 * Jx_old - I * (X2 * rho_new - X3 * rho_old) * kx - X1 * (Jx_new - Jx_old) / dt;
 
             fields(i,j,k,Idx.Ey) = C * Ey_old
-                + I * c2 * S_ck * (kz * Bx_old - kx * Bz_old)
-                + X4 * Jy_old - I * (X2 * rho_new - X3 * rho_old) * ky - X1 * (Jy_new - Jy_old) / dt;
+                    + I * c2 * S_ck * (kz_q * Bx_old - kx_q * Bz_old)
+                    + X4 * Jy_old - I * (X2 * rho_new - X3 * rho_old) * ky - X1 * (Jy_new - Jy_old) / dt;
 
             fields(i,j,k,Idx.Ez) = C * Ez_old
-                + I * c2 * S_ck * (kx * By_old - ky * Bx_old)
-                + X4 * Jz_old - I * (X2 * rho_new - X3 * rho_old) * kz - X1 * (Jz_new - Jz_old) / dt;
+                    + I * c2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
+                    + X4 * Jz_old - I * (X2 * rho_new - X3 * rho_old) * kz - X1 * (Jz_new - Jz_old) / dt;
 
             // Update equations for B
 
@@ -274,10 +312,16 @@ void PsatdAlgorithmJLinearInTime::InitializeSpectralCoefficients (
 
         // Extract pointers for the k vectors
         const amrex::Real* kx_s = modified_kx_vec[mfi].dataPtr();
+        const amrex::Real* kx_q = modified_kx_q_vec_centered[mfi].dataPtr();
+
 #if defined(WARPX_DIM_3D)
         const amrex::Real* ky_s = modified_ky_vec[mfi].dataPtr();
+        const amrex::Real* ky_q = modified_ky_q_vec_centered[mfi].dataPtr();
+
 #endif
         const amrex::Real* kz_s = modified_kz_vec[mfi].dataPtr();
+        const amrex::Real* kz_q = modified_kz_q_vec_centered[mfi].dataPtr();
+
 
         // Coefficients always allocated
         amrex::Array4<amrex::Real> C = C_coef[mfi].array();
@@ -297,6 +341,14 @@ void PsatdAlgorithmJLinearInTime::InitializeSpectralCoefficients (
 #else
                 std::pow(kz_s[j], 2));
 #endif
+// Calculate norm of k vector
+            const amrex::Real knorm_0 = std::sqrt(
+                kx_s[i] * kx_q[i] +
+#if defined(WARPX_DIM_3D)
+                ky_s[j] * ky_q[j]  + kz_s[k] * kz_q[k]);
+#else
+                kz_s[j] * kz_q[j]);
+#endif
             // Physical constants and imaginary unit
             constexpr amrex::Real c = PhysConst::c;
             constexpr amrex::Real ep0 = PhysConst::ep0;
@@ -304,7 +356,7 @@ void PsatdAlgorithmJLinearInTime::InitializeSpectralCoefficients (
             const amrex::Real c2 = std::pow(c, 2);
             const amrex::Real dt2 = std::pow(dt, 2);
 
-            const amrex::Real om_s = c * knorm_s;
+            const amrex::Real om_s = c * knorm_0; //oshapoval
             const amrex::Real om2_s = std::pow(om_s, 2);
 
             // C

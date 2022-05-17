@@ -128,6 +128,14 @@ class PsatdAlgorithmJLinearInTime : public SpectralBaseAlgorithm
         bool m_time_averaging;
         bool m_dive_cleaning;
         bool m_divb_cleaning;
+
+        KVectorComponent modified_kx_q_vec_centered;
+
+#if defined(WARPX_DIM_3D)
+        KVectorComponent modified_ky_q_vec_centered;
+
+#endif
+        KVectorComponent modified_kz_q_vec_centered;
 };
 #endif // WARPX_USE_PSATD
 #endif // WARPX_PSATD_ALGORITHM_J_LINEAR_IN_TIME_H_
