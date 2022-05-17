@@ -289,7 +289,7 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
                 Complex kq_dot_E = kx_q * Ex_old + ky_q * Ey_old + kz_q * Ez_old;
                 Complex kr_dot_E = kx_r * Ex_old + ky_r * Ey_old + kz_r * Ez_old;
 
-                // # 3
+                // # 1
                 // fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
                 //                        + I * c2 * T2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
                 //                        + X4 * Jx + X2 * kq_dot_E * kx_r + X3 * kq_dot_J * kx_r;
@@ -301,7 +301,7 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
                 // fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
                 //                        + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
                 //                        + X4 * Jz + X2 * kq_dot_E * kz_r + X3 * kq_dot_J * kz_r;
-                // # 2
+                // //# 2
                 // fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
                 //                        + I * c2 * T2 * S_ck * (ky * Bz_old - kz * By_old)
                 //                        + X4 * Jx + X2 * k_dot_E * kx + X3 * kq_dot_J * kx;
@@ -321,7 +321,7 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
               fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
                                      + I * c2 * T2 * S_ck * (kz_q * Bx_old - kx_q * Bz_old)
                                      + X4 * Jy + X2 * kq_dot_E * ky + X3 * kq_dot_J * ky;
-
+              
               fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
                                      + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
                                      + X4 * Jz + X2 * kq_dot_E * kz + X3 * kq_dot_J * kz;
@@ -587,7 +587,7 @@ void PsatdAlgorithm::InitializeSpectralCoefficients (
                 {
                     if (om_s != 0.)
                     {
-                        X2(i,j,k) = c2 * (dt - S_ck(i,j,k)) / (ep0 * dt * om2_s);
+                        X2(i,j,k) = c2 * (dt - S_ck(i,j,k)) / (ep0 * dt * om2_0);
                     }
                     else // om_s = 0 and w_c = 0
                     {
@@ -613,7 +613,7 @@ void PsatdAlgorithm::InitializeSpectralCoefficients (
                 {
                     if (om_s != 0.)
                     {
-                        X3(i,j,k) = c2 * (dt * C(i,j,k) - S_ck(i,j,k)) / (ep0 * dt * om2_s);
+                        X3(i,j,k) = c2 * (dt * C(i,j,k) - S_ck(i,j,k)) / (ep0 * dt * om2_0);
                     }
                     else // om_s = 0 and w_c = 0
                     {
