@@ -5,7 +5,8 @@
  * License: BSD-3-Clause-LBNL
  */
 #include "PsatdAlgorithm.H"
-
+//oshapoval
+#include "WarpX.H"
 #include "Utils/WarpXConst.H"
 #include "Utils/WarpX_Complex.H"
 
@@ -72,6 +73,7 @@ PsatdAlgorithm::PsatdAlgorithm(
     m_dive_cleaning(dive_cleaning),
     m_divb_cleaning(divb_cleaning)
 {
+
     const amrex::BoxArray& ba = spectral_kspace.spectralspace_ba;
 
     m_is_galilean = (v_galilean[0] != 0.) || (v_galilean[1] != 0.) || (v_galilean[2] != 0.);
@@ -265,16 +267,30 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
             if (update_with_rho)
             {
                 fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
-                                       + I * c2 * T2 * S_ck * (ky * Bz_old - kz * By_old)
-                                       + X4 * Jx - I * (X2 * rho_new - T2 * X3 * rho_old) * kx;
+                                       + I * c2 * T2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
+                                       + X4 * Jx - I * (X2 * rho_new - T2 * X3 * rho_old) * kx_r;
 
                 fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
-                                       + I * c2 * T2 * S_ck * (kz * Bx_old - kx * Bz_old)
-                                       + X4 * Jy - I * (X2 * rho_new - T2 * X3 * rho_old) * ky;
+                                       + I * c2 * T2 * S_ck * (kz_q * Bx_old - kx_q * Bz_old)
+                                       + X4 * Jy - I * (X2 * rho_new - T2 * X3 * rho_old) * ky_r;
 
                 fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
-                                       + I * c2 * T2 * S_ck * (kx * By_old - ky * Bx_old)
-                                       + X4 * Jz - I * (X2 * rho_new - T2 * X3 * rho_old) * kz;
+                                       + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
+                                       + X4 * Jz - I * (X2 * rho_new - T2 * X3 * rho_old) * kz_r;
+// Galilean with k_1*v_gal terms:
+                // fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
+                //                     + I * c2 * T2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
+                //                       + X4 * Jx - I * (X2 * rho_new - T2 * X3 * rho_old) * kx;
+                //
+                // fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
+                //                       + I * c2 * T2 * S_ck * (kz_q * Bx_old - kx_q * Bz_old)
+                //                         + X4 * Jy - I * (X2 * rho_new - T2 * X3 * rho_old) * ky;
+                //
+                // fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
+                //                         + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
+                //                         + X4 * Jz - I * (X2 * rho_new - T2 * X3 * rho_old) * kz;
+
+
             }
 
             // Update equations for E in the formulation without rho
@@ -289,19 +305,20 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
                 Complex kq_dot_E = kx_q * Ex_old + ky_q * Ey_old + kz_q * Ez_old;
                 Complex kr_dot_E = kx_r * Ex_old + ky_r * Ey_old + kz_r * Ez_old;
 
-                // # 1
-                // fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
-                //                        + I * c2 * T2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
-                //                        + X4 * Jx + X2 * kq_dot_E * kx_r + X3 * kq_dot_J * kx_r;
-                //
-                // fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
-                //                        + I * c2 * T2 * S_ck * (kz_q * Bx_old - kx_q * Bz_old)
-                //                        + X4 * Jy + X2 * kq_dot_E * ky_r + X3 * kq_dot_J * ky_r;
-                //
-                // fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
-                //                        + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
-                //                        + X4 * Jz + X2 * kq_dot_E * kz_r + X3 * kq_dot_J * kz_r;
-                // //# 2
+                // # 2 JL with k_q and k_r
+                fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
+                                       + I * c2 * T2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
+                                       + X4 * Jx + X2 * kq_dot_E * kx_r + X3 * kq_dot_J * kx_r;
+
+                fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
+                                       + I * c2 * T2 * S_ck * (kz_q * Bx_old - kx_q * Bz_old)
+                                       + X4 * Jy + X2 * kq_dot_E * ky_r + X3 * kq_dot_J * ky_r;
+
+                fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
+                                       + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
+                                       + X4 * Jz + X2 * kq_dot_E * kz_r + X3 * kq_dot_J * kz_r;
+
+                //# 4 - with k_q_dot_J  only in continuity equation (more unstable)
                 // fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
                 //                        + I * c2 * T2 * S_ck * (ky * Bz_old - kz * By_old)
                 //                        + X4 * Jx + X2 * k_dot_E * kx + X3 * kq_dot_J * kx;
@@ -313,59 +330,71 @@ PsatdAlgorithm::pushSpectralFields (SpectralFieldData& f) const
                 // fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
                 //                        + I * c2 * T2 * S_ck * (kx * By_old - ky * Bx_old)
                 //                        + X4 * Jz + X2 * k_dot_E * kz + X3 * kq_dot_J * kz;
-              // Equations # 3
-              fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
-                                     + I * c2 * T2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
-                                     + X4 * Jx + X2 * kq_dot_E * kx + X3 * kq_dot_J * kx;
 
-              fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
-                                     + I * c2 * T2 * S_ck * (kz_q * Bx_old - kx_q * Bz_old)
-                                     + X4 * Jy + X2 * kq_dot_E * ky + X3 * kq_dot_J * ky;
-              
-              fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
-                                     + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
-                                     + X4 * Jz + X2 * kq_dot_E * kz + X3 * kq_dot_J * kz;
+              // // Equations # 3 with k1 and k2
+              // fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
+              //                        + I * c2 * T2 * S_ck * (ky_q * Bz_old - kz_q * By_old)
+              //                        + X4 * Jx + X2 * kq_dot_E * kx + X3 * kq_dot_J * kx;
+              //
+              // fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
+              //                        + I * c2 * T2 * S_ck * (kz_q * Bx_old - kx_q * Bz_old)
+              //                        + X4 * Jy + X2 * kq_dot_E * ky + X3 * kq_dot_J * ky;
+              //
+              // fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
+              //                        + I * c2 * T2 * S_ck * (kx_q * By_old - ky_q * Bx_old)
+              //                        + X4 * Jz + X2 * kq_dot_E * kz + X3 * kq_dot_J * kz;
+              // // // # 1
+              // fields(i,j,k,Idx.Ex) = T2 * C * Ex_old
+              //                        + I * c2 * T2 * S_ck * (ky * Bz_old - kz * By_old)
+              //                        + X4 * Jx + X2 * k_dot_E * kx + X3 * k_dot_J * kx;
+              //
+              // fields(i,j,k,Idx.Ey) = T2 * C * Ey_old
+              //                        + I * c2 * T2 * S_ck * (kz * Bx_old - kx * Bz_old)
+              //                        + X4 * Jy + X2 * k_dot_E * ky + X3 * k_dot_J * ky;
+              //
+              // fields(i,j,k,Idx.Ez) = T2 * C * Ez_old
+              //                        + I * c2 * T2 * S_ck * (kx * By_old - ky * Bx_old)
+              //                        + X4 * Jz + X2 * k_dot_E * kz + X3 * k_dot_J * kz;
             }
 
             // Update equations for B
             // T2 = 1 always with standard PSATD (zero Galilean velocity)
             // # 1
-            // fields(i,j,k,Idx.Bx) = T2 * C * Bx_old
-            //                        - I * T2 * S_ck * (ky_r * Ez_old - kz_r * Ey_old)
-            //                        + I * X1 * (ky_r * Jz - kz_r * Jy);
-            //
-            // fields(i,j,k,Idx.By) = T2 * C * By_old
-            //                        - I * T2 * S_ck * (kz_r * Ex_old - kx_r * Ez_old)
-            //                        + I * X1 * (kz_r * Jx - kx_r * Jz);
-            //
-            // fields(i,j,k,Idx.Bz) = T2 * C * Bz_old
-            //                        - I * T2 * S_ck * (kx_r* Ey_old - ky_r * Ex_old)
-            //                        + I * X1 * (kx_r * Jy - ky_r * Jx);
-            // # 2
             fields(i,j,k,Idx.Bx) = T2 * C * Bx_old
-                                   - I * T2 * S_ck * (ky * Ez_old - kz * Ey_old)
-                                   + I * X1 * (ky * Jz - kz * Jy);
+                                   - I * T2 * S_ck * (ky_r * Ez_old - kz_r * Ey_old)
+                                   + I * X1 * (ky_r * Jz - kz_r * Jy);
 
             fields(i,j,k,Idx.By) = T2 * C * By_old
-                                   - I * T2 * S_ck * (kz * Ex_old - kx * Ez_old)
-                                   + I * X1 * (kz * Jx - kx * Jz);
+                                   - I * T2 * S_ck * (kz_r * Ex_old - kx_r * Ez_old)
+                                   + I * X1 * (kz_r * Jx - kx_r * Jz);
 
             fields(i,j,k,Idx.Bz) = T2 * C * Bz_old
-                                   - I * T2 * S_ck * (kx* Ey_old - ky * Ex_old)
-                                   + I * X1 * (kx * Jy - ky * Jx);
-            // Equations # 3
+                                   - I * T2 * S_ck * (kx_r* Ey_old - ky_r * Ex_old)
+                                   + I * X1 * (kx_r * Jy - ky_r * Jx);
+            // # 2
             // fields(i,j,k,Idx.Bx) = T2 * C * Bx_old
-            //                       - I * T2 * S_ck * (ky * Ez_old - kz * Ey_old)
-            //                     + I * X1 * (ky * Jz - kz * Jy);
+            //                        - I * T2 * S_ck * (ky * Ez_old - kz * Ey_old)
+            //                        + I * X1 * (ky * Jz - kz * Jy);
             //
             // fields(i,j,k,Idx.By) = T2 * C * By_old
-            //                     - I * T2 * S_ck * (kz * Ex_old - kx * Ez_old)
-            //                   + I * X1 * (kz * Jx - kx * Jz);
+            //                        - I * T2 * S_ck * (kz * Ex_old - kx * Ez_old)
+            //                        + I * X1 * (kz * Jx - kx * Jz);
             //
             // fields(i,j,k,Idx.Bz) = T2 * C * Bz_old
-            //                         - I * T2 * S_ck * (kx* Ey_old - ky * Ex_old)
-            //                       + I * X1 * (kx * Jy - ky * Jx);
-
+            //                        - I * T2 * S_ck * (kx* Ey_old - ky * Ex_old)
+            //                        + I * X1 * (kx * Jy - ky * Jx);
+            //// Galilean with k_1*v_gal terms:
+            // fields(i,j,k,Idx.Bx) = T2 * C * Bx_old
+            //                        - I * T2 * S_ck * (ky * Ez_old - kz * Ey_old)
+            //                        + I * X1 * (ky * Jz - kz * Jy);
+            //
+            // fields(i,j,k,Idx.By) = T2 * C * By_old
+            //                        - I * T2 * S_ck * (kz * Ex_old - kx * Ez_old)
+            //                        + I * X1 * (kz * Jx - kx * Jz);
+            //
+            // fields(i,j,k,Idx.Bz) = T2 * C * Bz_old
+            //                        - I * T2 * S_ck * (kx* Ey_old - ky * Ex_old)
+            //                        + I * X1 * (kx * Jy - ky * Jx);
             if (dive_cleaning)
             {
                 const Complex k_dot_J  = kx * Jx + ky * Jy + kz * Jz;
@@ -513,17 +542,23 @@ void PsatdAlgorithm::InitializeSpectralCoefficients (
             // This has to be computed always with the centered (that is, nodal) finite-order
             // modified k vectors, to work correctly for both nodal and staggered simulations.
             // w_c = 0 always with standard PSATD (zero Galilean velocity).
+            //olga
             const amrex::Real w_c = kx_c[i]*vg_x +
 #if defined(WARPX_DIM_3D)
                 ky_c[j]*vg_y + kz_c[k]*vg_z;
 #else
                 kz_c[j]*vg_z;
 #endif
+
+//             const amrex::Real w_c = kx_q[i]*vg_x +
+// #if defined(WARPX_DIM_3D)
+//                   ky_q[j]*vg_y + kz_q[k]*vg_z;
+// #else
+//                   kz_q[j]*vg_z;
+// #endif
             const amrex::Real w2_c = std::pow(w_c, 2);
-
-
             const amrex::Real om_s = c * knorm_s;
-            const amrex::Real om_0 = c * knorm_0; //oshapoval: swith between #2 and #3
+            const amrex::Real om_0 = c * knorm_s; //oshapoval: swith between #2 and #3
 
             const amrex::Real om2_s = std::pow(om_s, 2);
             const amrex::Real om2_0 = std::pow(om_0, 2);

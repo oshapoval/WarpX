@@ -6,7 +6,7 @@
  */
 #ifndef WARPX_PSATD_ALGORITHM_H_
 #define WARPX_PSATD_ALGORITHM_H_
-
+#include "WarpX.H"
 #include "FieldSolver/SpectralSolver/SpectralFieldData.H"
 #include "FieldSolver/SpectralSolver/SpectralKSpace.H"
 #include "SpectralBaseAlgorithm.H"
@@ -134,7 +134,7 @@ class PsatdAlgorithm : public SpectralBaseAlgorithm
 #if defined(WARPX_DIM_3D)
         KVectorComponent modified_ky_vec_centered;
         KVectorComponent modified_ky_q_vec_centered;
-        
+
 #endif
         KVectorComponent modified_kz_vec_centered;
         KVectorComponent modified_kz_q_vec_centered;

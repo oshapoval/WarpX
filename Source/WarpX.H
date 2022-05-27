@@ -250,6 +250,7 @@ public:
     //! If true, the PSATD update equation for E contains both J and rho
     //! (default is false for standard PSATD and true for Galilean PSATD)
     bool update_with_rho = false;
+    bool asymmetrical_field_update = false;
 
     //! perform field communications in single precision
     static bool do_single_precision_comms;
@@ -1379,7 +1380,7 @@ private:
     int nox_fft = 16;
     int noy_fft = 16;
     int noz_fft = 16;
-
+    int norder_kq = 16;
     //! Domain decomposition on Level 0
     amrex::IntVect numprocs{0};
 

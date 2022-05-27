@@ -227,13 +227,17 @@ PsatdAlgorithmJLinearInTime::pushSpectralFields (SpectralFieldData& f) const
                 const Complex k_dot_E = kx * Ex_old + ky * Ey_old + kz * Ez_old;
                 const Complex k_dot_J  = kx * Jx_old + ky * Jy_old + kz * Jz_old;
                 const Complex k_dot_dJ = kx * (Jx_new - Jx_old) + ky * (Jy_new - Jy_old) + kz * (Jz_new - Jz_old);
+                const Complex kq_dot_J  = kx_q * Jx_old + ky_q * Jy_old + kz_q * Jz_old;
+                const Complex kq_dot_dJ = kx_q * (Jx_new - Jx_old) + ky_q * (Jy_new - Jy_old) + kz_q * (Jz_new - Jz_old);
+                const Complex kq_dot_E = kx_q * Ex_old + ky_q * Ey_old + kz_q * Ez_old;
 
-                fields(i,j,k,Idx.Ex) += I * c2 * S_ck * F_old * kx;
-                fields(i,j,k,Idx.Ey) += I * c2 * S_ck * F_old * ky;
-                fields(i,j,k,Idx.Ez) += I * c2 * S_ck * F_old * kz;
 
-                fields(i,j,k,Idx.F) = C * F_old + S_ck * (I * k_dot_E - rho_old * inv_ep0)
-                    - X1 * ((rho_new - rho_old) / dt + I * k_dot_J) - I * X2/c2 * k_dot_dJ;
+                fields(i,j,k,Idx.Ex) += I * c2 * S_ck * F_old * kx; //oshapoval here k2_star --> can be both kx and kx_q
+                fields(i,j,k,Idx.Ey) += I * c2 * S_ck * F_old * ky; // oshapoval
+                fields(i,j,k,Idx.Ez) += I * c2 * S_ck * F_old * kz; //oshapoval
+
+                fields(i,j,k,Idx.F) = C * F_old + S_ck * (I * kq_dot_E - rho_old * inv_ep0)
+                        - X1 * ((rho_new - rho_old) / dt + I * kq_dot_J) - I * X2/c2 * kq_dot_dJ;
             }
 
             if (divb_cleaning)

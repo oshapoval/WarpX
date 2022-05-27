@@ -1322,6 +1322,9 @@ WarpX::ReadParameters ()
 
         // Overwrite update_with_rho with value set in input file
         pp_psatd.query("update_with_rho", update_with_rho);
+        //pp_psatd.query("asymmetrical_field_update", asymmetrical_field_update);
+        pp_psatd.query("norder_kq", WarpX::norder_kq);
+
 
         WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
             (!do_dive_cleaning) || update_with_rho,
