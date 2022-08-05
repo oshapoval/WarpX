@@ -1186,12 +1186,12 @@ WarpX::ReadParameters ()
 
         pp_psatd.query("do_time_averaging", fft_do_time_averaging);
 
-        if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Vay)
-        {
-            WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
-                fft_periodic_single_box == false,
-                "Option algo.current_deposition=vay must be used with psatd.periodic_single_box_fft=0.");
-        }
+        // if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Vay)
+        // {
+        //     WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
+        //         fft_periodic_single_box == false,
+        //         "Option algo.current_deposition=vay must be used with psatd.periodic_single_box_fft=0.");
+        // }
 
         // Auxiliary: boosted_frame = true if warpx.gamma_boost is set in the inputs
         amrex::ParmParse pp_warpx("warpx");
@@ -1330,7 +1330,7 @@ WarpX::ReadParameters ()
         // Fill guard cells with backward FFTs if Vay current deposition is used
         if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Vay)
         {
-            WarpX::fill_guards = amrex::IntVect(1);
+            WarpX::fill_guards = (fft_periodic_single_box) ? amrex::IntVect(0) : amrex::IntVect(1);
         }
     }
 

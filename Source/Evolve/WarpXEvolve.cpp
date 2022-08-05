@@ -571,6 +571,7 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
         {
             // Vay deposition at 1/4 of the time sub-step
             mypc->DepositCurrent(current, 0.5_rt*sub_dt, t_depose-3._rt/4._rt*sub_dt);
+            SyncCurrent(current, current_cp); //to be used with periodic single box //oshapoval
             // Get old spectral index from spectral solver on level 0
             idx_jx = spectral_solver_fp[0]->m_spectral_index.Jx;
             idx_jy = spectral_solver_fp[0]->m_spectral_index.Jy;
@@ -578,12 +579,13 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
             PSATDForwardTransformJ(current, current_cp, idx_jx, idx_jy, idx_jz);
             PSATDVayDeposition(idx_jx, idx_jy, idx_jz);
             PSATDBackwardTransformJ(current_fp, current_cp, idx_jx, idx_jy, idx_jz);
-            PSATDSubtractCurrentPartialSumsAvg();
-            SyncCurrent(current_fp, current_cp);
+            //PSATDSubtractCurrentPartialSumsAvg();
+            //SyncCurrent(current_fp, current_cp); //to be used without periodic single box //oshapoval
             PSATDForwardTransformJ(current_fp, current_cp, idx_jx, idx_jy, idx_jz);
 
             // Vay deposition at 3/4 of the time sub-step
             mypc->DepositCurrent(current, 0.5_rt*sub_dt, t_depose-1._rt/4._rt*sub_dt);
+            SyncCurrent(current, current_cp); //to be used with periodic single box //oshapoval
             // Get new spectral index from spectral solver on level 0
             idx_jx = spectral_solver_fp[0]->m_spectral_index.Jx_new;
             idx_jy = spectral_solver_fp[0]->m_spectral_index.Jy_new;
@@ -591,8 +593,9 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
             PSATDForwardTransformJ(current, current_cp, idx_jx, idx_jy, idx_jz);
             PSATDVayDeposition(idx_jx, idx_jy, idx_jz);
             PSATDBackwardTransformJ(current_fp, current_cp, idx_jx, idx_jy, idx_jz);
-            PSATDSubtractCurrentPartialSumsAvg();
-            SyncCurrent(current_fp, current_cp);
+            //PSATDSubtractCurrentPartialSumsAvg();
+            //SyncCurrent(current_fp, current_cp); //to be used without periodic single box //oshapoval
+
             PSATDForwardTransformJ(current_fp, current_cp, idx_jx, idx_jy, idx_jz);
 
             // At this point, in spectral space, J<x,y,z> stores J at 1/4 of the

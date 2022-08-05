@@ -403,7 +403,7 @@ void WarpX::PSATDSubtractCurrentPartialSumsAvg ()
         // Subtract average of cumulative sum from Jx
         for (amrex::MFIter mfi(Jx); mfi.isValid(); ++mfi)
         {
-            const amrex::Box& bx = mfi.fabbox();
+            const amrex::Box& bx = (fft_periodic_single_box) ? mfi.validbox() :  mfi.fabbox();
 
             amrex::Array4<amrex::Real> const& Jx_arr = Jx.array(mfi);
             amrex::Array4<amrex::Real const> const& Dx_arr = Dx.const_array(mfi);
@@ -427,7 +427,7 @@ void WarpX::PSATDSubtractCurrentPartialSumsAvg ()
         // Subtract average of cumulative sum from Jy
         for (amrex::MFIter mfi(Jy); mfi.isValid(); ++mfi)
         {
-            const amrex::Box& bx = mfi.fabbox();
+            const amrex::Box& bx = (fft_periodic_single_box) ? mfi.validbox() : mfi.fabbox();
 
             amrex::Array4<amrex::Real> const& Jy_arr = Jy.array(mfi);
             amrex::Array4<amrex::Real const> const& Dy_arr = Dy.const_array(mfi);
@@ -451,7 +451,7 @@ void WarpX::PSATDSubtractCurrentPartialSumsAvg ()
         // Subtract average of cumulative sum from Jz
         for (amrex::MFIter mfi(Jz); mfi.isValid(); ++mfi)
         {
-            const amrex::Box& bx = mfi.fabbox();
+            const amrex::Box& bx = (fft_periodic_single_box) ? mfi.validbox() : mfi.fabbox();
 
             amrex::Array4<amrex::Real> const& Jz_arr = Jz.array(mfi);
             amrex::Array4<amrex::Real const> const& Dz_arr = Dz.const_array(mfi);
@@ -647,7 +647,7 @@ WarpX::PushPSATD ()
     {
         PSATDVayDeposition(idx_jx, idx_jy, idx_jz);
         PSATDBackwardTransformJ(current_fp, current_cp, idx_jx, idx_jy, idx_jz);
-        PSATDSubtractCurrentPartialSumsAvg();
+        //PSATDSubtractCurrentPartialSumsAvg();
         SyncCurrent(current_fp, current_cp);
         PSATDForwardTransformJ(current_fp, current_cp, idx_jx, idx_jy, idx_jz);
     }
