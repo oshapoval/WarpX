@@ -643,21 +643,11 @@ public:
     void FillBoundaryG   (int lev, amrex::IntVect ng, const bool nodal_sync = false);
     void FillBoundaryAux (int lev, amrex::IntVect ng);
 
-    /**
-     * \brief Apply filter and sum guard cells across MR levels.
-     * If current centering is used, center the current from a nodal grid
-     * to a staggered grid. For each MR level beyond level 0, interpolate
-     * the fine-patch current onto the coarse-patch current at the same level.
-     * Then, for each MR level, including level 0, apply filter and sum guard
-     * cells across levels.
-     *
-     * \param[in,out] J_fp reference to fine-patch current \c MultiFab (all MR levels)
-     * \param[in,out] J_cp reference to coarse-patch current \c MultiFab (all MR levels)
-     */
     void SyncCurrent (
         const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_fp,
-        const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_cp);
-
+        const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_cp,
+        const bool apply_filtering,
+        const bool sum_guard_cells);
     void SyncRho ();
 
     amrex::Vector<int> getnsubsteps () const {return nsubsteps;}
@@ -961,14 +951,18 @@ private:
     void AddCurrentFromFineLevelandSumBoundary (
         const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_fp,
         const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_cp,
-        const int lev);
+        const int lev,
+        const bool apply_filtering,
+        const bool sum_guard_cells);
     void StoreCurrent (const int lev);
     void RestoreCurrent (const int lev);
     void ApplyFilterandSumBoundaryJ (
         const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_fp,
         const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_cp,
         const int lev,
-        PatchType patch_type);
+        PatchType patch_type,
+        const bool apply_filtering,
+        const bool sum_guard_cells);
     void NodalSyncJ (
         const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_fp,
         const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_cp,

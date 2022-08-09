@@ -403,12 +403,17 @@ WarpX::OneStep_nosub (Real cur_time)
     // the actual current J. This is computed later in WarpX::PushPSATD, by calling
     // WarpX::PSATDVayDeposition. The function SyncCurrent is called after that,
     // instead of here, so that we synchronize the correct current.
-    // With current centering, the nodal current is deposited in 'current_fp_nodal':
-    // SyncCurrent stores the result of its centering into 'current_fp' and then
-    // performs both filtering, if used, and exchange of guard cells.
-    if (WarpX::current_deposition_algo != CurrentDepositionAlgo::Vay)
+    if (current_deposition_algo == CurrentDepositionAlgo::Vay)
     {
-        SyncCurrent(current_fp, current_cp);
+        const bool apply_filtering = use_filter;
+        const bool sum_guard_cells = false;
+        SyncCurrent(current_fp_vay, current_cp, apply_filtering, sum_guard_cells);
+    }
+    else
+    {
+        const bool apply_filtering = use_filter;
+        const bool sum_guard_cells = true;
+        SyncCurrent(current_fp, current_cp, apply_filtering, sum_guard_cells);
     }
     SyncRho();
 
@@ -545,7 +550,9 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
     {
         mypc->DepositCurrent(current, dt[0], -dt[0]);
         // Filter, exchange boundary, and interpolate across levels
-        SyncCurrent(current_fp, current_cp);
+        const bool apply_filtering = use_filter;
+        const bool sum_guard_cells = true;
+        SyncCurrent(current_fp, current_cp, apply_filtering, sum_guard_cells);
         // Forward FFT of J
         // (get spectral index from spectral solver on level 0)
         idx_jx = spectral_solver_fp[0]->m_spectral_index.Jx_new;
@@ -553,7 +560,6 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
         idx_jz = spectral_solver_fp[0]->m_spectral_index.Jz_new;
         PSATDForwardTransformJ(current_fp, current_cp, idx_jx, idx_jy, idx_jz);
     }
-
     // Number of depositions for multi-J scheme
     const int n_depose = WarpX::do_multi_J_n_depositions;
     // Time sub-step for each multi-J deposition
@@ -579,7 +585,7 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
             PSATDVayDeposition(idx_jx, idx_jy, idx_jz);
             PSATDBackwardTransformJ(current_fp, current_cp, idx_jx, idx_jy, idx_jz);
             PSATDSubtractCurrentPartialSumsAvg();
-            SyncCurrent(current_fp, current_cp);
+            SyncCurrent(current_fp, current_cp, apply_filtering, sum_guard_cells);
             PSATDForwardTransformJ(current_fp, current_cp, idx_jx, idx_jy, idx_jz);
 
             // Vay deposition at 3/4 of the time sub-step
@@ -592,7 +598,7 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
             PSATDVayDeposition(idx_jx, idx_jy, idx_jz);
             PSATDBackwardTransformJ(current_fp, current_cp, idx_jx, idx_jy, idx_jz);
             PSATDSubtractCurrentPartialSumsAvg();
-            SyncCurrent(current_fp, current_cp);
+            SyncCurrent(current_fp, current_cp, apply_filtering, sum_guard_cells);
             PSATDForwardTransformJ(current_fp, current_cp, idx_jx, idx_jy, idx_jz);
 
             // At this point, in spectral space, J<x,y,z> stores J at 1/4 of the
@@ -749,7 +755,10 @@ WarpX::OneStep_sub1 (Real curtime)
     PushParticlesandDepose(fine_lev, curtime, DtType::FirstHalf);
     RestrictCurrentFromFineToCoarsePatch(current_fp, current_cp, fine_lev);
     RestrictRhoFromFineToCoarsePatch(rho_fp, rho_cp, fine_lev);
-    ApplyFilterandSumBoundaryJ(current_fp, current_cp, fine_lev, PatchType::fine);
+    const bool apply_filtering = use_filter;
+    const bool sum_guard_cells = true;
+    ApplyFilterandSumBoundaryJ(current_fp, current_cp, fine_lev, PatchType::fine,
+                               apply_filtering, sum_guard_cells);
     ApplyFilterandSumBoundaryRho(rho_fp, rho_cp, fine_lev, PatchType::fine, 0, 2*ncomps);
 
     EvolveB(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::FirstHalf);
@@ -776,7 +785,8 @@ WarpX::OneStep_sub1 (Real curtime)
     // by only half a coarse step (first half)
     PushParticlesandDepose(coarse_lev, curtime, DtType::Full);
     StoreCurrent(coarse_lev);
-    AddCurrentFromFineLevelandSumBoundary(current_fp, current_cp, coarse_lev);
+    AddCurrentFromFineLevelandSumBoundary(current_fp, current_cp, coarse_lev,
+                                          apply_filtering, sum_guard_cells);
     AddRhoFromFineLevelandSumBoundary(rho_fp, rho_cp, coarse_lev, 0, ncomps);
 
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev], DtType::FirstHalf);
@@ -805,7 +815,8 @@ WarpX::OneStep_sub1 (Real curtime)
     PushParticlesandDepose(fine_lev, curtime+dt[fine_lev], DtType::SecondHalf);
     RestrictCurrentFromFineToCoarsePatch(current_fp, current_cp, fine_lev);
     RestrictRhoFromFineToCoarsePatch(rho_fp, rho_cp, fine_lev);
-    ApplyFilterandSumBoundaryJ(current_fp, current_cp, fine_lev, PatchType::fine);
+    ApplyFilterandSumBoundaryJ(current_fp, current_cp, fine_lev, PatchType::fine,
+                               apply_filtering, sum_guard_cells);
     ApplyFilterandSumBoundaryRho(rho_fp, rho_cp, fine_lev, PatchType::fine, 0, ncomps);
 
     EvolveB(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::FirstHalf);
@@ -831,7 +842,8 @@ WarpX::OneStep_sub1 (Real curtime)
     // v) Push the fields on the coarse patch and mother grid
     // by only half a coarse step (second half)
     RestoreCurrent(coarse_lev);
-    AddCurrentFromFineLevelandSumBoundary(current_fp, current_cp, coarse_lev);
+    AddCurrentFromFineLevelandSumBoundary(current_fp, current_cp, coarse_lev,
+                                          apply_filtering, sum_guard_cells);
     AddRhoFromFineLevelandSumBoundary(rho_fp, rho_cp, coarse_lev, ncomps, ncomps);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
