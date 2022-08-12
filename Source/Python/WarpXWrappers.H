@@ -131,15 +131,10 @@ extern "C" {
   void warpx_FillBoundaryB ();
   void warpx_SyncRho ();
   void warpx_SyncCurrent (
-<<<<<<< HEAD
-      const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_fp,
-      const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_cp);
-=======
     const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_fp,
     const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>,3>>& J_cp,
     const bool apply_filtering,
     const bool sum_guard_cells);
->>>>>>> ezoni/filtering_vay_deposition
   void warpx_UpdateAuxilaryData ();
   void warpx_PushParticlesandDepose (amrex::Real cur_time);
 
