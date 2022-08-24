@@ -68,6 +68,9 @@ PsatdAlgorithmJLinearInTime::PsatdAlgorithmJLinearInTime(
     {
         Y1_coef = SpectralRealCoefficients(ba, dm, 1, 0);
         Y2_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+        M1_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+        M2_coef = SpectralRealCoefficients(ba, dm, 1, 0);
+        M3_coef = SpectralRealCoefficients(ba, dm, 1, 0);
         InitializeSpectralCoefficientsAveraging(spectral_kspace, dm, dt);
     }
 }
@@ -106,10 +109,19 @@ PsatdAlgorithmJLinearInTime::pushSpectralFields (SpectralFieldData& f) const
 
         amrex::Array4<const amrex::Real> Y1_arr;
         amrex::Array4<const amrex::Real> Y2_arr;
+        amrex::Array4<const amrex::Real> M1_arr;
+        amrex::Array4<const amrex::Real> M2_arr;
+        amrex::Array4<const amrex::Real> M3_arr;
+
         if (time_averaging)
         {
             Y1_arr = Y1_coef[mfi].array();
             Y2_arr = Y2_coef[mfi].array();
+
+            M1_arr = M1_coef[mfi].array();
+            M2_arr = M2_coef[mfi].array();
+            M3_arr = M3_coef[mfi].array();
+
         }
 
         // Extract pointers for the k vectors
@@ -234,22 +246,28 @@ PsatdAlgorithmJLinearInTime::pushSpectralFields (SpectralFieldData& f) const
             {
                 const amrex::Real Y1 = Y1_arr(i,j,k);
                 const amrex::Real Y2 = Y2_arr(i,j,k);
+                const amrex::Real M1 = M1_arr(i,j,k);
+                const amrex::Real M2 = M2_arr(i,j,k);
+                const amrex::Real M3 = M3_arr(i,j,k);
 
                 // TODO: Here the code is *accumulating* the average,
                 // because it is meant to be used with sub-cycling
                 // maybe this should be made more generic
 
                 fields(i,j,k,Idx.Ex_avg) += S_ck * Ex_old
-                    + I * c2 * ep0 * X1 * (ky * Bz_old - kz * By_old)
-                    + I * Y1 * rho_old * kx + I * Y2 * rho_new * kx + X3/c2 * Jx_old - X2/c2 * Jx_new;
+                    + I * c2 * ep0 * X1 * (ky * Bz_old - kz * By_old) - I * dt * X2/c2 * rho_mid * kx
+                    + X3/c2 * Jx_old - X2/c2 * Jx_new
+                    + I * kx * ( M1 * rho_new +  M2 * rho_old  +  M3 * rho_mid ) ;
 
                 fields(i,j,k,Idx.Ey_avg) += S_ck * Ey_old
-                    + I * c2 * ep0 * X1 * (kz * Bx_old - kx * Bz_old)
-                    + I * Y1 * rho_old * ky + I * Y2 * rho_new * ky + X3/c2 * Jy_old - X2/c2 * Jy_new;
+                    + I * c2 * ep0 * X1 * (kz * Bx_old - kx * Bz_old) - I * dt * X2/c2 * rho_mid * ky
+                    + X3/c2 * Jy_old - X2/c2 * Jy_new
+                    + I * ky * ( M1 * rho_new +  M2 * rho_old  +  M3 * rho_mid ) ;
 
                 fields(i,j,k,Idx.Ez_avg) += S_ck * Ez_old
-                    + I * c2 * ep0 * X1 * (kx * By_old - ky * Bx_old)
-                    + I * Y1 * rho_old * kz + I * Y2 * rho_new * kz + X3/c2 * Jz_old - X2/c2 * Jz_new;
+                    + I * c2 * ep0 * X1 * (kx * By_old - ky * Bx_old) - I * dt * X2/c2 * rho_mid * kz
+                    + X3/c2 * Jz_old - X2/c2 * Jz_new
+                    + I * kz * ( M1 * rho_new +  M2 * rho_old  +  M3 * rho_mid ) ;
 
                 fields(i,j,k,Idx.Bx_avg) += S_ck * Bx_old
                     - I * ep0 * X1 * (ky * Ez_old - kz * Ey_old)
@@ -448,6 +466,11 @@ void PsatdAlgorithmJLinearInTime::InitializeSpectralCoefficientsAveraging (
         amrex::Array4<amrex::Real> Y1 = Y1_coef[mfi].array();
         amrex::Array4<amrex::Real> Y2 = Y2_coef[mfi].array();
 
+        amrex::Array4<amrex::Real> M1 = M1_coef[mfi].array();
+        amrex::Array4<amrex::Real> M2 = M2_coef[mfi].array();
+        amrex::Array4<amrex::Real> M3 = M3_coef[mfi].array();
+
+
         // Loop over indices within one box
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
@@ -465,10 +488,12 @@ void PsatdAlgorithmJLinearInTime::InitializeSpectralCoefficientsAveraging (
             constexpr amrex::Real ep0 = PhysConst::ep0;
 
             // Auxiliary coefficients
+            const amrex::Real dt2 = dt * dt;
             const amrex::Real dt3 = dt * dt * dt;
 
             const amrex::Real om_s  = c * knorm_s;
             const amrex::Real om2_s = om_s * om_s;
+            const amrex::Real om3_s = om2_s * om_s;
             const amrex::Real om4_s = om2_s * om2_s;
 
             if (om_s != 0.)
@@ -488,6 +513,30 @@ void PsatdAlgorithmJLinearInTime::InitializeSpectralCoefficientsAveraging (
             else
             {
                 Y2(i,j,k) = - c2 * dt3 / (24._rt * ep0);
+            }
+            if (om_s != 0.)
+            {
+                M1(i,j,k) = c2 / (6._rt * ep0 * (om4_s * om_s * dt2)) * ( 6._rt * (3._rt * C(i,j,k) + 1._rt) * om_s * dt  + 6._rt * S_ck(i,j,k) * om_s * (dt2*om2_s-4._rt) - dt3 * om3_s);
+            }
+            else
+            {
+                M1(i,j,k) = c2 * dt3 / (120._rt * ep0);
+            }
+            if (om_s != 0.)
+            {
+                M2(i,j,k) = c2 / (6._rt * ep0 * (om4_s * om_s * dt2)) * ( 6._rt * (3._rt + C(i,j,k)) * om_s * dt  - 24._rt * S_ck(i,j,k) * om_s - dt3 * om3_s);
+            }
+            else
+            {
+                M2(i,j,k) = - 3._rt * c2 * dt3 / (40._rt * ep0);
+            }
+            if (om_s != 0.)
+            {
+                M3(i,j,k) = c2 / (3._rt * ep0 * (om4_s * om_s * dt2)) * ( -12._rt * (1._rt + C(i,j,k)) * om_s * dt  + 3._rt * S_ck(i,j,k) * om_s * (8._rt - dt2 * om2_s) + dt3*om3_s );
+            }
+            else
+            {
+                M3(i,j,k) = c2 * dt3 / (15._rt * ep0);
             }
         });
     }

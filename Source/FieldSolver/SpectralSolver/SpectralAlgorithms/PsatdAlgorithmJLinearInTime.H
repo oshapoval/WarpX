@@ -132,6 +132,7 @@ class PsatdAlgorithmJLinearInTime : public SpectralBaseAlgorithm
         SpectralRealCoefficients C_coef, S_ck_coef;
         SpectralRealCoefficients X1_coef, X2_coef, X3_coef, X5_coef, X6_coef, X7_coef, X8_coef;
         SpectralRealCoefficients Y1_coef, Y2_coef;
+        SpectralRealCoefficients M1_coef, M2_coef, M3_coef;
 
         SpectralFieldIndex m_spectral_index;
 
