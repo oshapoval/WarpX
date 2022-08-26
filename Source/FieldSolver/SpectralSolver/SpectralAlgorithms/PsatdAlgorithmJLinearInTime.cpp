@@ -246,6 +246,7 @@ PsatdAlgorithmJLinearInTime::pushSpectralFields (SpectralFieldData& f) const
             {
                 const amrex::Real Y1 = Y1_arr(i,j,k);
                 const amrex::Real Y2 = Y2_arr(i,j,k);
+
                 const amrex::Real M1 = M1_arr(i,j,k);
                 const amrex::Real M2 = M2_arr(i,j,k);
                 const amrex::Real M3 = M3_arr(i,j,k);
@@ -516,19 +517,20 @@ void PsatdAlgorithmJLinearInTime::InitializeSpectralCoefficientsAveraging (
             }
             if (om_s != 0.)
             {
-                M1(i,j,k) = c2 / (6._rt * ep0 * (om4_s * om_s * dt2)) * ( 6._rt * (3._rt * C(i,j,k) + 1._rt) * om_s * dt  + 6._rt * S_ck(i,j,k) * om_s * (dt2*om2_s-4._rt) - dt3 * om3_s);
+                M2(i,j,k) = c2 / (6._rt * ep0 * (om4_s * om_s * dt2)) * ( 6._rt * (3._rt * C(i,j,k) + 1._rt) * om_s * dt  + 6._rt * S_ck(i,j,k) * om_s * (dt2*om2_s-4._rt) - dt3 * om3_s);
             }
             else
             {
-                M1(i,j,k) = c2 * dt3 / (120._rt * ep0);
+                M2(i,j,k) =- 3._rt * c2 * dt3 / (40._rt * ep0);
+
             }
             if (om_s != 0.)
             {
-                M2(i,j,k) = c2 / (6._rt * ep0 * (om4_s * om_s * dt2)) * ( 6._rt * (3._rt + C(i,j,k)) * om_s * dt  - 24._rt * S_ck(i,j,k) * om_s - dt3 * om3_s);
+                M1(i,j,k) = c2 / (6._rt * ep0 * (om4_s * om_s * dt2)) * ( 6._rt * (3._rt + C(i,j,k)) * om_s * dt  - 24._rt * S_ck(i,j,k) * om_s - dt3 * om3_s);
             }
             else
             {
-                M2(i,j,k) = - 3._rt * c2 * dt3 / (40._rt * ep0);
+                M1(i,j,k) =    c2 * dt3 / (120._rt * ep0);
             }
             if (om_s != 0.)
             {
