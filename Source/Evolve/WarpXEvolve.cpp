@@ -556,6 +556,8 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
     // one or two full time steps (from n*dt to (n+1)*dt, or from n*dt to (n+2)*dt)
     const int n_loop = (WarpX::fft_do_time_averaging) ? 2*n_depose : n_depose;
 
+
+
     // Loop over multi-J depositions
     for (int i_depose = 0; i_depose < n_loop; i_depose++)
     {
@@ -574,15 +576,31 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
         // Deposit new J at relative time t_depose_current with time step dt
         // (dt[0] denotes the time step on mesh refinement level 0)
         auto& current = (WarpX::do_current_centering) ? current_fp_nodal : current_fp;
-        mypc->DepositCurrent(current, dt[0], t_depose_current);
-        // Synchronize J: filter, exchange boundary, and interpolate across levels.
-        // With current centering, the nodal current is deposited in 'current',
-        // namely 'current_fp_nodal': SyncCurrent stores the result of its centering
-        // into 'current_fp' and then performs both filtering, if used, and exchange
-        // of guard cells.
-        SyncCurrent(current_fp, current_cp);
-        // Forward FFT of J
-        PSATDForwardTransformJ(current_fp, current_cp);
+        if (current_deposition_algo == CurrentDepositionAlgo::Vay)
+        {
+            // Vay deposition at 1/4 of the time sub-step
+            mypc->DepositCurrent(current_fp_vay, sub_dt, t_depose_current);
+            //SyncCurrent(current_fp_vay, current_cp); // with periodic single box
+            PSATDForwardTransformJ(current_fp_vay, current_cp);
+            PSATDVayDeposition();
+            PSATDBackwardTransformJ(current_fp, current_cp);
+            PSATDSubtractCurrentPartialSumsAvg();// w/o only periodic single box
+            SyncCurrent(current_fp, current_cp); //w/o perioc single box
+            PSATDForwardTransformJ(current_fp, current_cp);
+        }
+        else
+        {
+            mypc->DepositCurrent(current, dt[0], t_depose_current);
+          // Synchronize J: filter, exchange boundary, and interpolate across levels.
+          // With current centering, the nodal current is deposited in 'current',
+          // namely 'current_fp_nodal': SyncCurrent stores the result of its centering
+          // into 'current_fp' and then performs both filtering, if used, and exchange
+          // of guard cells.
+            SyncCurrent(current_fp, current_cp);
+          // Forward FFT of J
+            PSATDForwardTransformJ(current_fp, current_cp);
+      }
+
 
         // Deposit new rho
         if (WarpX::update_with_rho)

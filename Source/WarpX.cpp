@@ -1199,12 +1199,12 @@ WarpX::ReadParameters ()
 
         pp_psatd.query("do_time_averaging", fft_do_time_averaging);
 
-        if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Vay)
-        {
-            WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
-                fft_periodic_single_box == false,
-                "Option algo.current_deposition=vay must be used with psatd.periodic_single_box_fft=0.");
-        }
+        // if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Vay)
+        // {
+        //     WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
+        //         fft_periodic_single_box == false,
+        //         "Option algo.current_deposition=vay must be used with psatd.periodic_single_box_fft=0.");
+        // }
 
         // Auxiliary: boosted_frame = true if warpx.gamma_boost is set in the inputs
         amrex::ParmParse pp_warpx("warpx");
