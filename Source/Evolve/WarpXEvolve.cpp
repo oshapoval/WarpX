@@ -603,7 +603,7 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
         // Deposit new J at relative time t_depose_current with time step dt
         // (dt[0] denotes the time step on mesh refinement level 0)
         auto& current = (WarpX::do_current_centering) ? current_fp_nodal : current_fp;
-        mypc->DepositCurrent(current, dt[0], -dt[0]/2.);
+        mypc->DepositCurrent(current, dt[0], -dt[0]/2. + dt[0] * i_depose);
         // Synchronize J: filter, exchange boundary, and interpolate across levels.
         // With current centering, the nodal current is deposited in 'current',
         // namely 'current_fp_nodal': SyncCurrent stores the result of its centering
@@ -620,7 +620,7 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
             PSATDMoveRhoNewToRhoOld();
 
             // Deposit rho at relative time t_depose_charge
-            mypc->DepositCharge(rho_fp, -dt[0]/2.);
+            mypc->DepositCharge(rho_fp, -dt[0]/2. + dt[0] * i_depose);
             // Filter, exchange boundary, and interpolate across levels
             SyncRho();
             // Forward FFT of rho_new
