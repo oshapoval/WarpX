@@ -199,9 +199,9 @@ PsatdAlgorithmJLinearInTime::pushSpectralFields (SpectralFieldData& f) const
             {
                 const Complex k_dot_B = kx * Bx_old + ky * By_old + kz * Bz_old;
 
-                fields(i,j,k,Idx.Bx) += I * S_ck * G_old * kx;
-                fields(i,j,k,Idx.By) += I * S_ck * G_old * ky;
-                fields(i,j,k,Idx.Bz) += I * S_ck * G_old * kz;
+                fields(i,j,k,Idx.Bx) += I * S_ck * c2 * G_old * kx;
+                fields(i,j,k,Idx.By) += I * S_ck * c2 * G_old * ky;
+                fields(i,j,k,Idx.Bz) += I * S_ck * c2 * G_old * kz;
 
                 fields(i,j,k,Idx.G) = C * G_old + I * c2 * S_ck * k_dot_B;
             }
@@ -248,7 +248,7 @@ PsatdAlgorithmJLinearInTime::pushSpectralFields (SpectralFieldData& f) const
                     fields(i,j,k,Idx.Ey_avg) += I * c2 * ep0 * X1 * F_old * ky;
                     fields(i,j,k,Idx.Ez_avg) += I * c2 * ep0 * X1 * F_old * kz;
                 }
- 
+
                 if (divb_cleaning)
                 {
                     fields(i,j,k,Idx.Bx_avg) += I * ep0 * X1 * c2 * G_old * kx;
