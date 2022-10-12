@@ -26,11 +26,12 @@
 #include "Particles/MultiParticleContainer.H"
 #include "Particles/ParticleBoundaryBuffer.H"
 #include "Python/WarpX_py.H"
+#include "Utils/IntervalsParser.H"
 #include "Utils/TextMsg.H"
 #include "Utils/WarpXAlgorithmSelection.H"
-#include "Utils/WarpXUtil.H"
 #include "Utils/WarpXConst.H"
 #include "Utils/WarpXProfilerWrapper.H"
+#include "Utils/WarpXUtil.H"
 
 #include <ablastr/utils/SignalHandling.H>
 #include <ablastr/warn_manager/WarnManager.H>
@@ -554,7 +555,7 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
     {
         // Deposit rho at relative time -dt
         // (dt[0] denotes the time step on mesh refinement level 0)
-        mypc->DepositCharge(rho_fp, -dt[0]);
+        mypc->DepositCharge(rho_fp, -dt[0]/2.); //-dt[0]/2
         // Filter, exchange boundary, and interpolate across levels
         SyncRho();
         // Forward FFT of rho_new
@@ -566,7 +567,7 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
     if (J_in_time == JInTime::Linear)
     {
         auto& current = (WarpX::do_current_centering) ? current_fp_nodal : current_fp;
-        mypc->DepositCurrent(current, dt[0], -dt[0]);
+        mypc->DepositCurrent(current, dt[0], -dt[0]/2.);
         // Synchronize J: filter, exchange boundary, and interpolate across levels.
         // With current centering, the nodal current is deposited in 'current',
         // namely 'current_fp_nodal': SyncCurrent stores the result of its centering
@@ -603,7 +604,7 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
         // Deposit new J at relative time t_depose_current with time step dt
         // (dt[0] denotes the time step on mesh refinement level 0)
         auto& current = (WarpX::do_current_centering) ? current_fp_nodal : current_fp;
-        mypc->DepositCurrent(current, dt[0], t_depose_current);
+        mypc->DepositCurrent(current, dt[0], -dt[0]/2.);
         // Synchronize J: filter, exchange boundary, and interpolate across levels.
         // With current centering, the nodal current is deposited in 'current',
         // namely 'current_fp_nodal': SyncCurrent stores the result of its centering
@@ -620,7 +621,7 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
             PSATDMoveRhoNewToRhoOld();
 
             // Deposit rho at relative time t_depose_charge
-            mypc->DepositCharge(rho_fp, t_depose_charge);
+            mypc->DepositCharge(rho_fp, -dt[0]/2); //@  -dt[0]/2
             // Filter, exchange boundary, and interpolate across levels
             SyncRho();
             // Forward FFT of rho_new
@@ -732,10 +733,8 @@ WarpX::OneStep_sub1 (Real curtime)
 
     EvolveB(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::FirstHalf);
     EvolveF(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::FirstHalf);
-    FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver,
-                  WarpX::sync_nodal_points);
-    FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ng_alloc_F,
-                  WarpX::sync_nodal_points);
+    FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
+    FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ng_alloc_F);
 
     EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ng_FieldGather);
@@ -769,10 +768,8 @@ WarpX::OneStep_sub1 (Real curtime)
 
     EvolveB(coarse_lev, PatchType::fine, 0.5_rt*dt[coarse_lev], DtType::FirstHalf);
     EvolveF(coarse_lev, PatchType::fine, 0.5_rt*dt[coarse_lev], DtType::FirstHalf);
-    FillBoundaryB(coarse_lev, PatchType::fine, guard_cells.ng_FieldGather,
-                    WarpX::sync_nodal_points);
-    FillBoundaryF(coarse_lev, PatchType::fine, guard_cells.ng_FieldSolverF,
-                    WarpX::sync_nodal_points);
+    FillBoundaryB(coarse_lev, PatchType::fine, guard_cells.ng_FieldGather);
+    FillBoundaryF(coarse_lev, PatchType::fine, guard_cells.ng_FieldSolverF);
 
     EvolveE(coarse_lev, PatchType::fine, 0.5_rt*dt[coarse_lev]);
     FillBoundaryE(coarse_lev, PatchType::fine, guard_cells.ng_FieldGather);
@@ -797,8 +794,7 @@ WarpX::OneStep_sub1 (Real curtime)
     FillBoundaryF(fine_lev, PatchType::fine, guard_cells.ng_FieldSolverF);
 
     EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
-    FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver,
-                    WarpX::sync_nodal_points);
+    FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver);
 
     EvolveB(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::SecondHalf);
     EvolveF(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::SecondHalf);
@@ -834,6 +830,7 @@ WarpX::OneStep_sub1 (Real curtime)
 
     FillBoundaryB(fine_lev, PatchType::coarse, guard_cells.ng_FieldSolver,
                   WarpX::sync_nodal_points);
+
     FillBoundaryF(fine_lev, PatchType::coarse, guard_cells.ng_FieldSolverF,
                   WarpX::sync_nodal_points);
 
