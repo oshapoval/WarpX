@@ -217,15 +217,15 @@ PsatdAlgorithmJLinearInTime::pushSpectralFields (SpectralFieldData& f) const
 
                 fields(i,j,k,Idx.Ex_avg) += S_ck * Ex_old
                     + I * c2 * ep0 * X1 * (ky * Bz_old - kz * By_old)
-                    - I * c2 * dt * (1.-S_ck/dt) *  rho_old * kx - X1 * Jx_old;
+                    - I * c2 * dt * ((1.-S_ck/dt) / ep0) *  rho_old * kx - X1 * Jx_old;
 
                 fields(i,j,k,Idx.Ey_avg) += S_ck * Ey_old
                     + I * c2 * ep0 * X1 * (kz * Bx_old - kx * Bz_old)
-                    - I * c2 * dt * (1.-S_ck/dt) * rho_old * ky - X1 * Jy_old;
+                    - I * c2 * dt * ((1.-S_ck/dt) / ep0) * rho_old * ky - X1 * Jy_old;
 
                 fields(i,j,k,Idx.Ez_avg) += S_ck * Ez_old
                     + I * c2 * ep0 * X1 * (kx * By_old - ky * Bx_old)
-                    - I * c2 * dt * (1.-S_ck/dt) * rho_old * kz - X1 * Jz_old;
+                    - I * c2 * dt * ( (1.-S_ck/dt) / ep0) * rho_old * kz - X1 * Jz_old;
 
 
 
@@ -248,7 +248,7 @@ PsatdAlgorithmJLinearInTime::pushSpectralFields (SpectralFieldData& f) const
                     fields(i,j,k,Idx.Ey_avg) += I * c2 * ep0 * X1 * F_old * ky;
                     fields(i,j,k,Idx.Ez_avg) += I * c2 * ep0 * X1 * F_old * kz;
                 }
-
+ 
                 if (divb_cleaning)
                 {
                     fields(i,j,k,Idx.Bx_avg) += I * ep0 * X1 * c2 * G_old * kx;
