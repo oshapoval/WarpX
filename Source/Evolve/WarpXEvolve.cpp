@@ -553,7 +553,8 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
     {
         // Deposit rho at relative time -dt
         // (dt[0] denotes the time step on mesh refinement level 0)
-        mypc->DepositCharge(rho_fp, -dt[0]);
+        // mypc->DepositCharge(rho_fp, -dt[0]);
+        mypc->DepositCharge(rho_fp, -dt[0]/2.);
         // Filter, exchange boundary, and interpolate across levels
         SyncRho();
         // Forward FFT of rho
@@ -565,7 +566,9 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
     if (J_in_time == JInTime::Linear)
     {
         auto& current = (WarpX::do_current_centering) ? current_fp_nodal : current_fp;
-        mypc->DepositCurrent(current, dt[0], -dt[0]);
+        // mypc->DepositCurrent(current, dt[0], -dt[0]);
+        mypc->DepositCurrent(current, dt[0], -dt[0]/2.);
+
         // Synchronize J: filter, exchange boundary, and interpolate across levels.
         // With current centering, the nodal current is deposited in 'current',
         // namely 'current_fp_nodal': SyncCurrent stores the result of its centering
@@ -590,11 +593,20 @@ WarpX::OneStep_multiJ (const amrex::Real cur_time)
         // Move J from new to old if J is linear in time
         if (J_in_time == JInTime::Linear) PSATDMoveJNewToJOld();
 
+        // const amrex::Real t_depose_current = (J_in_time == JInTime::Linear) ?
+        //     (i_depose-n_depose+1)*sub_dt : (i_depose-n_depose+0.5_rt)*sub_dt;
+
         const amrex::Real t_depose_current = (J_in_time == JInTime::Linear) ?
-            (i_depose-n_depose+1)*sub_dt : (i_depose-n_depose+0.5_rt)*sub_dt;
+            (i_depose-n_depose+0.5_rt)*sub_dt : (i_depose-n_depose+0.5_rt)*sub_dt;
+
+        // const amrex::Real t_depose_charge = (rho_in_time == RhoInTime::Linear) ?
+        //     (i_depose-n_depose+1)*sub_dt : (i_depose-n_depose+0.5_rt)*sub_dt;
+         
 
         const amrex::Real t_depose_charge = (rho_in_time == RhoInTime::Linear) ?
-            (i_depose-n_depose+1)*sub_dt : (i_depose-n_depose+0.5_rt)*sub_dt;
+            (i_depose-n_depose+0.5_rt)*sub_dt : (i_depose-n_depose+0.5_rt)*sub_dt;
+        
+        //amrex::Print() << " inside " << t_depose_charge << "|||"<< dt[0] <<"\n";
 
         // Deposit new J at relative time t_depose_current with time step dt
         // (dt[0] denotes the time step on mesh refinement level 0)
