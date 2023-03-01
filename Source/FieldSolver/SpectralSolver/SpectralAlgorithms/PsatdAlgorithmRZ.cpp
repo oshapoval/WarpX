@@ -61,18 +61,6 @@ PsatdAlgorithmRZ::PsatdAlgorithmRZ (SpectralKSpaceRZ const & spectral_kspace,
         amrex::Abort(Utils::TextMsg::Err(
             "RZ PSATD: psatd.do_time_averaging=1 implemented only with psatd.J_in_time=linear"));
     }
-
-    if (dive_cleaning && J_in_time != JInTime::Linear)
-    {
-        amrex::Abort(Utils::TextMsg::Err(
-            "RZ PSATD: warpx.do_dive_cleaning=1 implemented only with psatd.J_in_time=linear"));
-    }
-
-    if (divb_cleaning && J_in_time != JInTime::Linear)
-    {
-        amrex::Abort(Utils::TextMsg::Err(
-            "RZ PSATD: warpx.do_divb_cleaning=1 implemented only with psatd.J_in_time=linear"));
-    }
 }
 
 /* Advance the E and B field in spectral space (stored in `f`)
@@ -86,6 +74,7 @@ PsatdAlgorithmRZ::pushSpectralFields(SpectralFieldDataRZ & f)
     const bool J_linear = (m_J_in_time == JInTime::Linear) ? true : false;
     const bool dive_cleaning = m_dive_cleaning;
     const bool divb_cleaning = m_divb_cleaning;
+
 
     if (not coefficients_initialized) {
         // This is called from here since it needs the kr values
@@ -131,10 +120,6 @@ PsatdAlgorithmRZ::pushSpectralFields(SpectralFieldDataRZ & f)
         amrex::ParallelFor(bx, modes,
         [=] AMREX_GPU_DEVICE(int i, int j, int k, int mode) noexcept
         {
-            int idx_jx = (J_linear) ? static_cast<int>(Idx.Jx_old) : static_cast<int>(Idx.Jx_mid);
-            int idx_jy = (J_linear) ? static_cast<int>(Idx.Jy_old) : static_cast<int>(Idx.Jy_mid);
-            int idx_jz = (J_linear) ? static_cast<int>(Idx.Jz_old) : static_cast<int>(Idx.Jz_mid);
-
             // All of the fields of each mode are grouped together
             int const Ep_m = Idx.Ex + Idx.n_fields*mode;
             int const Em_m = Idx.Ey + Idx.n_fields*mode;
@@ -142,11 +127,6 @@ PsatdAlgorithmRZ::pushSpectralFields(SpectralFieldDataRZ & f)
             int const Bp_m = Idx.Bx + Idx.n_fields*mode;
             int const Bm_m = Idx.By + Idx.n_fields*mode;
             int const Bz_m = Idx.Bz + Idx.n_fields*mode;
-            int const Jp_m = idx_jx + Idx.n_fields*mode;
-            int const Jm_m = idx_jy + Idx.n_fields*mode;
-            int const Jz_m = idx_jz + Idx.n_fields*mode;
-            int const rho_old_m = Idx.rho_old + Idx.n_fields*mode;
-            int const rho_new_m = Idx.rho_new + Idx.n_fields*mode;
 
             // Record old values of the fields to be updated
             Complex const Ep_old = fields(i,j,k,Ep_m);
@@ -155,10 +135,32 @@ PsatdAlgorithmRZ::pushSpectralFields(SpectralFieldDataRZ & f)
             Complex const Bp_old = fields(i,j,k,Bp_m);
             Complex const Bm_old = fields(i,j,k,Bm_m);
             Complex const Bz_old = fields(i,j,k,Bz_m);
-            // Shortcut for the values of J and rho
-            Complex const Jp = fields(i,j,k,Jp_m);
-            Complex const Jm = fields(i,j,k,Jm_m);
-            Complex const Jz = fields(i,j,k,Jz_m);
+
+            // Shortcut for the values of J
+            const int idx_jx_old = (J_linear) ? Idx.Jx_old : Idx.Jx_mid;
+            const int idx_jy_old = (J_linear) ? Idx.Jy_old : Idx.Jy_mid;
+            const int idx_jz_old = (J_linear) ? Idx.Jz_old : Idx.Jz_mid;
+            const int idx_jx_new = (J_linear) ? Idx.Jx_new : Idx.Jx_mid;
+            const int idx_jy_new = (J_linear) ? Idx.Jy_new : Idx.Jy_mid;
+            const int idx_jz_new = (J_linear) ? Idx.Jz_new : Idx.Jz_mid;
+            //
+            const int Jp_m_old = idx_jx_old + Idx.n_fields*mode;
+            const int Jm_m_old = idx_jy_old + Idx.n_fields*mode;
+            const int Jz_m_old = idx_jz_old + Idx.n_fields*mode;
+            const int Jp_m_new = idx_jx_new + Idx.n_fields*mode;
+            const int Jm_m_new = idx_jy_new + Idx.n_fields*mode;
+            const int Jz_m_new = idx_jz_new + Idx.n_fields*mode;
+            //
+            const Complex Jp_old = fields(i,j,k,Jp_m_old);
+            const Complex Jm_old = fields(i,j,k,Jm_m_old);
+            const Complex Jz_old = fields(i,j,k,Jz_m_old);
+            const Complex Jp_new = fields(i,j,k,Jp_m_new);
+            const Complex Jm_new = fields(i,j,k,Jm_m_new);
+            const Complex Jz_new = fields(i,j,k,Jz_m_new);
+
+            // Shortcut for the values of rho
+            int const rho_old_m = Idx.rho_old + Idx.n_fields*mode;
+            int const rho_new_m = Idx.rho_new + Idx.n_fields*mode;
             Complex const rho_old = fields(i,j,k,rho_old_m);
             Complex const rho_new = fields(i,j,k,rho_new_m);
 
@@ -199,31 +201,10 @@ PsatdAlgorithmRZ::pushSpectralFields(SpectralFieldDataRZ & f)
                 rho_diff = X2*rho_new - X3*rho_old;
             } else {
                 Complex const divE = kr*(Ep_old - Em_old) + I*kz*Ez_old;
-                Complex const divJ = kr*(Jp - Jm) + I*kz*Jz;
+                Complex const divJ = kr*(Jp_old - Jm_old) + I*kz*Jz_old;
 
                 rho_diff = (X2 - X3)*PhysConst::ep0*divE - X2*dt*divJ;
             }
-
-            // Update E (see WarpX online documentation: theory section)
-            fields(i,j,k,Ep_m) = C*Ep_old
-                        + S_ck*(-c2*I*kr/2._rt*Bz_old + c2*kz*Bp_old - inv_ep0*Jp)
-                        + 0.5_rt*kr*rho_diff;
-            fields(i,j,k,Em_m) = C*Em_old
-                        + S_ck*(-c2*I*kr/2._rt*Bz_old - c2*kz*Bm_old - inv_ep0*Jm)
-                        - 0.5_rt*kr*rho_diff;
-            fields(i,j,k,Ez_m) = C*Ez_old
-                        + S_ck*(c2*I*kr*Bp_old + c2*I*kr*Bm_old - inv_ep0*Jz)
-                        - I*kz*rho_diff;
-            // Update B (see WarpX online documentation: theory section)
-            fields(i,j,k,Bp_m) = C*Bp_old
-                        - S_ck*(-I*kr/2._rt*Ez_old + kz*Ep_old)
-                        + X1*(-I*kr/2._rt*Jz + kz*Jp);
-            fields(i,j,k,Bm_m) = C*Bm_old
-                        - S_ck*(-I*kr/2._rt*Ez_old - kz*Em_old)
-                        + X1*(-I*kr/2._rt*Jz - kz*Jm);
-            fields(i,j,k,Bz_m) = C*Bz_old
-                        - S_ck*I*(kr*Ep_old + kr*Em_old)
-                        + X1*I*(kr*Jp + kr*Jm);
 
             int F_m;
             Complex F_old;
@@ -241,94 +222,104 @@ PsatdAlgorithmRZ::pushSpectralFields(SpectralFieldDataRZ & f)
                 G_old = fields(i,j,k,G_m);
             }
 
-            if (J_linear)
+            // Update E
+            fields(i,j,k,Ep_m) = C*Ep_old
+                        + S_ck*(-c2*I*kr/2._rt*Bz_old + c2*kz*Bp_old - inv_ep0*Jp_old)
+                        + 0.5_rt*kr*rho_diff - X1*(Jp_new-Jp_old)/dt;
+
+            fields(i,j,k,Em_m) = C*Em_old
+                        + S_ck*(-c2*I*kr/2._rt*Bz_old - c2*kz*Bm_old - inv_ep0*Jm_old)
+                        - 0.5_rt*kr*rho_diff - X1*(Jm_new-Jm_old)/dt;
+
+            fields(i,j,k,Ez_m) = C*Ez_old
+                        + S_ck*(c2*I*kr*Bp_old + c2*I*kr*Bm_old - inv_ep0*Jz_old)
+                        - I*kz*rho_diff - X1*(Jz_new-Jz_old)/dt;
+
+            // Update B
+            fields(i,j,k,Bp_m) = C*Bp_old
+                        - S_ck*(-I*kr/2._rt*Ez_old + kz*Ep_old)
+                        + X1*(-I*kr/2._rt*Jz_old + kz*Jp_old)
+                        + X2/c2*(kz*(Jp_new-Jp_old) - I*kr*0.5_rt*(Jz_new-Jz_old));
+
+            fields(i,j,k,Bm_m) = C*Bm_old
+                        - S_ck*(-I*kr/2._rt*Ez_old - kz*Em_old)
+                        + X1*(-I*kr/2._rt*Jz_old - kz*Jm_old)
+                        - X2/c2*(kz*(Jm_new-Jm_old) + I*kr*0.5_rt*(Jz_new-Jz_old));
+
+            fields(i,j,k,Bz_m) = C*Bz_old
+                        - S_ck*I*(kr*Ep_old + kr*Em_old)
+                        + X1*I*(kr*Jp_old + kr*Jm_old)
+                        + I*X2/c2*(kr*(Jp_new-Jp_old) + kr*(Jm_new-Jm_old));
+
+            if (dive_cleaning)
             {
-                const int Jp_m_new = Idx.Jx_new + Idx.n_fields*mode;
-                const int Jm_m_new = Idx.Jy_new + Idx.n_fields*mode;
-                const int Jz_m_new = Idx.Jz_new + Idx.n_fields*mode;
+                const Complex k_dot_J  = -I * (kr * (Jp_old - Jm_old) + I * kz * Jz_old);
+                const Complex k_dot_dJ = -I * (kr * ((Jp_new - Jp_old) - (Jm_new - Jm_old))
+                    + I * kz * (Jz_new - Jz_old));
+                const Complex k_dot_E = -I * (kr * (Ep_old - Em_old) + I * kz * Ez_old);
 
-                const Complex Jp_new = fields(i,j,k,Jp_m_new);
-                const Complex Jm_new = fields(i,j,k,Jm_m_new);
-                const Complex Jz_new = fields(i,j,k,Jz_m_new);
+                fields(i,j,k,Ep_m) += -c2 * kr * 0.5_rt * S_ck * F_old;
+                fields(i,j,k,Em_m) +=  c2 * kr * 0.5_rt * S_ck * F_old;
+                fields(i,j,k,Ez_m) += I * c2 * kz * S_ck * F_old;
 
-                fields(i,j,k,Ep_m) += -X1 * (Jp_new - Jp) / dt;
-                fields(i,j,k,Em_m) += -X1 * (Jm_new - Jm) / dt;
-                fields(i,j,k,Ez_m) += -X1 * (Jz_new - Jz) / dt;
+                fields(i,j,k,F_m) = C * F_old + S_ck * (I * k_dot_E - inv_ep0 * rho_old)
+                    - X1 * ((rho_new - rho_old) / dt + I * k_dot_J) - I * X2/c2 * k_dot_dJ;
+            }
 
-                fields(i,j,k,Bp_m) +=  X2/c2 * (kz * (Jp_new - Jp) - I * kr * 0.5_rt * (Jz_new - Jz));
-                fields(i,j,k,Bm_m) += -X2/c2 * (kz * (Jm_new - Jm) + I * kr * 0.5_rt * (Jz_new - Jz));
-                fields(i,j,k,Bz_m) += I * X2/c2 * (kr * (Jp_new - Jp) + kr * (Jm_new - Jm));
+            if (divb_cleaning)
+            {
+                const Complex k_dot_B = -I * (kr * (Bp_old - Bm_old) + I * kz * Bz_old);
+
+                fields(i,j,k,Bp_m) += -kr * 0.5_rt * S_ck * G_old;
+                fields(i,j,k,Bm_m) +=  kr * 0.5_rt * S_ck * G_old;
+                fields(i,j,k,Bz_m) += I * kz * S_ck * G_old;
+
+                fields(i,j,k,G_m) = C * G_old + I * c2 * S_ck * k_dot_B;
+            }
+
+            if (time_averaging)
+            {
+                amrex::Real const X5 = X5_arr(i,j,k,mode);
+                amrex::Real const X6 = X6_arr(i,j,k,mode);
+
+                fields(i,j,k,Ep_avg_m) += S_ck * Ep_old
+                    + c2 * ep0 * X1 * (kz * Bp_old - I * kr * 0.5_rt * Bz_old)
+                    - kr * 0.5_rt * (X5 * rho_old + X6 * rho_new) + X3/c2 * Jp_old - X2/c2 * Jp_new;
+
+                fields(i,j,k,Em_avg_m) += S_ck * Em_old
+                    - c2 * ep0 * X1 * (kz * Bm_old + I * kr * 0.5_rt * Bz_old)
+                    + kr * 0.5_rt * (X5 * rho_old + X6 * rho_new) + X3/c2 * Jm_old - X2/c2 * Jm_new;
+
+                fields(i,j,k,Ez_avg_m) += S_ck * Ez_old
+                    + I * c2 * ep0 * X1 * kr * (Bp_old + Bm_old)
+                    + I * kz * (X5 * rho_old + X6 * rho_new) + X3/c2 * Jz_old - X2/c2 * Jz_new;
+
+                fields(i,j,k,Bp_avg_m) += S_ck * Bp_old
+                    - ep0 * X1 * (kz * Ep_old - I * kr * 0.5_rt * Ez_old)
+                    - X5/c2 * (kz * Jp_old - I * kr * 0.5_rt * Jz_old)
+                    - X6/c2 * (kz * Jp_new - I * kr * 0.5_rt * Jz_new);
+
+                fields(i,j,k,Bm_avg_m) += S_ck * Bm_old
+                    + ep0 * X1 * (kz * Em_old + I * kr * 0.5_rt * Ez_old)
+                    + X5/c2 * (kz * Jm_old + I * kr * 0.5_rt * Jz_old)
+                    + X6/c2 * (kz * Jm_new + I * kr * 0.5_rt * Jz_new);
+
+                fields(i,j,k,Bz_avg_m) += S_ck * Bz_old
+                    - I * kr * ep0 * X1 * (Ep_old + Em_old)
+                    - I * kr * X5/c2 * (Jp_old + Jm_old) - I * kr * X6/c2 * (Jp_new + Jm_new);
 
                 if (dive_cleaning)
                 {
-                    const Complex k_dot_J  = -I * (kr * (Jp - Jm) + I * kz * Jz);
-                    const Complex k_dot_dJ = -I * (kr * ((Jp_new - Jp) - (Jm_new - Jm))
-                        + I * kz * (Jz_new - Jz));
-                    const Complex k_dot_E = -I * (kr * (Ep_old - Em_old) + I * kz * Ez_old);
-
-                    fields(i,j,k,Ep_m) += -c2 * kr * 0.5_rt * S_ck * F_old;
-                    fields(i,j,k,Em_m) +=  c2 * kr * 0.5_rt * S_ck * F_old;
-                    fields(i,j,k,Ez_m) += I * c2 * kz * S_ck * F_old;
-
-                    fields(i,j,k,F_m) = C * F_old + S_ck * (I * k_dot_E - inv_ep0 * rho_old)
-                        - X1 * ((rho_new - rho_old) / dt + I * k_dot_J) - I * X2/c2 * k_dot_dJ;
+                    fields(i,j,k,Ep_avg_m) += -c2 * kr * 0.5_rt * ep0 * X1 * F_old;
+                    fields(i,j,k,Em_avg_m) +=  c2 * kr * 0.5_rt * ep0 * X1 * F_old;
+                    fields(i,j,k,Ez_avg_m) += I * c2 * ep0 * X1 * F_old * kz;
                 }
 
                 if (divb_cleaning)
                 {
-                    const Complex k_dot_B = -I * (kr * (Bp_old - Bm_old) + I * kz * Bz_old);
-
-                    fields(i,j,k,Bp_m) += -kr * 0.5_rt * S_ck * G_old;
-                    fields(i,j,k,Bm_m) +=  kr * 0.5_rt * S_ck * G_old;
-                    fields(i,j,k,Bz_m) += I * kz * S_ck * G_old;
-
-                    fields(i,j,k,G_m) = C * G_old + I * c2 * S_ck * k_dot_B;
-                }
-
-                if (time_averaging)
-                {
-                    amrex::Real const X5 = X5_arr(i,j,k,mode);
-                    amrex::Real const X6 = X6_arr(i,j,k,mode);
-
-                    fields(i,j,k,Ep_avg_m) += S_ck * Ep_old
-                        + c2 * ep0 * X1 * (kz * Bp_old - I * kr * 0.5_rt * Bz_old)
-                        - kr * 0.5_rt * (X5 * rho_old + X6 * rho_new) + X3/c2 * Jp - X2/c2 * Jp_new;
-
-                    fields(i,j,k,Em_avg_m) += S_ck * Em_old
-                        - c2 * ep0 * X1 * (kz * Bm_old + I * kr * 0.5_rt * Bz_old)
-                        + kr * 0.5_rt * (X5 * rho_old + X6 * rho_new) + X3/c2 * Jm - X2/c2 * Jm_new;
-
-                    fields(i,j,k,Ez_avg_m) += S_ck * Ez_old
-                        + I * c2 * ep0 * X1 * kr * (Bp_old + Bm_old)
-                        + I * kz * (X5 * rho_old + X6 * rho_new) + X3/c2 * Jz - X2/c2 * Jz_new;
-
-                    fields(i,j,k,Bp_avg_m) += S_ck * Bp_old
-                        - ep0 * X1 * (kz * Ep_old - I * kr * 0.5_rt * Ez_old)
-                        - X5/c2 * (kz * Jp - I * kr * 0.5_rt * Jz)
-                        - X6/c2 * (kz * Jp_new - I * kr * 0.5_rt * Jz_new);
-
-                    fields(i,j,k,Bm_avg_m) += S_ck * Bm_old
-                        + ep0 * X1 * (kz * Em_old + I * kr * 0.5_rt * Ez_old)
-                        + X5/c2 * (kz * Jm + I * kr * 0.5_rt * Jz)
-                        + X6/c2 * (kz * Jm_new + I * kr * 0.5_rt * Jz_new);
-
-                    fields(i,j,k,Bz_avg_m) += S_ck * Bz_old
-                        - I * kr * ep0 * X1 * (Ep_old + Em_old)
-                        - I * kr * X5/c2 * (Jp + Jm) - I * kr * X6/c2 * (Jp_new + Jm_new);
-
-                    if (dive_cleaning)
-                    {
-                        fields(i,j,k,Ep_avg_m) += -c2 * kr * 0.5_rt * ep0 * X1 * F_old;
-                        fields(i,j,k,Em_avg_m) +=  c2 * kr * 0.5_rt * ep0 * X1 * F_old;
-                        fields(i,j,k,Ez_avg_m) += I * c2 * ep0 * X1 * F_old * kz;
-                    }
-
-                    if (divb_cleaning)
-                    {
-                        fields(i,j,k,Bp_avg_m) += -kr * 0.5_rt * ep0 * X1 * G_old;
-                        fields(i,j,k,Bm_avg_m) +=  kr * 0.5_rt * ep0 * X1 * G_old;
-                        fields(i,j,k,Bz_avg_m) += I * ep0 * X1 * G_old * kz;
-                    }
+                    fields(i,j,k,Bp_avg_m) += -kr * 0.5_rt * ep0 * X1 * G_old;
+                    fields(i,j,k,Bm_avg_m) +=  kr * 0.5_rt * ep0 * X1 * G_old;
+                    fields(i,j,k,Bz_avg_m) += I * ep0 * X1 * G_old * kz;
                 }
             }
         });
