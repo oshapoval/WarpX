@@ -91,7 +91,14 @@ class SpectralFieldDataRZ
         void ZeroOutDataComp(const int icomp)
         {
             // The last argument represents the number of components to perform this operation
-            fields.setVal(0., icomp, n_rz_azimuthal_modes);
+            //fields.setVal(0., icomp, n_rz_azimuthal_modes);
+            //olga
+            const int nmodes = n_rz_azimuthal_modes;
+            for (int imode=0 ; imode < nmodes ; imode++)
+            {
+                const int shift_comp = imode * m_n_fields;
+                fields.setVal(0., icomp + shift_comp, 1);
+            }
         }
 
         /**
@@ -103,7 +110,14 @@ class SpectralFieldDataRZ
         void ScaleDataComp(const int icomp, const amrex::Real scale_factor)
         {
             // The last argument represents the number of components to perform this operation
-            fields.mult(scale_factor, icomp, n_rz_azimuthal_modes);
+            //fields.mult(scale_factor, icomp, n_rz_azimuthal_modes);
+            //olga
+            const int nmodes = n_rz_azimuthal_modes;
+            for (int imode=0 ; imode < nmodes ; imode++)
+            {
+                const int shift_comp = imode * m_n_fields;
+                fields.mult(scale_factor, icomp + shift_comp, 1);
+            }
         }
 
         void InitFilter (amrex::IntVect const & filter_npass_each_dir, bool const compensation,
