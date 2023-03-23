@@ -400,7 +400,7 @@ void PsatdAlgorithmRZ::InitializeSpectralCoefficients (SpectralFieldDataRZ const
 
             if (time_averaging && J_linear)
             {
-                constexpr amrex::Real c2 = PhysConst::c;
+                constexpr amrex::Real c2 = PhysConst::c * PhysConst::c;
                 const amrex::Real dt3 = dt * dt * dt;
                 const amrex::Real om  = c * k_norm;
                 const amrex::Real om2 = om * om;
