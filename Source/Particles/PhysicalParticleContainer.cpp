@@ -3826,14 +3826,14 @@ PhysicalParticleContainer::PushPX2 (WarpXParIter& pti,
                 copyAttribs(ip);
             }
 
-            doParticleMomentumPush2<0>(ux[ip], uy[ip], uz[ip],
-                                      Exp, Eyp, Ezp, Bxp, Byp, Bzp,
-                                      ion_lev ? ion_lev[ip] : 1,
-                                      m, q, pusher_algo, do_crr,
-#ifdef WARPX_QED
-                                      t_chi_max,
-#endif
-                                      dt);
+//             doParticleMomentumPush2<0>(ux[ip], uy[ip], uz[ip],
+//                                       Exp, Eyp, Ezp, Bxp, Byp, Bzp,
+//                                       ion_lev ? ion_lev[ip] : 1,
+//                                       m, q, pusher_algo, do_crr,
+// #ifdef WARPX_QED
+//                                       t_chi_max,
+// #endif
+//                                       dt);
 
             UpdatePosition(xp, yp, zp, ux[ip], uy[ip], uz[ip], dt);
             setPosition(ip, xp, yp, zp);
