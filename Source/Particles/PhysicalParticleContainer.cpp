@@ -3589,6 +3589,8 @@ PhysicalParticleContainer::PushPX1 (WarpXParIter& pti,
                                       t_chi_max,
 #endif
                                       dt);
+            UpdatePosition(xp, yp, zp, ux[ip], uy[ip], uz[ip], dt);
+            setPosition(ip, xp, yp, zp);
 
         }
 #ifdef WARPX_QED
@@ -3835,8 +3837,8 @@ PhysicalParticleContainer::PushPX2 (WarpXParIter& pti,
 // #endif
 //                                       dt);
 
-            UpdatePosition(xp, yp, zp, ux[ip], uy[ip], uz[ip], dt);
-            setPosition(ip, xp, yp, zp);
+            // UpdatePosition(xp, yp, zp, ux[ip], uy[ip], uz[ip], dt);
+            // setPosition(ip, xp, yp, zp);
         }
 #ifdef WARPX_QED
         else {
