@@ -2486,6 +2486,32 @@ PhysicalParticleContainer::Evolve1 (int lev,
                 }
 
                 WARPX_PROFILE_VAR_STOP(blp_fg);
+                                WARPX_PROFILE_VAR_STOP(blp_fg);
+
+                // Current Deposition
+                if (!skip_deposition)
+                {
+                    // Deposit at t_{n+1/2} with explicit push
+                    const amrex::Real dtfact = 0.5_rt;// 0.5_rt for Esirkepov deposition  // or  dtfact = 1._rt; for direct deposition (since dt is never used?)
+
+                    const amrex::Real relative_time = (push_type == PushType::Explicit ? 0.0_rt * dt : 0.0_rt);
+
+                    const int* const AMREX_RESTRICT ion_lev = (do_field_ionization)?
+                        pti.GetiAttribs(particle_icomps["ionizationLevel"]).dataPtr():nullptr;
+
+                    // Deposit inside domains
+                    DepositCurrent1(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
+                                   0, np_current, thread_num,
+                                   lev, lev, dt * dtfact, relative_time, push_type);
+
+                    if (has_buffer)
+                    {
+                        // Deposit in buffers
+                        DepositCurrent1(pti, wp, uxp, uyp, uzp, ion_lev, cjx, cjy, cjz,
+                                       np_current, np-np_current, thread_num,
+                                       lev, lev-1, dt, relative_time, push_type);
+                    }
+                } // end of "if electrostatic_solver_id == ElectrostaticSolverAlgo::None"
 
             }
         }
@@ -2656,20 +2682,21 @@ PhysicalParticleContainer::Evolve2 (int lev,
                 if (!skip_deposition)
                 {
                     // Deposit at t_{n+1/2} with explicit push
+                    const amrex::Real dtfact = 0.5_rt;// 0.5_rt for Esirkepov deposition  // or  dtfact = 1._rt; for direct deposition (since dt is never used?)
                     const amrex::Real relative_time = (push_type == PushType::Explicit ? -0.5_rt * dt : 0.0_rt);
 
                     const int* const AMREX_RESTRICT ion_lev = (do_field_ionization)?
                         pti.GetiAttribs(particle_icomps["ionizationLevel"]).dataPtr():nullptr;
 
                     // Deposit inside domains
-                    DepositCurrent(pti, wp, uxp_avg, uyp_avg, uzp_avg, ion_lev, &jx, &jy, &jz,
+                    DepositCurrent2(pti, wp, uxp, uyp, uzp, ion_lev, &jx, &jy, &jz,
                                    0, np_current, thread_num,
-                                   lev, lev, dt, relative_time, push_type);
+                                   lev, lev, dt  * dtfact , relative_time, push_type);
 
                     if (has_buffer)
                     {
                         // Deposit in buffers
-                        DepositCurrent(pti, wp, uxp_avg, uyp_avg, uzp_avg, ion_lev, cjx, cjy, cjz,
+                        DepositCurrent2(pti, wp, uxp, uyp, uzp, ion_lev, cjx, cjy, cjz,
                                        np_current, np-np_current, thread_num,
                                        lev, lev-1, dt, relative_time, push_type);
                     }

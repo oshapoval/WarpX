@@ -234,6 +234,7 @@ public:
      */
     void DepositCurrent (amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > >& J,
                          amrex::Real dt, amrex::Real relative_time);
+    
 
     /**
      * \brief Deposit charge density.
@@ -269,6 +270,43 @@ public:
                                int depos_lev);
 
     virtual void DepositCurrent (WarpXParIter& pti,
+                                RealVector const & wp,
+                                RealVector const & uxp,
+                                RealVector const & uyp,
+                                RealVector const & uzp,
+                                int const* ion_lev,
+                                amrex::MultiFab* jx,
+                                amrex::MultiFab* jy,
+                                amrex::MultiFab* jz,
+                                long offset,
+                                long np_to_deposit,
+                                int thread_num,
+                                int lev,
+                                int depos_lev,
+                                amrex::Real dt,
+                                amrex::Real relative_time,
+                                PushType push_type);
+
+    
+    virtual void DepositCurrent1 (WarpXParIter& pti,
+                                RealVector const & wp,
+                                RealVector const & uxp,
+                                RealVector const & uyp,
+                                RealVector const & uzp,
+                                int const* ion_lev,
+                                amrex::MultiFab* jx,
+                                amrex::MultiFab* jy,
+                                amrex::MultiFab* jz,
+                                long offset,
+                                long np_to_deposit,
+                                int thread_num,
+                                int lev,
+                                int depos_lev,
+                                amrex::Real dt,
+                                amrex::Real relative_time,
+                                PushType push_type);
+
+    virtual void DepositCurrent2 (WarpXParIter& pti,
                                 RealVector const & wp,
                                 RealVector const & uxp,
                                 RealVector const & uyp,
