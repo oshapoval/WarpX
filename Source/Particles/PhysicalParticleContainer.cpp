@@ -2494,7 +2494,7 @@ PhysicalParticleContainer::Evolve1 (int lev,
                     // Deposit at t_{n+1/2} with explicit push
                     const amrex::Real dtfact = 0.5_rt;// 0.5_rt for Esirkepov deposition  // or  dtfact = 1._rt; for direct deposition (since dt is never used?)
 
-                    const amrex::Real relative_time = (push_type == PushType::Explicit ? 0.0_rt * dt : 0.0_rt);
+                    const amrex::Real relative_time = (push_type == PushType::Explicit ? -0.25_rt * dt : 0.0_rt);
 
                     const int* const AMREX_RESTRICT ion_lev = (do_field_ionization)?
                         pti.GetiAttribs(particle_icomps["ionizationLevel"]).dataPtr():nullptr;
@@ -2683,7 +2683,7 @@ PhysicalParticleContainer::Evolve2 (int lev,
                 {
                     // Deposit at t_{n+1/2} with explicit push
                     const amrex::Real dtfact = 0.5_rt;// 0.5_rt for Esirkepov deposition  // or  dtfact = 1._rt; for direct deposition (since dt is never used?)
-                    const amrex::Real relative_time = (push_type == PushType::Explicit ? -0.5_rt * dt : 0.0_rt);
+                    const amrex::Real relative_time = (push_type == PushType::Explicit ? -0.25_rt * dt : 0.0_rt);
 
                     const int* const AMREX_RESTRICT ion_lev = (do_field_ionization)?
                         pti.GetiAttribs(particle_icomps["ionizationLevel"]).dataPtr():nullptr;
@@ -3959,12 +3959,12 @@ PhysicalParticleContainer::PushPX2 (WarpXParIter& pti,
 
             if (save_avg_momenta) {
 #if (AMREX_SPACEDIM >= 2)
-                    ux_avg[ip] = 0.5_rt * (ux[ip] + ux_old[ip]);
+                ux_avg[ip] = 0.5_rt * (ux[ip] + ux_old[ip]);
 #endif
 #if defined(WARPX_DIM_3D)
-                    uy_avg[ip] = 0.5_rt * (uy[ip] + uy_old[ip]);
+                uy_avg[ip] = 0.5_rt * (uy[ip] + uy_old[ip]);
 #endif
-                    uz_avg[ip] = 0.5_rt * (uz[ip] + uz_old[ip]);
+                uz_avg[ip] = 0.5_rt * (uz[ip] + uz_old[ip]);
             }
         }
 #ifdef WARPX_QED
