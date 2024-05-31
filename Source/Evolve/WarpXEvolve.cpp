@@ -123,7 +123,6 @@ WarpX::Evolve (int numsteps)
             // Particles have p^{n} and x^{n}.
             // is_synchronized is true.
             if (is_synchronized && do_synchronized) {
-                amrex::Print() << "block (1)  with  do_synchronized"<<do_synchronized <<"\n";
                 if (electrostatic_solver_id == ElectrostaticSolverAlgo::None) {
                     // Not called at each iteration, so exchange all guard cells
                     FillBoundaryE(guard_cells.ng_alloc_EB);
@@ -263,7 +262,6 @@ WarpX::Evolve (int numsteps)
                 UpdateAuxilaryData();
                 FillBoundaryAux(guard_cells.ng_UpdateAux);
                 if (do_synchronized) {
-                    amrex::Print() << "block (2)  with  do_synchronized"<<do_synchronized <<"\n";
                     for (int lev = 0; lev <= finest_level; ++lev) {
                         mypc->PushP(lev, 0.5_rt*dt[lev],
                                     *Efield_aux[lev][0],*Efield_aux[lev][1],
@@ -636,7 +634,6 @@ WarpX::OneStep_nosub2 (Real cur_time)
         FillBoundaryG(guard_cells.ng_FieldSolverG);
 
         if (do_synchronized){
-            amrex::Print() << "block (3)  with  do_synchronized"<<do_synchronized <<"\n";
             EvolveB(0.5_rt * dt[0], DtType::FirstHalf); // We now have B^{n+1/2}
         }
         else{
