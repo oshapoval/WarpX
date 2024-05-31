@@ -201,7 +201,7 @@ int WarpX::do_multi_J_n_depositions;
 bool WarpX::safe_guard_cells = false;
 
 int WarpX::collisions_placement = 1;
-
+bool WarpX::do_synchronized = true;
 std::map<std::string, amrex::MultiFab *> WarpX::multifab_map;
 std::map<std::string, amrex::iMultiFab *> WarpX::imultifab_map;
 
@@ -676,6 +676,7 @@ WarpX::ReadParameters ()
                 pp_warpx, "do_multi_J_n_depositions", do_multi_J_n_depositions);
         }
         pp_warpx.query("collisions_placement", collisions_placement);
+        pp_warpx.query("do_synchronized", do_synchronized); //olga
         pp_warpx.query("use_hybrid_QED", use_hybrid_QED);
         pp_warpx.query("safe_guard_cells", safe_guard_cells);
         std::vector<std::string> override_sync_intervals_string_vec = {"1"};
@@ -1402,6 +1403,7 @@ WarpX::ReadParameters ()
 
     {
         const ParmParse pp_warpx("warpx");
+        
 
         // If warpx.grid_type=staggered or warpx.grid_type=hybrid,
         // and algo.field_gathering=momentum-conserving, the fields are solved

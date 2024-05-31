@@ -349,6 +349,7 @@ public:
     static int do_multi_J_n_depositions;
 
     static int collisions_placement;
+    static bool do_synchronized; //olga
 
     static bool do_device_synchronize;
     static bool safe_guard_cells;
@@ -1686,6 +1687,7 @@ private:
     std::unique_ptr<amrex::Parser> ref_patch_parser;
 
     bool is_synchronized = true;
+    // bool do_synchronized = true;
 
     // Synchronization of nodal points
     static constexpr bool sync_nodal_points = true;
