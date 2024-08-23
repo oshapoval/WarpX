@@ -3537,7 +3537,7 @@ PhysicalParticleContainer::PushPX1 (WarpXParIter& pti,
     ParticleReal* uz_old = nullptr;
     if (save_previous_momenta)
     {
- #if (AMREX_SPACEDIM >= 2)
+//  #if (AMREX_SPACEDIM >= 2)
         ux_old = pti.GetAttribs(particle_comps["prev_ux"]).dataPtr()+ offset;
 //  #else
 //         amrex::ignore_unused(ux_old);
