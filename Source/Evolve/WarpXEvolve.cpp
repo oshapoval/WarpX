@@ -270,9 +270,9 @@ WarpX::Evolve (int numsteps)
                                     *Bfield_aux[lev][2]);
                     }
                     is_synchronized = true;
+                }
             }
         }
-
         for (int lev = 0; lev <= max_level; ++lev) {
             ++istep[lev];
         }
@@ -653,7 +653,7 @@ WarpX::OneStep_nosub2 (Real cur_time)
 
         EvolveF(0.5_rt * dt[0], DtType::SecondHalf);
         EvolveG(0.5_rt * dt[0], DtType::SecondHalf);
-        
+
         if (do_synchronized){
             EvolveB(0.5_rt * dt[0], DtType::SecondHalf); // We now have B^{n+1}
         }
