@@ -434,12 +434,12 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
      pp_species_name.query("save_previous_momenta", m_save_previous_momenta);
      if (m_save_previous_momenta)
      {
- #if (AMREX_SPACEDIM >= 2)
+//  #if (AMREX_SPACEDIM >= 2)
          AddRealComp("prev_ux");
- #endif
- #if defined(WARPX_DIM_3D)
+//  #endif
+//  #if defined(WARPX_DIM_3D)
          AddRealComp("prev_uy");
- #endif
+//  #endif
          AddRealComp("prev_uz");
  #ifdef WARPX_DIM_RZ
          amrex::Abort("Saving previous particle momenta not yet implemented in RZ");
@@ -450,12 +450,12 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
      pp_species_name.query("save_avg_momenta", m_save_avg_momenta);
      if (m_save_avg_momenta)
      {
- #if (AMREX_SPACEDIM >= 2)
+//  #if (AMREX_SPACEDIM >= 2)
          AddRealComp("avg_ux");
- #endif
- #if defined(WARPX_DIM_3D)
+//  #endif
+//  #if defined(WARPX_DIM_3D)
          AddRealComp("avg_uy");
- #endif
+//  #endif
          AddRealComp("avg_uz");
  #ifdef WARPX_DIM_RZ
          amrex::Abort("Saving averaged particle momenta not yet implemented in RZ");
@@ -3539,14 +3539,14 @@ PhysicalParticleContainer::PushPX1 (WarpXParIter& pti,
     {
  #if (AMREX_SPACEDIM >= 2)
         ux_old = pti.GetAttribs(particle_comps["prev_ux"]).dataPtr()+ offset;
- #else
-        amrex::ignore_unused(ux_old);
- #endif
- #if defined(WARPX_DIM_3D)
+//  #else
+//         amrex::ignore_unused(ux_old);
+//  #endif
+//  #if defined(WARPX_DIM_3D)
         uy_old = pti.GetAttribs(particle_comps["prev_uy"]).dataPtr()+ offset;
- #else
-        amrex::ignore_unused(uy_old);
- #endif
+//  #else
+//         amrex::ignore_unused(uy_old);
+//  #endif
         uz_old = pti.GetAttribs(particle_comps["prev_uz"]).dataPtr()+ offset;
     }
 
@@ -3648,12 +3648,12 @@ PhysicalParticleContainer::PushPX1 (WarpXParIter& pti,
             setPosition(ip, xp, yp, zp);
 
             if (save_previous_momenta) {
-#if (AMREX_SPACEDIM >= 2)
+// #if (AMREX_SPACEDIM >= 2)
             ux_old[ip] = ux[ip];
-#endif
-#if defined(WARPX_DIM_3D)
+// #endif
+// #if defined(WARPX_DIM_3D)
             uy_old[ip] = uy[ip];
-#endif
+// #endif
             uz_old[ip] = uz[ip];
         }
 
@@ -3819,16 +3819,16 @@ PhysicalParticleContainer::PushPX2 (WarpXParIter& pti,
     const bool save_avg_momenta = m_save_avg_momenta;
     if (save_avg_momenta)
     {
-#if (AMREX_SPACEDIM >= 2)
+// #if (AMREX_SPACEDIM >= 2)
         ux_avg = pti.GetAttribs(particle_comps["avg_ux"]).dataPtr()+ offset;
-#else
-        amrex::ignore_unused(ux_avg);
-#endif
-#if defined(WARPX_DIM_3D)
+// #else
+//         amrex::ignore_unused(ux_avg);
+// #endif
+// #if defined(WARPX_DIM_3D)
         uy_avg = pti.GetAttribs(particle_comps["avg_uy"]).dataPtr()+ offset;
-#else
-        amrex::ignore_unused(uy_avg);
-#endif
+// #else
+//         amrex::ignore_unused(uy_avg);
+// #endif
         uz_avg = pti.GetAttribs(particle_comps["avg_uz"]).dataPtr()+ offset;
     }
 
@@ -3931,12 +3931,12 @@ PhysicalParticleContainer::PushPX2 (WarpXParIter& pti,
             setPosition(ip, xp, yp, zp);
 
             if (save_avg_momenta) {
-#if (AMREX_SPACEDIM >= 2)
+// #if (AMREX_SPACEDIM >= 2)
                     ux_avg[ip] = 0.5_rt * (ux[ip] + ux_old[ip]);
-#endif
-#if defined(WARPX_DIM_3D)
+// #endif
+// #if defined(WARPX_DIM_3D)
                     uy_avg[ip] = 0.5_rt * (uy[ip] + uy_old[ip]);
-#endif
+// #endif
                     uz_avg[ip] = 0.5_rt * (uz[ip] + uz_old[ip]);
             }
         }
