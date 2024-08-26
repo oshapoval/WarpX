@@ -233,6 +233,8 @@ public:
 
     void defineAllParticleTiles ();
 
+    void deleteInvalidParticles ();
+
     void RedistributeLocal (int num_ghost);
 
     /** Apply BC. For now, just discard particles outside the domain, regardless
@@ -269,7 +271,7 @@ public:
      * \param[in] species_name The species for which back-transformed particles is set.
      * \param[in] do_back_transformed_particles The parameter to set if back-transformed particles are set to true/false
      */
-    void SetDoBackTransformedParticles (std::string species_name, bool do_back_transformed_particles);
+    void SetDoBackTransformedParticles (const std::string& species_name, bool do_back_transformed_particles);
 
     [[nodiscard]] int nSpeciesDepositOnMainGrid () const
     {
@@ -314,7 +316,7 @@ public:
 
     PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
 
-    void ScrapeParticles (const amrex::Vector<const amrex::MultiFab*>& distance_to_eb);
+    void ScrapeParticlesAtEB (const amrex::Vector<const amrex::MultiFab*>& distance_to_eb);
 
     std::string m_B_ext_particle_s = "none";
     std::string m_E_ext_particle_s = "none";
@@ -350,7 +352,7 @@ public:
                       const amrex::MultiFab& Bz);
 #endif
 
-    [[nodiscard]] int getSpeciesID (std::string product_str) const;
+    [[nodiscard]] int getSpeciesID (const std::string& product_str) const;
 
     amrex::Vector<std::unique_ptr<WarpXParticleContainer>>::iterator begin() {return allcontainers.begin();}
     amrex::Vector<std::unique_ptr<WarpXParticleContainer>>::iterator end() {return allcontainers.end();}
