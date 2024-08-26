@@ -3416,7 +3416,7 @@ PhysicalParticleContainer::PushPX1 (WarpXParIter& pti,
     if (np_to_push == 0) { return; }
 
     // Get cell size on gather_lev
-    const std::array<Real,3>& dx = WarpX::CellSize(std::max(gather_lev,0));
+    const amrex::XDim3 dinv = WarpX::InvCellSize(std::max(gather_lev,0));
 
     // Get box from which field is gathered.
     // If not gathering from the finest level, the box is coarsened.
@@ -3444,16 +3444,13 @@ PhysicalParticleContainer::PushPX1 (WarpXParIter& pti,
     const amrex::ParticleReal Bz_external_particle = m_B_external_particle[2];
 
     // Lower corner of tile box physical domain (take into account Galilean shift)
-    const std::array<amrex::Real, 3>& xyzmin = WarpX::LowerCorner(box, gather_lev, 0._rt);
+    const amrex::XDim3 xyzmin = WarpX::LowerCorner(box, gather_lev, 0._rt);
 
     const Dim3 lo = lbound(box);
 
     const bool galerkin_interpolation = WarpX::galerkin_interpolation;
     const int nox = WarpX::nox;
     const int n_rz_azimuthal_modes = WarpX::n_rz_azimuthal_modes;
-
-    const amrex::GpuArray<amrex::Real, 3> dx_arr = {dx[0], dx[1], dx[2]};
-    const amrex::GpuArray<amrex::Real, 3> xyzmin_arr = {xyzmin[0], xyzmin[1], xyzmin[2]};
 
     amrex::Array4<const amrex::Real> const& ex_arr = exfab->array();
     amrex::Array4<const amrex::Real> const& ey_arr = eyfab->array();
@@ -3569,7 +3566,7 @@ PhysicalParticleContainer::PushPX1 (WarpXParIter& pti,
             doGatherShapeN(xp, yp, zp, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                            ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                            ex_type, ey_type, ez_type, bx_type, by_type, bz_type,
-                           dx_arr, xyzmin_arr, lo, n_rz_azimuthal_modes,
+                           dinv, xyzmin, lo, n_rz_azimuthal_modes,
                            nox, galerkin_interpolation);
         }
 
@@ -3661,7 +3658,7 @@ PhysicalParticleContainer::PushPX2 (WarpXParIter& pti,
     if (np_to_push == 0) { return; }
 
     // Get cell size on gather_lev
-    const std::array<Real,3>& dx = WarpX::CellSize(std::max(gather_lev,0));
+    const amrex::XDim3 dinv = WarpX::InvCellSize(std::max(gather_lev,0));
 
     // Get box from which field is gathered.
     // If not gathering from the finest level, the box is coarsened.
@@ -3689,16 +3686,13 @@ PhysicalParticleContainer::PushPX2 (WarpXParIter& pti,
     const amrex::ParticleReal Bz_external_particle = m_B_external_particle[2];
 
     // Lower corner of tile box physical domain (take into account Galilean shift)
-    const std::array<amrex::Real, 3>& xyzmin = WarpX::LowerCorner(box, gather_lev, 0._rt);
+    const amrex::XDim3 xyzmin = WarpX::LowerCorner(box, gather_lev, 0._rt);
 
     const Dim3 lo = lbound(box);
 
     const bool galerkin_interpolation = WarpX::galerkin_interpolation;
     const int nox = WarpX::nox;
     const int n_rz_azimuthal_modes = WarpX::n_rz_azimuthal_modes;
-
-    const amrex::GpuArray<amrex::Real, 3> dx_arr = {dx[0], dx[1], dx[2]};
-    const amrex::GpuArray<amrex::Real, 3> xyzmin_arr = {xyzmin[0], xyzmin[1], xyzmin[2]};
 
     amrex::Array4<const amrex::Real> const& ex_arr = exfab->array();
     amrex::Array4<const amrex::Real> const& ey_arr = eyfab->array();
@@ -3814,7 +3808,7 @@ PhysicalParticleContainer::PushPX2 (WarpXParIter& pti,
             doGatherShapeN(xp, yp, zp, Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                            ex_arr, ey_arr, ez_arr, bx_arr, by_arr, bz_arr,
                            ex_type, ey_type, ez_type, bx_type, by_type, bz_type,
-                           dx_arr, xyzmin_arr, lo, n_rz_azimuthal_modes,
+                           dinv, xyzmin, lo, n_rz_azimuthal_modes,
                            nox, galerkin_interpolation);
         }
 
