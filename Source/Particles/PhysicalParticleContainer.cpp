@@ -3348,6 +3348,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
         }
 #ifdef WARPX_QED
         else {
+            amrex::ignore_unused(setPosition);
             if constexpr (qed_control == has_qed) {
                 if (do_copy) {
                     //  Copy the old x and u for the BTD
@@ -3593,6 +3594,7 @@ PhysicalParticleContainer::PushPX1 (WarpXParIter& pti,
         }
 #ifdef WARPX_QED
         else {
+            amrex::ignore_unused(setPosition);
             if constexpr (qed_control == has_qed) {
                 if (do_copy) {
                     //  Copy the old x and u for the BTD
@@ -3840,6 +3842,7 @@ PhysicalParticleContainer::PushPX2 (WarpXParIter& pti,
         }
 #ifdef WARPX_QED
         else {
+            amrex::ignore_unused(setPosition);
             if constexpr (qed_control == has_qed) {
                 if (do_copy) {
                     //  Copy the old x and u for the BTD
