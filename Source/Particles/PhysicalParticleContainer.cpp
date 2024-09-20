@@ -3946,7 +3946,8 @@ PhysicalParticleContainer::PushPX2 (WarpXParIter& pti,
         }
 #ifdef WARPX_QED
         else {
-            amrex::ignore_unused(setPosition);
+            amrex::ignore_unused(setPosition,ion_lev,m, q, pusher_algo, do_crr,
+                                          t_chi_max);
             if constexpr (qed_control == has_qed) {
                 if (do_copy) {
                     //  Copy the old x and u for the BTD
