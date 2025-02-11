@@ -111,8 +111,7 @@ Theory
    theory/amr
    theory/boundary_conditions
    theory/boosted_frame
-   theory/input_output
-   theory/collisions
+   theory/multiphysics_extensions
    theory/kinetic_fluid_hybrid_model
    theory/cold_fluid_model
 
@@ -127,7 +126,7 @@ Development
    developers/developers
    developers/doxygen
    developers/gnumake
-   developers/workflows
+   developers/how_to_guides
    developers/faq
 .. good to have in the future:
 ..   developers/repostructure
