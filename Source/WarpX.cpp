@@ -175,13 +175,11 @@ bool WarpX::do_dynamic_scheduling = true;
 
 bool WarpX::do_multi_J = false;
 int WarpX::do_multi_J_n_depositions;
-bool WarpX::safe_guard_cells = false;
 
 int WarpX::collisions_placement = 1;
 bool WarpX::do_synchronized = true;
 
-std::map<std::string, amrex::MultiFab *> WarpX::multifab_map;
-std::map<std::string, amrex::iMultiFab *> WarpX::imultifab_map;
+
 
 IntVect WarpX::filter_npass_each_dir(1);
 

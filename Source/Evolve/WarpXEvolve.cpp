@@ -161,52 +161,6 @@ WarpX::Evolve (int numsteps)
             ExplicitFillBoundaryEBUpdateAux();
         }
 
-        if (evolve_scheme == EvolveScheme::Explicit) {
-            // At the beginning, we have B^{n} and E^{n}.
-            // Particles have p^{n} and x^{n}.
-            // is_synchronized is true.
-            if (is_synchronized && do_synchronized) {
-                if (electrostatic_solver_id == ElectrostaticSolverAlgo::None) {
-                    // Not called at each iteration, so exchange all guard cells
-                    FillBoundaryE(guard_cells.ng_alloc_EB);
-                    FillBoundaryB(guard_cells.ng_alloc_EB);
-                }
-                UpdateAuxilaryData();
-                FillBoundaryAux(guard_cells.ng_UpdateAux);
-                // on first step, push p by -0.5*dt
-                for (int lev = 0; lev <= finest_level; ++lev)
-                {
-                    mypc->PushP(lev, -0.5_rt*dt[lev],
-                                *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
-                                *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
-                }
-                is_synchronized = false;
-
-            } else {
-                // E and B are up-to-date inside the domain only
-                FillBoundaryE(guard_cells.ng_FieldGather);
-                FillBoundaryB(guard_cells.ng_FieldGather);
-                if (electrostatic_solver_id == ElectrostaticSolverAlgo::None) {
-                    // Beyond one step, we have E^{n} and B^{n}.
-                    // Particles have p^{n-1/2} and x^{n}.
-
-                    // E and B: enough guard cells to update Aux or call Field Gather in fp and cp
-                    // Need to update Aux on lower levels, to interpolate to higher levels.
-                    if (fft_do_time_averaging)
-                    {
-                        FillBoundaryE_avg(guard_cells.ng_FieldGather);
-                        FillBoundaryB_avg(guard_cells.ng_FieldGather);
-                    }
-                    // TODO Remove call to FillBoundaryAux before UpdateAuxilaryData?
-                    if (WarpX::electromagnetic_solver_id != ElectromagneticSolverAlgo::PSATD) {
-                        FillBoundaryAux(guard_cells.ng_UpdateAux);
-                    }
-                }
-                UpdateAuxilaryData();
-                FillBoundaryAux(guard_cells.ng_UpdateAux);
-            }
-        }
-
         // If needed, deposit the initial ion charge and current densities that
         // will be used to update the E-field in Ohm's law.
         if (step == step_begin &&
@@ -218,11 +172,10 @@ WarpX::Evolve (int numsteps)
         // Run multi-physics modules:
         // ionization, Coulomb collisions, QED
         doFieldIonization();
-
         if (collisions_placement == 0){
-        ExecutePythonCallback("beforecollisions");
-        mypc->doCollisions( cur_time, dt[0] );
-        ExecutePythonCallback("aftercollisions");
+            ExecutePythonCallback("beforecollisions");
+            mypc->doCollisions( cur_time, dt[0] );
+            ExecutePythonCallback("aftercollisions");
         }
 #ifdef WARPX_QED
         doQEDEvents();
@@ -243,6 +196,8 @@ WarpX::Evolve (int numsteps)
             // Electrostatic or hybrid-PIC case: only gather fields and push
             // particles, deposition and calculation of fields done further below
             const bool skip_deposition = true;
+            // PushParticlesandDeposit(cur_time, skip_deposition);
+
             PushParticlesandDeposit1(cur_time, skip_deposition);
             if (collisions_placement == 1){
                 ExecutePythonCallback("beforecollisions");
@@ -259,6 +214,7 @@ WarpX::Evolve (int numsteps)
         // Electromagnetic case: no subcycling or no mesh refinement
         else if ( !m_do_subcycling || (finest_level == 0))
         {
+            // OneStep_nosub(cur_time);
             /*OneStep_nosub(cur_time);*/
             OneStep_nosub1(cur_time);
             if (collisions_placement == 1){
@@ -267,6 +223,7 @@ WarpX::Evolve (int numsteps)
                 ExecutePythonCallback("aftercollisions");
             }
             OneStep_nosub2(cur_time);
+
             // E: guard cells are up-to-date
             // B: guard cells are NOT up-to-date
             // F: guard cells are NOT up-to-date
@@ -298,26 +255,7 @@ WarpX::Evolve (int numsteps)
         if (evolve_scheme == EvolveScheme::Explicit) {
             // At the end of last step, push p by 0.5*dt to synchronize
             if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
-                // At the end of last step, push p by 0.5*dt to synchronize
-                FillBoundaryE(guard_cells.ng_FieldGather);
-                FillBoundaryB(guard_cells.ng_FieldGather);
-                if (fft_do_time_averaging)
-                {
-                    FillBoundaryE_avg(guard_cells.ng_FieldGather);
-                    FillBoundaryB_avg(guard_cells.ng_FieldGather);
-                }
-                UpdateAuxilaryData();
-                FillBoundaryAux(guard_cells.ng_UpdateAux);
-                if (do_synchronized) {
-                    for (int lev = 0; lev <= finest_level; ++lev) {
-                        mypc->PushP(lev, 0.5_rt*dt[lev],
-                                    *Efield_aux[lev][0],*Efield_aux[lev][1],
-                                    *Efield_aux[lev][2],
-                                    *Bfield_aux[lev][0],*Bfield_aux[lev][1],
-                                    *Bfield_aux[lev][2]);
-                    }
-                    is_synchronized = true;
-                }
+                Synchronize();
             }
         }
 
@@ -517,6 +455,125 @@ WarpX::OneStep_nosub (Real cur_time)
         EvolveB(0.5_rt * dt[0], DtType::FirstHalf, cur_time); // We now have B^{n+1/2}
         FillBoundaryB(guard_cells.ng_FieldSolver, WarpX::sync_nodal_points);
 
+        if (WarpX::em_solver_medium  == MediumForEM::Vacuum) {
+            // vacuum medium
+            EvolveE(dt[0], cur_time); // We now have E^{n+1}
+        } else if (WarpX::em_solver_medium  == MediumForEM::Macroscopic) {
+            // macroscopic medium
+            MacroscopicEvolveE(dt[0], cur_time); // We now have E^{n+1}
+        } else {
+            WARPX_ABORT_WITH_MESSAGE("Medium for EM is unknown");
+        }
+        FillBoundaryE(guard_cells.ng_FieldSolver, WarpX::sync_nodal_points);
+
+        EvolveF(0.5_rt * dt[0], DtType::SecondHalf);
+        EvolveG(0.5_rt * dt[0], DtType::SecondHalf);
+        EvolveB(0.5_rt * dt[0], DtType::SecondHalf, cur_time + 0.5_rt * dt[0]); // We now have B^{n+1}
+
+        if (do_pml) {
+            DampPML();
+            FillBoundaryE(guard_cells.ng_MovingWindow, WarpX::sync_nodal_points);
+            FillBoundaryB(guard_cells.ng_MovingWindow, WarpX::sync_nodal_points);
+            FillBoundaryF(guard_cells.ng_MovingWindow, WarpX::sync_nodal_points);
+            FillBoundaryG(guard_cells.ng_MovingWindow, WarpX::sync_nodal_points);
+        }
+
+        // E and B are up-to-date in the domain, but all guard cells are
+        // outdated.
+        if (m_safe_guard_cells) {
+            FillBoundaryB(guard_cells.ng_alloc_EB);
+        }
+    } // !PSATD
+
+    ExecutePythonCallback("afterEsolve");
+}
+
+void
+WarpX::OneStep_nosub1 (Real cur_time)
+{
+    WARPX_PROFILE("WarpX::OneStep_nosub()");
+
+    // Push particle from x^{n} to x^{n+1}
+    //               from p^{n-1/2} to p^{n+1/2}
+    // Deposit current j^{n+1/2}
+    // Deposit charge density rho^{n}
+
+    ExecutePythonCallback("particlescraper");
+    ExecutePythonCallback("beforedeposition");
+
+    PushParticlesandDeposit1(cur_time);
+}
+
+
+void
+WarpX::OneStep_nosub2 (Real cur_time)
+{
+    WARPX_PROFILE("WarpX::OneStep_nosub()");
+
+    // Push particle from x^{n} to x^{n+1}
+    //               from p^{n-1/2} to p^{n+1/2}
+    // Deposit current j^{n+1/2}
+    // Deposit charge density rho^{n}
+
+
+    PushParticlesandDeposit2(cur_time);
+
+    ExecutePythonCallback("afterdeposition");
+
+    // Synchronize J and rho:
+    // filter (if used), exchange guard cells, interpolate across MR levels
+    // and apply boundary conditions
+    SyncCurrentAndRho();
+
+    // At this point, J is up-to-date inside the domain, and E and B are
+    // up-to-date including enough guard cells for first step of the field
+    // solve.
+
+    // For extended PML: copy J from regular grid to PML, and damp J in PML
+    if (do_pml && pml_has_particles) { CopyJPML(); }
+    if (do_pml && do_pml_j_damping) { DampJPML(); }
+
+    ExecutePythonCallback("beforeEsolve");
+
+    // Push E and B from {n} to {n+1}
+    // (And update guard cells immediately afterwards)
+    if (WarpX::electromagnetic_solver_id == ElectromagneticSolverAlgo::PSATD) {
+        if (use_hybrid_QED)
+        {
+            WarpX::Hybrid_QED_Push(dt);
+            FillBoundaryE(guard_cells.ng_alloc_EB);
+        }
+        PushPSATD(cur_time);
+
+        if (do_pml) {
+            DampPML();
+        }
+
+        if (use_hybrid_QED) {
+            FillBoundaryE(guard_cells.ng_alloc_EB);
+            FillBoundaryB(guard_cells.ng_alloc_EB, WarpX::sync_nodal_points);
+            WarpX::Hybrid_QED_Push(dt);
+            FillBoundaryE(guard_cells.ng_afterPushPSATD, WarpX::sync_nodal_points);
+        }
+        else {
+            FillBoundaryE(guard_cells.ng_afterPushPSATD, WarpX::sync_nodal_points);
+            FillBoundaryB(guard_cells.ng_afterPushPSATD, WarpX::sync_nodal_points);
+            if (WarpX::do_dive_cleaning || WarpX::do_pml_dive_cleaning) {
+                FillBoundaryF(guard_cells.ng_alloc_F, WarpX::sync_nodal_points);
+            }
+            if (WarpX::do_divb_cleaning || WarpX::do_pml_divb_cleaning) {
+                FillBoundaryG(guard_cells.ng_alloc_G, WarpX::sync_nodal_points);
+            }
+        }
+    } else {
+        EvolveF(0.5_rt * dt[0], DtType::FirstHalf);
+        EvolveG(0.5_rt * dt[0], DtType::FirstHalf);
+        FillBoundaryF(guard_cells.ng_FieldSolverF);
+        FillBoundaryG(guard_cells.ng_FieldSolverG);
+
+        EvolveB(0.5_rt * dt[0], DtType::FirstHalf, cur_time); // We now have B^{n+1/2}
+        FillBoundaryB(guard_cells.ng_FieldSolver, WarpX::sync_nodal_points);
+
         if (WarpX::em_solver_medium == MediumForEM::Vacuum) {
             // vacuum medium
             EvolveE(dt[0], cur_time); // We now have E^{n+1}
@@ -550,140 +607,7 @@ WarpX::OneStep_nosub (Real cur_time)
     ExecutePythonCallback("afterEsolve");
 }
 
-/* /brief Perform one PIC iteration, without subcycling
-*  i.e. all levels/patches use the same timestep (that of the finest level)
-*  for the field advance and particle pusher.
-*/
-void
-WarpX::OneStep_nosub1 (Real cur_time)
-{
-    WARPX_PROFILE("WarpX::OneStep_nosub()");
 
-    // Push particle from x^{n} to x^{n+1}
-    //               from p^{n-1/2} to p^{n+1/2}
-    // Deposit current j^{n+1/2}
-    // Deposit charge density rho^{n}
-
-    ExecutePythonCallback("particlescraper");
-    ExecutePythonCallback("beforedeposition");
-
-    PushParticlesandDeposit1(cur_time);
-
-}
-
-/* /brief Perform one PIC iteration, without subcycling
-*  i.e. all levels/patches use the same timestep (that of the finest level)
-*  for the field advance and particle pusher.
-*/
-void
-WarpX::OneStep_nosub2 (Real cur_time)
-{
-    WARPX_PROFILE("WarpX::OneStep_nosub()");
-
-    // Push particle from x^{n} to x^{n+1}
-    //               from p^{n-1/2} to p^{n+1/2}
-    // Deposit current j^{n+1/2}
-    // Deposit charge density rho^{n}
-
-    PushParticlesandDeposit2(cur_time);
-
-    ExecutePythonCallback("afterdeposition");
-
-    // Synchronize J and rho:
-    // filter (if used), exchange guard cells, interpolate across MR levels
-    // and apply boundary conditions
-    SyncCurrentAndRho();
-
-    // At this point, J is up-to-date inside the domain, and E and B are
-    // up-to-date including enough guard cells for first step of the field
-    // solve.
-
-    // For extended PML: copy J from regular grid to PML, and damp J in PML
-    if (do_pml && pml_has_particles) { CopyJPML(); }
-    if (do_pml && do_pml_j_damping) { DampJPML(); }
-
-    ExecutePythonCallback("beforeEsolve");
-
-    // Push E and B from {n} to {n+1}
-    // (And update guard cells immediately afterwards)
-    if (WarpX::electromagnetic_solver_id == ElectromagneticSolverAlgo::PSATD) {
-        if (use_hybrid_QED)
-        {
-            WarpX::Hybrid_QED_Push(dt);
-            FillBoundaryE(guard_cells.ng_alloc_EB);
-        }
-        PushPSATD();
-
-        if (do_pml) {
-            DampPML();
-        }
-
-        if (use_hybrid_QED) {
-            FillBoundaryE(guard_cells.ng_alloc_EB);
-            FillBoundaryB(guard_cells.ng_alloc_EB, WarpX::sync_nodal_points);
-            WarpX::Hybrid_QED_Push(dt);
-            FillBoundaryE(guard_cells.ng_afterPushPSATD, WarpX::sync_nodal_points);
-        }
-        else {
-            FillBoundaryE(guard_cells.ng_afterPushPSATD, WarpX::sync_nodal_points);
-            FillBoundaryB(guard_cells.ng_afterPushPSATD, WarpX::sync_nodal_points);
-            if (WarpX::do_dive_cleaning || WarpX::do_pml_dive_cleaning) {
-                FillBoundaryF(guard_cells.ng_alloc_F, WarpX::sync_nodal_points);
-            }
-            if (WarpX::do_divb_cleaning || WarpX::do_pml_divb_cleaning) {
-                FillBoundaryG(guard_cells.ng_alloc_G, WarpX::sync_nodal_points);
-            }
-        }
-    } else {
-        EvolveF(0.5_rt * dt[0], DtType::FirstHalf);
-        EvolveG(0.5_rt * dt[0], DtType::FirstHalf);
-        FillBoundaryF(guard_cells.ng_FieldSolverF);
-        FillBoundaryG(guard_cells.ng_FieldSolverG);
-
-        if (do_synchronized){
-            EvolveB(0.5_rt * dt[0], DtType::FirstHalf); // We now have B^{n+1/2}
-        }
-        else{
-            EvolveB(dt[0], DtType::Full); // We now have B^{n+1}
-        }
-
-        FillBoundaryB(guard_cells.ng_FieldSolver, WarpX::sync_nodal_points);
-
-        if (WarpX::em_solver_medium == MediumForEM::Vacuum) {
-            // vacuum medium
-            EvolveE(dt[0]); // We now have E^{n+1}
-        } else if (WarpX::em_solver_medium == MediumForEM::Macroscopic) {
-            // macroscopic medium
-            MacroscopicEvolveE(dt[0]); // We now have E^{n+1}
-        } else {
-            WARPX_ABORT_WITH_MESSAGE("Medium for EM is unknown");
-        }
-        FillBoundaryE(guard_cells.ng_FieldSolver, WarpX::sync_nodal_points);
-
-        EvolveF(0.5_rt * dt[0], DtType::SecondHalf);
-        EvolveG(0.5_rt * dt[0], DtType::SecondHalf);
-
-        if (do_synchronized){
-            EvolveB(0.5_rt * dt[0], DtType::SecondHalf); // We now have B^{n+1}
-        }
-
-        if (do_pml) {
-            DampPML();
-            FillBoundaryE(guard_cells.ng_MovingWindow, WarpX::sync_nodal_points);
-            FillBoundaryB(guard_cells.ng_MovingWindow, WarpX::sync_nodal_points);
-            FillBoundaryF(guard_cells.ng_MovingWindow, WarpX::sync_nodal_points);
-            FillBoundaryG(guard_cells.ng_MovingWindow, WarpX::sync_nodal_points);
-        }
-
-        // E and B are up-to-date in the domain, but all guard cells are
-        // outdated.
-        if (safe_guard_cells) {
-            FillBoundaryB(guard_cells.ng_alloc_EB);
-        }
-    } // !PSATD
-
-    ExecutePythonCallback("afterEsolve");
-}
 bool WarpX::checkStopSimulation (amrex::Real cur_time)
 {
     m_exit_loop_due_to_interrupt_signal = SignalHandling::TestAndResetActionRequestFlag(SignalHandling::SIGNAL_REQUESTS_BREAK);
@@ -1348,6 +1272,7 @@ WarpX::PushParticlesandDeposit (amrex::Real cur_time, bool skip_current, PushTyp
         PushParticlesandDeposit(lev, cur_time, DtType::Full, skip_current, push_type);
     }
 }
+
 void
 WarpX::PushParticlesandDeposit1 (amrex::Real cur_time, bool skip_current, PushType push_type)
 {
@@ -1357,6 +1282,7 @@ WarpX::PushParticlesandDeposit1 (amrex::Real cur_time, bool skip_current, PushTy
         PushParticlesandDeposit1(lev, cur_time, DtType::Full, skip_current, push_type);
     }
 }
+
 void
 WarpX::PushParticlesandDeposit2 (amrex::Real cur_time, bool skip_current, PushType push_type)
 {
@@ -1438,32 +1364,28 @@ WarpX::PushParticlesandDeposit (int lev, amrex::Real cur_time, DtType a_dt_type,
         }
     }
 }
+
+
 void
 WarpX::PushParticlesandDeposit1 (int lev, amrex::Real cur_time, DtType a_dt_type, bool skip_current,
                                PushType push_type)
 {
-    amrex::MultiFab* current_x = nullptr;
-    amrex::MultiFab* current_y = nullptr;
-    amrex::MultiFab* current_z = nullptr;
+    using ablastr::fields::Direction;
+    using warpx::fields::FieldType;
+
+    std::string current_fp_string;
 
     if (WarpX::do_current_centering)
     {
-        current_x = current_fp_nodal[lev][0].get();
-        current_y = current_fp_nodal[lev][1].get();
-        current_z = current_fp_nodal[lev][2].get();
+        current_fp_string = "current_fp_nodal";
     }
     else if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Vay)
     {
-        // Note that Vay deposition is supported only for PSATD and the code currently aborts otherwise
-        current_x = current_fp_vay[lev][0].get();
-        current_y = current_fp_vay[lev][1].get();
-        current_z = current_fp_vay[lev][2].get();
+        current_fp_string = "current_fp_vay";
     }
     else
     {
-        current_x = current_fp[lev][0].get();
-        current_y = current_fp[lev][1].get();
-        current_z = current_fp[lev][2].get();
+        current_fp_string = "current_fp";
     }
 
     mypc->Evolve1(
@@ -1476,33 +1398,66 @@ WarpX::PushParticlesandDeposit1 (int lev, amrex::Real cur_time, DtType a_dt_type
         skip_current,
         push_type
     );
+    if (! skip_current) {
+#ifdef WARPX_DIM_RZ
+        // This is called after all particles have deposited their current and charge.
+        ApplyInverseVolumeScalingToCurrentDensity(
+            m_fields.get(FieldType::current_fp, Direction{0}, lev),
+            m_fields.get(FieldType::current_fp, Direction{1}, lev),
+            m_fields.get(FieldType::current_fp, Direction{2}, lev),
+            lev);
+        if (m_fields.has_vector(FieldType::current_buf, lev)) {
+            ApplyInverseVolumeScalingToCurrentDensity(
+                m_fields.get(FieldType::current_buf, Direction{0}, lev),
+                m_fields.get(FieldType::current_buf, Direction{1}, lev),
+                m_fields.get(FieldType::current_buf, Direction{2}, lev),
+                lev-1);
+        }
+        if (m_fields.has(FieldType::rho_fp, lev)) {
+            ApplyInverseVolumeScalingToChargeDensity(m_fields.get(FieldType::rho_fp, lev), lev);
+            if (m_fields.has(FieldType::rho_buf, lev)) {
+                ApplyInverseVolumeScalingToChargeDensity(m_fields.get(FieldType::rho_buf, lev), lev-1);
+            }
+        }
+// #else
+        // I left this comment here as a reminder that currently the
+        // boundary handling for cartesian grids are not matching the RZ handling
+        // (done in the ApplyInverseScalingToChargeDensity function). The
+        // Cartesian grid code had to be moved from here to after the application
+        // of the filter to avoid incorrect results (moved to `SyncCurrentAndRho()`).
+        // Might this be related to issue #1943?
+#endif
+        if (do_fluid_species) {
+            myfl->Evolve(m_fields,
+                         lev,
+                         current_fp_string,
+                         cur_time,
+                         skip_current
+            );
+        }
+    }
 }
+
 void
 WarpX::PushParticlesandDeposit2 (int lev, amrex::Real cur_time, DtType a_dt_type, bool skip_current,
                                PushType push_type)
 {
-    amrex::MultiFab* current_x = nullptr;
-    amrex::MultiFab* current_y = nullptr;
-    amrex::MultiFab* current_z = nullptr;
+    using ablastr::fields::Direction;
+    using warpx::fields::FieldType;
+
+    std::string current_fp_string;
 
     if (WarpX::do_current_centering)
     {
-        current_x = current_fp_nodal[lev][0].get();
-        current_y = current_fp_nodal[lev][1].get();
-        current_z = current_fp_nodal[lev][2].get();
+        current_fp_string = "current_fp_nodal";
     }
     else if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Vay)
     {
-        // Note that Vay deposition is supported only for PSATD and the code currently aborts otherwise
-        current_x = current_fp_vay[lev][0].get();
-        current_y = current_fp_vay[lev][1].get();
-        current_z = current_fp_vay[lev][2].get();
+        current_fp_string = "current_fp_vay";
     }
     else
     {
-        current_x = current_fp[lev][0].get();
-        current_y = current_fp[lev][1].get();
-        current_z = current_fp[lev][2].get();
+        current_fp_string = "current_fp";
     }
 
     mypc->Evolve2(
@@ -1515,6 +1470,45 @@ WarpX::PushParticlesandDeposit2 (int lev, amrex::Real cur_time, DtType a_dt_type
         skip_current,
         push_type
     );
+    if (! skip_current) {
+#ifdef WARPX_DIM_RZ
+        // This is called after all particles have deposited their current and charge.
+        ApplyInverseVolumeScalingToCurrentDensity(
+            m_fields.get(FieldType::current_fp, Direction{0}, lev),
+            m_fields.get(FieldType::current_fp, Direction{1}, lev),
+            m_fields.get(FieldType::current_fp, Direction{2}, lev),
+            lev);
+        if (m_fields.has_vector(FieldType::current_buf, lev)) {
+            ApplyInverseVolumeScalingToCurrentDensity(
+                m_fields.get(FieldType::current_buf, Direction{0}, lev),
+                m_fields.get(FieldType::current_buf, Direction{1}, lev),
+                m_fields.get(FieldType::current_buf, Direction{2}, lev),
+                lev-1);
+        }
+        if (m_fields.has(FieldType::rho_fp, lev)) {
+            ApplyInverseVolumeScalingToChargeDensity(m_fields.get(FieldType::rho_fp, lev), lev);
+            if (m_fields.has(FieldType::rho_buf, lev)) {
+                ApplyInverseVolumeScalingToChargeDensity(m_fields.get(FieldType::rho_buf, lev), lev-1);
+            }
+        }
+// #else
+        // I left this comment here as a reminder that currently the
+        // boundary handling for cartesian grids are not matching the RZ handling
+        // (done in the ApplyInverseScalingToChargeDensity function). The
+        // Cartesian grid code had to be moved from here to after the application
+        // of the filter to avoid incorrect results (moved to `SyncCurrentAndRho()`).
+        // Might this be related to issue #1943?
+#endif
+        if (do_fluid_species) {
+            myfl->Evolve(m_fields,
+                         lev,
+                         current_fp_string,
+                         cur_time,
+                         skip_current
+            );
+        }
+    }
+}
 
 /* \brief Apply perfect mirror condition inside the box (not at a boundary).
  * In practice, set all fields to 0 on a section of the simulation domain
