@@ -92,19 +92,21 @@ WarpX::Synchronize () {
     }
     UpdateAuxilaryData();
     FillBoundaryAux(guard_cells.ng_UpdateAux);
-    for (int lev = 0; lev <= finest_level; ++lev) {
-        mypc->PushP(
-            lev,
-            0.5_rt*dt[lev],
-            *m_fields.get(FieldType::Efield_aux, Direction{0}, lev),
-            *m_fields.get(FieldType::Efield_aux, Direction{1}, lev),
-            *m_fields.get(FieldType::Efield_aux, Direction{2}, lev),
-            *m_fields.get(FieldType::Bfield_aux, Direction{0}, lev),
-            *m_fields.get(FieldType::Bfield_aux, Direction{1}, lev),
-            *m_fields.get(FieldType::Bfield_aux, Direction{2}, lev)
-        );
+    if (do_synchronized) {
+        for (int lev = 0; lev <= finest_level; ++lev) {
+            mypc->PushP(
+                lev,
+                0.5_rt*dt[lev],
+                *m_fields.get(FieldType::Efield_aux, Direction{0}, lev),
+                *m_fields.get(FieldType::Efield_aux, Direction{1}, lev),
+                *m_fields.get(FieldType::Efield_aux, Direction{2}, lev),
+                *m_fields.get(FieldType::Bfield_aux, Direction{0}, lev),
+                *m_fields.get(FieldType::Bfield_aux, Direction{1}, lev),
+                *m_fields.get(FieldType::Bfield_aux, Direction{2}, lev)
+            );
+        }
+        is_synchronized = true;
     }
-    is_synchronized = true;
 }
 
 void
@@ -627,7 +629,7 @@ void WarpX::ExplicitFillBoundaryEBUpdateAux ()
     // Particles have p^{n} and x^{n}.
     // is_synchronized is true.
 
-    if (is_synchronized) {
+    if (is_synchronized && do_synchronized ) {
         // Not called at each iteration, so exchange all guard cells
         FillBoundaryE(guard_cells.ng_alloc_EB);
         FillBoundaryB(guard_cells.ng_alloc_EB);
@@ -1037,8 +1039,12 @@ WarpX::OneStep_sub1 (Real cur_time)
             m_fields.get_mr_levels(FieldType::rho_cp, finest_level, skip_lev0_coarse_patch),
             fine_lev, PatchType::fine, 0, 2*ncomps);
     }
-
-    EvolveB(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::FirstHalf, cur_time);
+    if (do_synchronized){
+        EvolveB(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::FirstHalf, cur_time);
+    }
+    else{
+        EvolveB(fine_lev, PatchType::fine, dt[fine_lev], DtType::Full, cur_time);
+    }
     EvolveF(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::FirstHalf);
     FillBoundaryB(fine_lev, PatchType::fine, guard_cells.ng_FieldSolver,
                   WarpX::sync_nodal_points);
@@ -1048,7 +1054,9 @@ WarpX::OneStep_sub1 (Real cur_time)
     EvolveE(fine_lev, PatchType::fine, dt[fine_lev], cur_time);
     FillBoundaryE(fine_lev, PatchType::fine, guard_cells.ng_FieldGather);
 
-    EvolveB(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::SecondHalf, cur_time + 0.5_rt * dt[fine_lev]);
+    if (do_synchronized){
+        EvolveB(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::SecondHalf, cur_time + 0.5_rt * dt[fine_lev]);
+    }
     EvolveF(fine_lev, PatchType::fine, 0.5_rt*dt[fine_lev], DtType::SecondHalf);
 
     if (do_pml) {
