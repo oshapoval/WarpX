@@ -572,8 +572,6 @@ WarpX::OneStep_nosub2 (Real cur_time)
         EvolveG(0.5_rt * dt[0], DtType::FirstHalf);
         FillBoundaryF(guard_cells.ng_FieldSolverF);
         FillBoundaryG(guard_cells.ng_FieldSolverG);
-        EvolveB(0.5_rt * dt[0], DtType::FirstHalf, cur_time); // We now have B^{n+1/2}
-        //EvolveB(0.5_rt * dt[0], DtType::FirstHalf, cur_time); // We now have B^{n+1/2}
         if (do_synchronized){
             EvolveB(0.5_rt * dt[0], DtType::FirstHalf, cur_time);
         }
