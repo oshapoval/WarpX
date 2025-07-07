@@ -248,7 +248,7 @@ public:
                          int lev,
                          const std::string& current_fp_string,
                          amrex::Real t, amrex::Real dt, DtType a_dt_type=DtType::Full, bool skip_deposition=false,
-                         PushType push_type=PushType::Explicit) = 0;
+                         bool deposit_mass_matrices=false, PushType push_type=PushType::Explicit) = 0;
 
     /**
      * Evolve is the central WarpXParticleContainer function that advances
@@ -259,7 +259,7 @@ public:
                          int lev,
                          const std::string& current_fp_string,
                          amrex::Real t, amrex::Real dt, DtType a_dt_type=DtType::Full, bool skip_deposition=false,
-                         PushType push_type=PushType::Explicit) = 0;
+                         bool deposit_mass_matrices=false, PushType push_type=PushType::Explicit) = 0;
 
 
     virtual void PostRestart () = 0;

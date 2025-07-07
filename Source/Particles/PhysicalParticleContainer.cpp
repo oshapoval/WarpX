@@ -2253,7 +2253,7 @@ PhysicalParticleContainer::Evolve1 (ablastr::fields::MultiFabRegister& fields,
                                    int lev,
                                    const std::string& current_fp_string,
                                    Real /*t*/, Real dt, DtType a_dt_type, bool skip_deposition,
-                                   PushType push_type)
+                                   bool deposit_mass_matrices, PushType push_type)
 {
     using ablastr::fields::Direction;
     using warpx::fields::FieldType;
@@ -2279,20 +2279,6 @@ PhysicalParticleContainer::Evolve1 (ablastr::fields::MultiFabRegister& fields,
     amrex::MultiFab & Bx = *fields.get(FieldType::Bfield_aux, Direction{0}, lev);
     amrex::MultiFab & By = *fields.get(FieldType::Bfield_aux, Direction{1}, lev);
     amrex::MultiFab & Bz = *fields.get(FieldType::Bfield_aux, Direction{2}, lev);
-
-    if (m_do_back_transformed_particles)
-    {
-        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-        {
-            const auto np = pti.numParticles();
-            const auto t_lev = pti.GetLevel();
-            const auto index = pti.GetPairIndex();
-            tmp_particle_data.resize(finestLevel()+1);
-            for (int i = 0; i < TmpIdx::nattribs; ++i) {
-                tmp_particle_data[t_lev][index][i].resize(np);
-            }
-        }
-    }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -2363,7 +2349,8 @@ PhysicalParticleContainer::Evolve1 (ablastr::fields::MultiFabRegister& fields,
                 //    and (thus) the `np-nfine_current`/`np-nfine_gather` last particles
                 //    deposit/gather in the buffer
                 PartitionParticlesInBuffers( nfine_current, nfine_gather, np,
-                    pti, lev, current_masks, gather_masks );
+                    pti, lev, WarpX::n_field_gather_buffer,
+                    WarpX::n_current_deposition_buffer, current_masks, gather_masks );
             }
 
             const long np_current = has_J_buf ? nfine_current : np;
@@ -2471,7 +2458,7 @@ PhysicalParticleContainer::Evolve2 (ablastr::fields::MultiFabRegister& fields,
                                    int lev,
                                    const std::string& current_fp_string,
                                    Real /*t*/, Real dt, DtType a_dt_type, bool skip_deposition,
-                                   PushType push_type)
+                                   bool deposit_mass_matrices, PushType push_type)
 {
     using ablastr::fields::Direction;
     using warpx::fields::FieldType;
@@ -2497,20 +2484,6 @@ PhysicalParticleContainer::Evolve2 (ablastr::fields::MultiFabRegister& fields,
     amrex::MultiFab & Bx = *fields.get(FieldType::Bfield_aux, Direction{0}, lev);
     amrex::MultiFab & By = *fields.get(FieldType::Bfield_aux, Direction{1}, lev);
     amrex::MultiFab & Bz = *fields.get(FieldType::Bfield_aux, Direction{2}, lev);
-
-    if (m_do_back_transformed_particles)
-    {
-        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-        {
-            const auto np = pti.numParticles();
-            const auto t_lev = pti.GetLevel();
-            const auto index = pti.GetPairIndex();
-            tmp_particle_data.resize(finestLevel()+1);
-            for (int i = 0; i < TmpIdx::nattribs; ++i) {
-                tmp_particle_data[t_lev][index][i].resize(np);
-            }
-        }
-    }
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -2650,10 +2623,25 @@ PhysicalParticleContainer::Evolve2 (ablastr::fields::MultiFabRegister& fields,
                     amrex::MultiFab * jx = fields.get(current_fp_string, Direction{0}, lev);
                     amrex::MultiFab * jy = fields.get(current_fp_string, Direction{1}, lev);
                     amrex::MultiFab * jz = fields.get(current_fp_string, Direction{2}, lev);
-                    DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, jx, jy, jz,
-                                   0, np_current, thread_num,
-                                   lev, lev, dt, relative_time, push_type);
-
+                    if (push_type == PushType::Implicit && deposit_mass_matrices) {
+                        amrex::MultiFab * Sxx = fields.get(FieldType::MassMatrices_X, Direction{0}, lev);
+                        amrex::MultiFab * Sxy = fields.get(FieldType::MassMatrices_X, Direction{1}, lev);
+                        amrex::MultiFab * Sxz = fields.get(FieldType::MassMatrices_X, Direction{2}, lev);
+                        amrex::MultiFab * Syx = fields.get(FieldType::MassMatrices_Y, Direction{0}, lev);
+                        amrex::MultiFab * Syy = fields.get(FieldType::MassMatrices_Y, Direction{1}, lev);
+                        amrex::MultiFab * Syz = fields.get(FieldType::MassMatrices_Y, Direction{2}, lev);
+                        amrex::MultiFab * Szx = fields.get(FieldType::MassMatrices_Z, Direction{0}, lev);
+                        amrex::MultiFab * Szy = fields.get(FieldType::MassMatrices_Z, Direction{1}, lev);
+                        amrex::MultiFab * Szz = fields.get(FieldType::MassMatrices_Z, Direction{2}, lev);
+                        DepositCurrentAndMassMatrices(pti, wp, uxp, uyp, uzp, jx, jy, jz,
+                                       Sxx, Sxy, Sxz, Syx, Syy, Syz, Szx, Szy, Szz,
+                                       bxfab, byfab, bzfab, 0, np_current, thread_num, lev, lev, dt);
+                    }
+                    else {
+                        DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, jx, jy, jz,
+                                       0, np_current, thread_num,
+                                       lev, lev, dt, relative_time, push_type);
+                    }
                     if (has_buffer)
                     {
                         // Deposit in buffers
@@ -3498,7 +3486,7 @@ PhysicalParticleContainer::PushPX1 (WarpXParIter& pti,
     const int do_copy = (m_do_back_transformed_particles && (a_dt_type!=DtType::SecondHalf) );
     CopyParticleAttribs copyAttribs;
     if (do_copy) {
-        copyAttribs = CopyParticleAttribs(pti, tmp_particle_data, offset);
+        copyAttribs = CopyParticleAttribs(*this, pti, offset);
     }
 
     int* AMREX_RESTRICT ion_lev = nullptr;
@@ -3738,7 +3726,7 @@ PhysicalParticleContainer::PushPX2 (WarpXParIter& pti,
     const int do_copy = (m_do_back_transformed_particles && (a_dt_type!=DtType::SecondHalf) );
     CopyParticleAttribs copyAttribs;
     if (do_copy) {
-        copyAttribs = CopyParticleAttribs(pti, tmp_particle_data, offset);
+        copyAttribs = CopyParticleAttribs(*this, pti, offset);
     }
 
     int* AMREX_RESTRICT ion_lev = nullptr;

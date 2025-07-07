@@ -75,13 +75,15 @@ public:
                  int lev,
                  const std::string& current_fp_string,
                  amrex::Real t, amrex::Real dt, DtType a_dt_type=DtType::Full,
-                 bool skip_deposition=false, PushType push_type=PushType::Explicit) final;
+                 bool skip_deposition=false, bool deposit_mass_matrices=false,
+                 PushType push_type=PushType::Explicit) final;
 
     void Evolve2 (ablastr::fields::MultiFabRegister& fields,
                  int lev,
                  const std::string& current_fp_string,
                  amrex::Real t, amrex::Real dt, DtType a_dt_type=DtType::Full,
-                 bool skip_deposition=false, PushType push_type=PushType::Explicit) final;
+                 bool skip_deposition=false, bool deposit_mass_matrices=false,
+                 PushType push_type=PushType::Explicit) final;
 
     void PushP (int lev, amrex::Real dt,
                         const amrex::MultiFab& ,

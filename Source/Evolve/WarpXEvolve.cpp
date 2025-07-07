@@ -509,10 +509,10 @@ WarpX::OneStep_nosub (Real cur_time)
         EvolveB(0.5_rt * dt[0], DtType::FirstHalf, cur_time); // We now have B^{n+1/2}
         FillBoundaryB(guard_cells.ng_FieldSolver, WarpX::sync_nodal_points);
 
-        if (WarpX::em_solver_medium  == MediumForEM::Vacuum) {
+        if (m_em_solver_medium  == MediumForEM::Vacuum) {
             // vacuum medium
             EvolveE(dt[0], cur_time); // We now have E^{n+1}
-        } else if (WarpX::em_solver_medium  == MediumForEM::Macroscopic) {
+        } else if (m_em_solver_medium == MediumForEM::Macroscopic) {
             // macroscopic medium
             MacroscopicEvolveE(dt[0], cur_time); // We now have E^{n+1}
         } else {
@@ -632,7 +632,7 @@ WarpX::OneStep_nosub2 (Real cur_time)
         }
         FillBoundaryB(guard_cells.ng_FieldSolver, WarpX::sync_nodal_points);
 
-        if (WarpX::em_solver_medium == MediumForEM::Vacuum) {
+        if (m_em_solver_medium == MediumForEM::Vacuum) {
             // vacuum medium
             EvolveE(dt[0], cur_time); // We now have E^{n+1}
         } else if (m_em_solver_medium == MediumForEM::Macroscopic) {
@@ -1343,22 +1343,26 @@ WarpX::PushParticlesandDeposit (amrex::Real cur_time, bool skip_current,
 }
 
 void
-WarpX::PushParticlesandDeposit1 (amrex::Real cur_time, bool skip_current, PushType push_type)
+WarpX::PushParticlesandDeposit1 (amrex::Real cur_time, bool skip_current,
+                                bool deposit_mass_matrices, PushType push_type)
 {
     // Evolve particles to p^{n+1/2} and x^{n+1}
     // Deposit current, j^{n+1/2}
     for (int lev = 0; lev <= finest_level; ++lev) {
-        PushParticlesandDeposit1(lev, cur_time, DtType::Full, skip_current, push_type);
+        PushParticlesandDeposit1(lev, cur_time, DtType::Full, skip_current,
+                                deposit_mass_matrices, push_type);
     }
 }
 
 void
-WarpX::PushParticlesandDeposit2 (amrex::Real cur_time, bool skip_current, PushType push_type)
+WarpX::PushParticlesandDeposit2 (amrex::Real cur_time, bool skip_current,
+                                bool deposit_mass_matrices, PushType push_type)
 {
     // Evolve particles to p^{n+1/2} and x^{n+1}
     // Deposit current, j^{n+1/2}
     for (int lev = 0; lev <= finest_level; ++lev) {
-        PushParticlesandDeposit2(lev, cur_time, DtType::Full, skip_current, push_type);
+        PushParticlesandDeposit2(lev, cur_time, DtType::Full, skip_current,
+                                deposit_mass_matrices, push_type);
     }
 }
 
@@ -1438,7 +1442,7 @@ WarpX::PushParticlesandDeposit (int lev, amrex::Real cur_time, DtType a_dt_type,
 
 void
 WarpX::PushParticlesandDeposit1 (int lev, amrex::Real cur_time, DtType a_dt_type, bool skip_current,
-                               PushType push_type)
+                               bool deposit_mass_matrices, PushType push_type)
 {
     using ablastr::fields::Direction;
     using warpx::fields::FieldType;
@@ -1466,6 +1470,7 @@ WarpX::PushParticlesandDeposit1 (int lev, amrex::Real cur_time, DtType a_dt_type
         dt[lev],
         a_dt_type,
         skip_current,
+        deposit_mass_matrices,
         push_type
     );
     if (! skip_current) {
@@ -1510,7 +1515,7 @@ WarpX::PushParticlesandDeposit1 (int lev, amrex::Real cur_time, DtType a_dt_type
 
 void
 WarpX::PushParticlesandDeposit2 (int lev, amrex::Real cur_time, DtType a_dt_type, bool skip_current,
-                               PushType push_type)
+                               bool deposit_mass_matrices, PushType push_type)
 {
     using ablastr::fields::Direction;
     using warpx::fields::FieldType;
@@ -1538,6 +1543,7 @@ WarpX::PushParticlesandDeposit2 (int lev, amrex::Real cur_time, DtType a_dt_type
         dt[lev],
         a_dt_type,
         skip_current,
+        deposit_mass_matrices,
         push_type
     );
     if (! skip_current) {

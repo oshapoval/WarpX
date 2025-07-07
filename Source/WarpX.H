@@ -664,15 +664,17 @@ public:
     void PushParticlesandDeposit (int lev, amrex::Real cur_time, DtType a_dt_type=DtType::Full, bool skip_current=false,
                                   bool deposit_mass_matrices=false, PushType push_type=PushType::Explicit);
     void PushParticlesandDeposit (amrex::Real cur_time, bool skip_current=false,
-                                 PushType push_type=PushType::Explicit);
+                                 bool deposit_mass_matrices=false, PushType push_type=PushType::Explicit);
+
     void PushParticlesandDeposit1 (int lev, amrex::Real cur_time, DtType a_dt_type=DtType::Full, bool skip_current=false,
-                                 PushType push_type=PushType::Explicit);
+                                 bool deposit_mass_matrices=false, PushType push_type=PushType::Explicit);
     void PushParticlesandDeposit1 (amrex::Real cur_time, bool skip_current=false,
-                                 PushType push_type=PushType::Explicit);
+                                 bool deposit_mass_matrices=false, PushType push_type=PushType::Explicit);
     void PushParticlesandDeposit2 (int lev, amrex::Real cur_time, DtType a_dt_type=DtType::Full, bool skip_current=false,
-                                 PushType push_type=PushType::Explicit);
+                                 bool deposit_mass_matrices=false, PushType push_type=PushType::Explicit);
     void PushParticlesandDeposit2 (amrex::Real cur_time, bool skip_current=false,
-                                 PushType push_type=PushType::Explicit);    // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
+                                 bool deposit_mass_matrices=false, PushType push_type=PushType::Explicit);    // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
+
     // Caller must make sure fp and cp have ghost cells filled.
     void UpdateAuxilaryData ();
     void UpdateAuxilaryDataStagToNodal ();
