@@ -1,6 +1,9 @@
-/* Copyright 2020 Remi Lehe
+/* Copyright 2020-2024 The WarpX Community
  *
  * This file is part of WarpX.
+ *
+ * Authors: Remi Lehe (LBNL)
+ *          S. Eric Clark (Helion Energy)
  *
  * License: BSD-3-Clause-LBNL
  */
@@ -172,17 +175,32 @@ class FiniteDifferenceSolver
           * \param[in] lev  level number for the calculation
           */
         void CalculateCurrentAmpere (
-                      ablastr::fields::VectorField& Jfield,
-                      ablastr::fields::VectorField const& Bfield,
-                      std::array< std::unique_ptr<amrex::iMultiFab>,3> const& eb_update_E,
-                      int lev );
+            ablastr::fields::VectorField& Jfield,
+            ablastr::fields::VectorField const& Bfield,
+            std::array< std::unique_ptr<amrex::iMultiFab>,3> const& eb_update_E,
+            int lev );
+
+        /**
+          * \brief Calculation of B field from the vector potential A
+          * B = (curl x A) / mu0.
+          *
+          * \param[out] Bfield  vector of current MultiFabs at a given level
+          * \param[in] Afield   vector of magnetic field MultiFabs at a given level
+          * \param[in] edge_lengths length of edges along embedded boundaries
+          * \param[in] lev  level number for the calculation
+          */
+        void ComputeCurlA (
+            ablastr::fields::VectorField& Bfield,
+            ablastr::fields::VectorField const& Afield,
+            std::array< std::unique_ptr<amrex::iMultiFab>,3> const& eb_update_B,
+            int lev );
 
     private:
 
         ElectromagneticSolverAlgo m_fdtd_algo;
         ablastr::utils::enums::GridType m_grid_type;
 
-#ifdef WARPX_DIM_RZ
+#if defined(WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER)
         amrex::Real m_dr, m_rmin;
         int m_nmodes;
         // host-only
@@ -190,6 +208,12 @@ class FiniteDifferenceSolver
         // device copy after init
         amrex::Gpu::DeviceVector<amrex::Real> m_stencil_coefs_r;
         amrex::Gpu::DeviceVector<amrex::Real> m_stencil_coefs_z;
+#elif defined(WARPX_DIM_RSPHERE)
+        amrex::Real m_dr, m_rmin;
+        // host-only
+        amrex::Vector<amrex::Real> m_h_stencil_coefs_r;
+        // device copy after init
+        amrex::Gpu::DeviceVector<amrex::Real> m_stencil_coefs_r;
 #else
         // host-only
         amrex::Vector<amrex::Real> m_h_stencil_coefs_x, m_h_stencil_coefs_y, m_h_stencil_coefs_z;
@@ -203,7 +227,7 @@ class FiniteDifferenceSolver
         // The member functions below contain extended __device__ lambda.
         // In order to compile with nvcc, they need to be public.
 
-#ifdef WARPX_DIM_RZ
+#if defined(WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER)
         template< typename T_Algo >
         void EvolveBCylindrical (
             ablastr::fields::VectorField const& Bfield,
@@ -252,6 +276,71 @@ class FiniteDifferenceSolver
             ablastr::fields::VectorField& Jfield,
             ablastr::fields::VectorField const& Bfield,
             std::array< std::unique_ptr<amrex::iMultiFab>,3> const& eb_update_E,
+            int lev
+        );
+
+        template<typename T_Algo>
+        void ComputeCurlACylindrical (
+            ablastr::fields::VectorField& Bfield,
+            ablastr::fields::VectorField const& Afield,
+            std::array< std::unique_ptr<amrex::iMultiFab>,3> const& eb_update_B,
+            int lev
+        );
+
+#elif defined(WARPX_DIM_RSPHERE)
+        template< typename T_Algo >
+        void EvolveBSpherical (
+            ablastr::fields::VectorField const& Bfield,
+            ablastr::fields::VectorField const& Efield,
+            int lev,
+            amrex::Real dt );
+
+        template< typename T_Algo >
+        void EvolveESpherical (
+            ablastr::fields::VectorField const& Efield,
+            ablastr::fields::VectorField const& Bfield,
+            ablastr::fields::VectorField const& Jfield,
+            amrex::MultiFab const* Ffield,
+            int lev,
+            amrex::Real dt );
+
+        template< typename T_Algo >
+        void EvolveFSpherical (
+            amrex::MultiFab* Ffield,
+            ablastr::fields::VectorField const & Efield,
+            amrex::MultiFab* rhofield,
+            int rhocomp,
+            amrex::Real dt );
+
+        template< typename T_Algo >
+        void ComputeDivESpherical (
+            ablastr::fields::VectorField const & Efield,
+            amrex::MultiFab& divE
+        );
+
+        template<typename T_Algo>
+        void HybridPICSolveESpherical (
+            ablastr::fields::VectorField const& Efield,
+            ablastr::fields::VectorField const& Jfield,
+            ablastr::fields::VectorField const& Jifield,
+            ablastr::fields::VectorField const& Bfield,
+            amrex::MultiFab const& rhofield,
+            amrex::MultiFab const& Pefield,
+            int lev, HybridPICModel const* hybrid_model,
+            bool solve_for_Faraday );
+
+        template<typename T_Algo>
+        void CalculateCurrentAmpereSpherical (
+            ablastr::fields::VectorField& Jfield,
+            ablastr::fields::VectorField const& Bfield,
+            int lev
+        );
+
+        template<typename T_Algo>
+        void ComputeCurlASpherical (
+            ablastr::fields::VectorField& Bfield,
+            ablastr::fields::VectorField const& Afield,
+            std::array< std::unique_ptr<amrex::iMultiFab>,3> const& eb_update_B,
             int lev
         );
 
@@ -356,6 +445,14 @@ class FiniteDifferenceSolver
             ablastr::fields::VectorField& Jfield,
             ablastr::fields::VectorField const& Bfield,
             std::array< std::unique_ptr<amrex::iMultiFab>,3> const& eb_update_E,
+            int lev
+        );
+
+        template<typename T_Algo>
+        void ComputeCurlACartesian (
+            ablastr::fields::VectorField & Bfield,
+            ablastr::fields::VectorField const& Afield,
+            std::array< std::unique_ptr<amrex::iMultiFab>,3> const& eb_update_B,
             int lev
         );
 #endif
