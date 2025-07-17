@@ -31,9 +31,9 @@ import sys
 import numpy
 import post_processing_utils
 import yt
+from scipy.constants import c, m_e
 
-sys.path.insert(1, "../../../../warpx/Regression/Checksum/")
-import checksumAPI
+test_name = os.path.split(os.getcwd())[1]
 
 tolerance = 0.001
 
@@ -42,9 +42,7 @@ ne = ng * 200
 ni = ng * 200
 np = ne + ni
 
-c = 299792458.0
-me = 9.10938356e-31
-mi = me * 5.0
+mi = m_e * 5.0
 
 ## In the first part of the test we verify that the output data is consistent with the exponential
 ## fit.
@@ -62,6 +60,11 @@ prefix = last_fn[:-6]  # i.e., diags/diag1
 # Collect all output files in fn_list (names match pattern prefix + arbitrary number)
 fn_list = glob.glob(prefix + "*[0-9]")
 
+print(last_fn)
+print(last_it)
+print(prefix)
+print(fn_list)
+
 error = 0.0
 nt = 0
 for fn in fn_list:
@@ -72,7 +75,7 @@ for fn in fn_list:
     # get time index j
     j = int(fn[-5:])
     # compute error
-    vxe = numpy.mean(px[0:ne]) / me / c
+    vxe = numpy.mean(px[0:ne]) / m_e / c
     vxi = numpy.mean(px[ne:np]) / mi / c
     vxd = vxe - vxi
     fit = a * math.exp(b * j)
@@ -87,7 +90,7 @@ assert error < tolerance
 
 # The second part of the analysis is not done for the Python test
 # since the particle filter function is not accessible from PICMI yet
-if "Python" in last_fn:
+if "picmi" in test_name:
     exit()
 
 ## In the second part of the test, we verify that the diagnostic particle filter function works as
@@ -113,6 +116,3 @@ random_fraction = 0.77
 post_processing_utils.check_random_filter(
     last_fn, random_filter_fn, random_fraction, dim, species_name
 )
-
-test_name = os.path.split(os.getcwd())[1]
-checksumAPI.evaluate_checksum(test_name, last_fn)

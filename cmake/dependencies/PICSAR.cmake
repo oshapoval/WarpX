@@ -53,19 +53,13 @@ function(find_picsar)
             get_source_version(PXRMP_QED ${WarpX_picsar_src})
         else()
             FetchContent_Declare(fetchedpicsar
-                GIT_REPOSITORY ${WarpX_picsar_repo}
-                GIT_TAG        ${WarpX_picsar_branch}
+                GIT_REPOSITORY  ${WarpX_picsar_repo}
+                GIT_TAG         ${WarpX_picsar_branch}
                 BUILD_IN_SOURCE 0
+                SOURCE_SUBDIR   multi_physics/QED
             )
-            FetchContent_GetProperties(fetchedpicsar)
+            FetchContent_MakeAvailable(fetchedpicsar)
 
-            if(NOT fetchedpicsar_POPULATED)
-                FetchContent_Populate(fetchedpicsar)
-                add_subdirectory(
-                    ${fetchedpicsar_SOURCE_DIR}/multi_physics/QED
-                    ${fetchedpicsar_BINARY_DIR}
-                )
-            endif()
             get_source_version(PXRMP_QED ${fetchedpicsar_SOURCE_DIR})
             if(NOT PXRMP_QED_GIT_VERSION)
                 set(PXRMP_QED_GIT_VERSION "${WarpX_picsar_branch}" CACHE INTERNAL "")
@@ -94,7 +88,7 @@ function(find_picsar)
         #message(STATUS "PICSAR: Using version '${PICSAR_VERSION}'")
     else()
         # not supported by PICSAR (yet)
-        #find_package(PICSAR 23.11 CONFIG REQUIRED QED)
+        #find_package(PICSAR ${picsar_version} CONFIG REQUIRED QED)
         #message(STATUS "PICSAR: Found version '${PICSAR_VERSION}'")
         message(FATAL_ERROR "PICSAR: Cannot be used as externally installed "
             "library yet. "
@@ -115,7 +109,13 @@ if(WarpX_QED)
     set(WarpX_picsar_repo "https://github.com/ECP-WarpX/picsar.git"
         CACHE STRING
         "Repository URI to pull and build PICSAR from if(WarpX_picsar_internal)")
-    set(WarpX_picsar_branch "44a2dfdf0f8cae93f12328664e055703989e7185"
+
+    # Parse PICSAR version and commit information
+    file(READ "${WarpX_SOURCE_DIR}/dependencies.json" dependencies_data)
+    string(JSON picsar_version GET "${dependencies_data}" version_picsar)
+    string(JSON picsar_commit GET "${dependencies_data}" commit_picsar)
+
+    set(WarpX_picsar_branch ${picsar_commit}
         CACHE STRING
         "Repository branch for WarpX_picsar_repo if(WarpX_picsar_internal)")
 

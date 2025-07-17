@@ -101,10 +101,24 @@ namespace
      *            where, r-boundary is along the line z at r=rmin and r=rmax
      *                   z-boundary is along the line r at z=zmin and z=zmax
      *
+     *        For RCYLINDER : WarpX uses R as the one dimension
+     *            theta_component is tangential to the r-boundary
+     *            z component is tangential to the r-boundary
+     *            r component is normal to the r-boundary
+     *            theta_component is not normal to any boundary (only r dimension)
+     *            where, r-boundary is at r=rmin and r=rmax
+     *
+     *        For RSPHERE : WarpX uses R as the one dimension
+     *            theta_component is tangential to the r-boundary
+     *            phi component is tangential to the r-boundary
+     *            r component is normal to the r-boundary
+     *            theta_component is not normal to any boundary (only r dimension)
+     *            phi_component is not normal to any boundary (only r dimension)
+     *            where, r-boundary is at r=rmin and r=rmax
      *
      * \param[in] icomp        component of the Efield being updated
      *                         (0=x, 1=y, 2=z in Cartesian)
-     *                         (0=r, 1=theta, 2=z in RZ)
+     *                         (0=r, 1=theta, 2=z in RZ and RCYLINDER)
      * \param[in] dom_lo       index value of the lower domain boundary (cell-centered)
      * \param[in] dom_hi       index value of the higher domain boundary (cell-centered)
      * \param[in] ijk_vec      indices along the x(i), y(j), z(k) of Efield Array4
@@ -121,7 +135,8 @@ namespace
                                 amrex::Array4<amrex::Real> const& Efield,
                                 const amrex::IntVect& is_nodal,
                                 amrex::GpuArray<FieldBoundaryType, 3> const& fbndry_lo,
-                                amrex::GpuArray<FieldBoundaryType, 3> const& fbndry_hi )
+                                amrex::GpuArray<FieldBoundaryType, 3> const& fbndry_hi,
+                                FieldBoundaryType bc_type)
     {
         // Tangential Efield components in guard cells set equal and opposite to cells
         // in the mirror locations across the PEC boundary, whereas normal E-field
@@ -136,8 +151,8 @@ namespace
             // Loop over sides, iside = 0 (lo), iside = 1 (hi)
             for (int iside = 0; iside < 2; ++iside) {
                 const bool isPECBoundary = ( (iside == 0)
-                    ? fbndry_lo[idim] == FieldBoundaryType::PEC
-                    : fbndry_hi[idim] == FieldBoundaryType::PEC );
+                    ? fbndry_lo[idim] == bc_type
+                    : fbndry_hi[idim] == bc_type );
 #if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
                 // For 2D : for icomp==1, (Ey in XZ, Etheta in RZ),
                 //          icomp=1 is tangential to both x and z boundaries
@@ -168,16 +183,6 @@ namespace
                         GuardCell = true;
                         // tangential components are inverted across PEC boundary
                         if (is_tangent_to_PEC) { sign *= -1._rt; }
-#if (defined WARPX_DIM_RZ)
-                        if (icomp == 0 && idim == 0 && iside == 1) {
-                            // Add radial scale so that drEr/dr = 0.
-                            // This only works for the first guard cell and with
-                            // Er cell centered in r.
-                            const amrex::Real rguard = ijk_vec[idim] + 0.5_rt*(1._rt - is_nodal[idim]);
-                            const amrex::Real rmirror = ijk_mirror[idim] + 0.5_rt*(1._rt - is_nodal[idim]);
-                            sign *= rmirror/rguard;
-                        }
-#endif
                     }
                 } // is PEC boundary
             } // loop over iside
@@ -239,10 +244,24 @@ namespace
      *            where, r-boundary is along the line z at r=rmin and r=rmax
      *                   z-boundary is along the line r at z=zmin and z=zmax
      *
+     *        For RCYLINDER : WarpX uses R as the one dimension
+     *            theta_component is tangential to the r-boundary
+     *            z component is tangential to the r-boundary
+     *            r component is normal to the r-boundary
+     *            theta_component is not normal to any boundary (only r dimension)
+     *            where, r-boundary is at r=rmin and r=rmax
+     *
+     *        For RSPHERE : WarpX uses R as the one dimension
+     *            theta_component is tangential to the r-boundary
+     *            phi component is tangential to the r-boundary
+     *            r component is normal to the r-boundary
+     *            theta_component is not normal to any boundary (only r dimension)
+     *            phi_component is not normal to any boundary (only r dimension)
+     *            where, r-boundary is at r=rmin and r=rmax
      *
      * \param[in] icomp        component of the Bfield being updated
      *                         (0=x, 1=y, 2=z in Cartesian)
-     *                         (0=r, 1=theta, 2=z in RZ)
+     *                         (0=r, 1=theta, 2=z in RZ and RCYLINDER)
      * \param[in] dom_lo       index value of the lower domain boundary (cell-centered)
      * \param[in] dom_hi       index value of the higher domain boundary (cell-centered)
      * \param[in] ijk_vec      indices along the x(i), y(j), z(k) of Efield Array4
@@ -260,7 +279,8 @@ namespace
                            amrex::Array4<amrex::Real> const& Bfield,
                            const amrex::IntVect & is_nodal,
                            amrex::GpuArray<FieldBoundaryType, 3> const& fbndry_lo,
-                           amrex::GpuArray<FieldBoundaryType, 3> const& fbndry_hi )
+                           amrex::GpuArray<FieldBoundaryType, 3> const& fbndry_hi,
+                           FieldBoundaryType bc_type)
     {
         amrex::IntVect ijk_mirror = ijk_vec;
         bool OnPECBoundary = false;
@@ -271,8 +291,8 @@ namespace
             // Loop over sides, iside = 0 (lo), iside = 1 (hi)
             for (int iside = 0; iside < 2; ++iside) {
                 const bool isPECBoundary = ( (iside == 0)
-                    ? fbndry_lo[idim] == FieldBoundaryType::PEC
-                    : fbndry_hi[idim] == FieldBoundaryType::PEC );
+                    ? fbndry_lo[idim] == bc_type
+                    : fbndry_hi[idim] == bc_type );
                 if (isPECBoundary) {
 #if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
                     // For 2D : for icomp==1, (By in XZ, Btheta in RZ),
@@ -306,14 +326,6 @@ namespace
                         GuardCell = true;
                         // Sign of the normal component in guard cell is inverted
                         if (is_normal_to_PEC) { sign *= -1._rt; }
-#if (defined WARPX_DIM_RZ)
-                        if (icomp == 0 && idim == 0 && iside == 1) {
-                            // Add radial scale so that drBr/dr = 0.
-                            const amrex::Real rguard = ijk_vec[idim] + 0.5_rt*(1._rt - is_nodal[idim]);
-                            const amrex::Real rmirror = ijk_mirror[idim] + 0.5_rt*(1._rt - is_nodal[idim]);
-                            sign *= rmirror/rguard;
-                        }
-#endif
                     }
                 } // if PEC Boundary
             } // loop over sides
@@ -348,7 +360,7 @@ namespace
      * \param[in] mirrorfac         mirror cell is given by mirrorfac - ijk_vec
      * \param[in] psign             Whether the field value should be flipped across the boundary
      * \param[in] is_reflective     Whether the given particle boundary is reflecting or field boundary is pec
-     * \param[in] tangent_to_bndy   Whether a given direction is perpendicular to the boundary
+     * \param[in] is_nodal_r        Whether data is nodal along r
      * \param[in] fabbox            multifab box including ghost cells
      */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -357,8 +369,8 @@ namespace
                                 amrex::Array4<amrex::Real> const& field,
                                 amrex::GpuArray<GpuArray<int, 2>, AMREX_SPACEDIM> const& mirrorfac,
                                 amrex::GpuArray<GpuArray<amrex::Real, 2>, AMREX_SPACEDIM> const& psign,
-                                amrex::GpuArray<GpuArray<bool, 2>, AMREX_SPACEDIM> const& is_reflective,
-                                amrex::GpuArray<bool, AMREX_SPACEDIM> const& tangent_to_bndy,
+                                amrex::GpuArray<GpuArray<int, 2>, AMREX_SPACEDIM> const& is_reflective,
+                                [[maybe_unused]]int const is_nodal_r,
                                 amrex::Box const& fabbox)
     {
         // The boundary is handled in 2 steps:
@@ -374,12 +386,25 @@ namespace
                 amrex::IntVect iv_mirror = ijk_vec;
                 iv_mirror[idim] = mirrorfac[idim][iside] - ijk_vec[idim];
 
-                // On the PEC boundary the charge/current density is set to 0
-                if (ijk_vec == iv_mirror) {
-                    field(ijk_vec, n) = 0._rt;
-                // otherwise update the internal cell if the mirror guard cell exists
+                // Update the cell if the mirror guard cell exists
+                if (ijk_vec == iv_mirror && is_reflective[idim][iside] == 1) {
+                    field(ijk_vec,n) = 0._rt;
                 } else if (fabbox.contains(iv_mirror)) {
-                    field(ijk_vec,n) += psign[idim][iside] * field(iv_mirror,n);
+                    // Note that this includes the cells on the boundary for PMC
+                    amrex::Real rscale = 1._rt;
+#if (defined WARPX_DIM_RZ) || (defined WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
+                    if (idim == 0 && iside == 1) {
+                        // Account for different dV at different radii
+                        amrex::Real const rshift = (is_nodal_r ? 0.0_rt : 0.5_rt);
+                        const amrex::Real rvalid = ijk_vec[idim] + rshift;
+                        const amrex::Real rmirror = iv_mirror[idim] + rshift;
+                        rscale = rmirror/rvalid;
+#if defined(WARPX_DIM_RSPHERE)
+                        rscale *= rmirror/rvalid;
+#endif
+                    }
+#endif
+                    field(ijk_vec,n) += rscale * psign[idim][iside] * field(iv_mirror,n);
                 }
             }
         }
@@ -395,11 +420,20 @@ namespace
                 iv_mirror[idim] = mirrorfac[idim][iside] - ijk_vec[idim];
                 if (ijk_vec != iv_mirror && fabbox.contains(iv_mirror))
                 {
-                    if (tangent_to_bndy[idim]) {
-                        field(iv_mirror, n) = -field(ijk_vec, n);
-                    } else {
-                        field(iv_mirror, n) = field(ijk_vec, n);
+                    amrex::Real rscale = 1._rt;
+#if (defined WARPX_DIM_RZ) || (defined WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
+                    if (idim == 0 && iside == 1) {
+                        // Account for different dV at different radii
+                        amrex::Real const rshift = (is_nodal_r ? 0.0_rt : 0.5_rt);
+                        amrex::Real const rvalid = ijk_vec[idim] + rshift;
+                        amrex::Real const rmirror = iv_mirror[idim] + rshift;
+                        rscale = rvalid/rmirror;
+#if defined(WARPX_DIM_RSPHERE)
+                        rscale *= rvalid/rmirror;
+#endif
                     }
+#endif
+                    field(iv_mirror, n) = rscale * psign[idim][iside] * field(ijk_vec, n);
                 }
             }
         }
@@ -457,8 +491,9 @@ namespace
 void
 PEC::ApplyPECtoEfield (
     std::array<amrex::MultiFab*, 3> Efield,
-    const amrex::Vector<FieldBoundaryType>& field_boundary_lo,
-    const amrex::Vector<FieldBoundaryType>& field_boundary_hi,
+    const amrex::Array<FieldBoundaryType,AMREX_SPACEDIM>& field_boundary_lo,
+    const amrex::Array<FieldBoundaryType,AMREX_SPACEDIM>& field_boundary_hi,
+    FieldBoundaryType bc_type,
     const amrex::IntVect& ng_fieldgather, const amrex::Geometry& geom,
     const int lev, PatchType patch_type, const amrex::Vector<amrex::IntVect>& ref_ratios,
     const bool split_pml_field)
@@ -510,42 +545,27 @@ PEC::ApplyPECtoEfield (
         amrex::ParallelFor(
             tex, nComp_x,
             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
-                amrex::ignore_unused(k);
-#endif
-#if (defined WARPX_DIM_1D_Z)
                 amrex::ignore_unused(j,k);
-#endif
                 const amrex::IntVect iv(AMREX_D_DECL(i,j,k));
                 const int icomp = 0;
                 ::SetEfieldOnPEC(icomp, domain_lo, domain_hi, iv, n,
-                                           Ex, Ex_nodal, fbndry_lo, fbndry_hi);
+                                           Ex, Ex_nodal, fbndry_lo, fbndry_hi, bc_type);
             },
             tey, nComp_y,
             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
-                amrex::ignore_unused(k);
-#endif
-#if (defined WARPX_DIM_1D_Z)
                 amrex::ignore_unused(j,k);
-#endif
                 const amrex::IntVect iv(AMREX_D_DECL(i,j,k));
                 const int icomp = 1;
                 ::SetEfieldOnPEC(icomp, domain_lo, domain_hi, iv, n,
-                                           Ey, Ey_nodal, fbndry_lo, fbndry_hi);
+                                           Ey, Ey_nodal, fbndry_lo, fbndry_hi, bc_type);
             },
             tez, nComp_z,
             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
-                amrex::ignore_unused(k);
-#endif
-#if (defined WARPX_DIM_1D_Z)
                 amrex::ignore_unused(j,k);
-#endif
                 const amrex::IntVect iv(AMREX_D_DECL(i,j,k));
                 const int icomp = 2;
                 ::SetEfieldOnPEC(icomp, domain_lo, domain_hi, iv, n,
-                                           Ez, Ez_nodal, fbndry_lo, fbndry_hi);
+                                           Ez, Ez_nodal, fbndry_lo, fbndry_hi, bc_type);
             }
         );
     }
@@ -555,10 +575,12 @@ PEC::ApplyPECtoEfield (
 void
 PEC::ApplyPECtoBfield (
     std::array<amrex::MultiFab*, 3> Bfield,
-    const amrex::Vector<FieldBoundaryType>& field_boundary_lo,
-    const amrex::Vector<FieldBoundaryType>& field_boundary_hi,
+    const amrex::Array<FieldBoundaryType,AMREX_SPACEDIM>& field_boundary_lo,
+    const amrex::Array<FieldBoundaryType,AMREX_SPACEDIM>& field_boundary_hi,
+    FieldBoundaryType bc_type,
     const amrex::IntVect& ng_fieldgather, const amrex::Geometry& geom,
-    const int lev, PatchType patch_type, const amrex::Vector<amrex::IntVect>& ref_ratios)
+    const int lev, PatchType patch_type, const amrex::Vector<amrex::IntVect>& ref_ratios,
+    const bool split_pml_field)
 {
     amrex::Box domain_box = geom.Domain();
     if (patch_type == PatchType::coarse && (lev > 0)) {
@@ -594,50 +616,38 @@ PEC::ApplyPECtoBfield (
         // gather fields from in the guard-cell region are included.
         // Note that for simulations without particles or laser, ng_field_gather is 0
         // and the guard-cell values of the B-field multifab will not be modified.
-        amrex::Box const& tbx = mfi.tilebox(Bfield[0]->ixType().toIntVect(), ng_fieldgather);
-        amrex::Box const& tby = mfi.tilebox(Bfield[1]->ixType().toIntVect(), ng_fieldgather);
-        amrex::Box const& tbz = mfi.tilebox(Bfield[2]->ixType().toIntVect(), ng_fieldgather);
+        amrex::Box const& tbx = (split_pml_field) ? mfi.tilebox(Bfield[0]->ixType().toIntVect())
+                                                  : mfi.tilebox(Bfield[0]->ixType().toIntVect(), ng_fieldgather);
+        amrex::Box const& tby = (split_pml_field) ? mfi.tilebox(Bfield[1]->ixType().toIntVect())
+                                                  : mfi.tilebox(Bfield[1]->ixType().toIntVect(), ng_fieldgather);
+        amrex::Box const& tbz = (split_pml_field) ? mfi.tilebox(Bfield[2]->ixType().toIntVect())
+                                                  : mfi.tilebox(Bfield[2]->ixType().toIntVect(), ng_fieldgather);
 
         // loop over cells and update fields
         amrex::ParallelFor(
             tbx, nComp_x,
             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
-                amrex::ignore_unused(k);
-#endif
-#if (defined WARPX_DIM_1D_Z)
                 amrex::ignore_unused(j,k);
-#endif
                 const amrex::IntVect iv(AMREX_D_DECL(i,j,k));
                 const int icomp = 0;
                 ::SetBfieldOnPEC(icomp, domain_lo, domain_hi, iv, n,
-                                     Bx, Bx_nodal, fbndry_lo, fbndry_hi);
+                                     Bx, Bx_nodal, fbndry_lo, fbndry_hi, bc_type);
             },
             tby, nComp_y,
             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
-                amrex::ignore_unused(k);
-#endif
-#if (defined WARPX_DIM_1D_Z)
                 amrex::ignore_unused(j,k);
-#endif
                 const amrex::IntVect iv(AMREX_D_DECL(i,j,k));
                 const int icomp = 1;
                 ::SetBfieldOnPEC(icomp, domain_lo, domain_hi, iv, n,
-                                     By, By_nodal, fbndry_lo, fbndry_hi);
+                                     By, By_nodal, fbndry_lo, fbndry_hi, bc_type);
             },
             tbz, nComp_z,
             [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
-                amrex::ignore_unused(k);
-#endif
-#if (defined WARPX_DIM_1D_Z)
                 amrex::ignore_unused(j,k);
-#endif
                 const amrex::IntVect iv(AMREX_D_DECL(i,j,k));
                 const int icomp = 2;
                 ::SetBfieldOnPEC(icomp, domain_lo, domain_hi, iv, n,
-                                     Bz, Bz_nodal, fbndry_lo, fbndry_hi);
+                                     Bz, Bz_nodal, fbndry_lo, fbndry_hi, bc_type);
             }
         );
     }
@@ -657,10 +667,10 @@ PEC::ApplyPECtoBfield (
 void
 PEC::ApplyReflectiveBoundarytoRhofield (
     amrex::MultiFab* rho,
-    const amrex::Vector<FieldBoundaryType>& field_boundary_lo,
-    const amrex::Vector<FieldBoundaryType>& field_boundary_hi,
-    const amrex::Vector<ParticleBoundaryType>& particle_boundary_lo,
-    const amrex::Vector<ParticleBoundaryType>& particle_boundary_hi,
+    const amrex::Array<FieldBoundaryType,AMREX_SPACEDIM>& field_boundary_lo,
+    const amrex::Array<FieldBoundaryType,AMREX_SPACEDIM>& field_boundary_hi,
+    const amrex::Array<ParticleBoundaryType,AMREX_SPACEDIM>& particle_boundary_lo,
+    const amrex::Array<ParticleBoundaryType,AMREX_SPACEDIM>& particle_boundary_hi,
     const amrex::Geometry& geom,
     const int lev, PatchType patch_type, const amrex::Vector<amrex::IntVect>& ref_ratios)
 {
@@ -680,29 +690,28 @@ PEC::ApplyReflectiveBoundarytoRhofield (
     // cells for boundaries that are NOT PEC
     amrex::Box grown_domain_box = domain_box;
 
-    amrex::GpuArray<GpuArray<bool,2>, AMREX_SPACEDIM> is_reflective;
-    amrex::GpuArray<bool, AMREX_SPACEDIM> is_tangent_to_bndy;
+    amrex::GpuArray<GpuArray<int,2>, AMREX_SPACEDIM> is_reflective;
     amrex::GpuArray<GpuArray<amrex::Real,2>, AMREX_SPACEDIM> psign;
     amrex::GpuArray<GpuArray<int,2>, AMREX_SPACEDIM> mirrorfac;
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
         is_reflective[idim][0] = ( particle_boundary_lo[idim] == ParticleBoundaryType::Reflecting)
                               || ( particle_boundary_lo[idim] == ParticleBoundaryType::Thermal)
                               || ( field_boundary_lo[idim] == FieldBoundaryType::PEC);
+        if (field_boundary_lo[idim] == FieldBoundaryType::PMC) { is_reflective[idim][0] = 2; }
         is_reflective[idim][1] = ( particle_boundary_hi[idim] == ParticleBoundaryType::Reflecting)
                               || ( particle_boundary_hi[idim] == ParticleBoundaryType::Thermal)
                               || ( field_boundary_hi[idim] == FieldBoundaryType::PEC);
+        if (field_boundary_hi[idim] == FieldBoundaryType::PMC) { is_reflective[idim][1] = 2; }
         if (!is_reflective[idim][0]) { grown_domain_box.growLo(idim, ng_fieldgather[idim]); }
         if (!is_reflective[idim][1]) { grown_domain_box.growHi(idim, ng_fieldgather[idim]); }
 
-        // rho values inside guard cells are updated the same as tangential
-        // components of the current density
-        is_tangent_to_bndy[idim] = true;
-
         psign[idim][0] = ((particle_boundary_lo[idim] == ParticleBoundaryType::Reflecting)
-                        ||(particle_boundary_lo[idim] == ParticleBoundaryType::Thermal))
+                        ||(particle_boundary_lo[idim] == ParticleBoundaryType::Thermal)
+                        ||(field_boundary_lo[idim] == FieldBoundaryType::PMC))
                          ? 1._rt : -1._rt;
         psign[idim][1] = ((particle_boundary_hi[idim] == ParticleBoundaryType::Reflecting)
-                        ||(particle_boundary_hi[idim] == ParticleBoundaryType::Thermal))
+                        ||(particle_boundary_hi[idim] == ParticleBoundaryType::Thermal)
+                        ||(field_boundary_hi[idim] == FieldBoundaryType::PMC))
                          ? 1._rt : -1._rt;
         mirrorfac[idim][0] = 2*domain_lo[idim] - (1 - rho_nodal[idim]);
         mirrorfac[idim][1] = 2*domain_hi[idim] + (1 - rho_nodal[idim]);
@@ -727,17 +736,13 @@ PEC::ApplyReflectiveBoundarytoRhofield (
         // Loop over valid cells (i.e. cells inside the domain)
         amrex::ParallelFor(mfi.validbox(), nComp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
-            amrex::ignore_unused(k);
-#elif (defined WARPX_DIM_1D_Z)
             amrex::ignore_unused(j,k);
-#endif
             // Store the array index
             const amrex::IntVect iv(AMREX_D_DECL(i,j,k));
 
             ::SetRhoOrJfieldFromPEC(
                 n, iv, rho_array, mirrorfac, psign, is_reflective,
-                is_tangent_to_bndy, fabbox
+                rho_nodal[0], fabbox
             );
         });
     }
@@ -747,10 +752,10 @@ PEC::ApplyReflectiveBoundarytoRhofield (
 void
 PEC::ApplyReflectiveBoundarytoJfield(
     amrex::MultiFab* Jx, amrex::MultiFab* Jy, amrex::MultiFab* Jz,
-    const amrex::Vector<FieldBoundaryType>& field_boundary_lo,
-    const amrex::Vector<FieldBoundaryType>& field_boundary_hi,
-    const amrex::Vector<ParticleBoundaryType>& particle_boundary_lo,
-    const amrex::Vector<ParticleBoundaryType>& particle_boundary_hi,
+    const amrex::Array<FieldBoundaryType,AMREX_SPACEDIM>& field_boundary_lo,
+    const amrex::Array<FieldBoundaryType,AMREX_SPACEDIM>& field_boundary_hi,
+    const amrex::Array<ParticleBoundaryType,AMREX_SPACEDIM>& particle_boundary_lo,
+    const amrex::Array<ParticleBoundaryType,AMREX_SPACEDIM>& particle_boundary_hi,
     const amrex::Geometry& geom,
     const int lev, PatchType patch_type, const amrex::Vector<amrex::IntVect>& ref_ratios)
 {
@@ -780,17 +785,21 @@ PEC::ApplyReflectiveBoundarytoJfield(
     // directions of the current density multifab
     const amrex::IntVect ng_fieldgather = Jx->nGrowVect();
 
-    amrex::GpuArray<GpuArray<bool, 2>, AMREX_SPACEDIM> is_reflective;
-    amrex::GpuArray<GpuArray<bool, AMREX_SPACEDIM>, 3> is_tangent_to_bndy;
+    amrex::GpuArray<GpuArray<int, 2>, AMREX_SPACEDIM> is_reflective;
+    bool is_tangent_to_bndy;
     amrex::GpuArray<GpuArray<GpuArray<amrex::Real, 2>, AMREX_SPACEDIM>, 3> psign;
     amrex::GpuArray<GpuArray<GpuArray<int, 2>, AMREX_SPACEDIM>, 3> mirrorfac;
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
         is_reflective[idim][0] = ( particle_boundary_lo[idim] == ParticleBoundaryType::Reflecting)
                               || ( particle_boundary_lo[idim] == ParticleBoundaryType::Thermal)
-                              || ( field_boundary_lo[idim] == FieldBoundaryType::PEC);
+                              || ( field_boundary_lo[idim] == FieldBoundaryType::PEC)
+                              || ( field_boundary_lo[idim] == FieldBoundaryType::PMC);
+        if (field_boundary_lo[idim] == FieldBoundaryType::PMC) { is_reflective[idim][0] = 2; }
         is_reflective[idim][1] = ( particle_boundary_hi[idim] == ParticleBoundaryType::Reflecting)
                               || ( particle_boundary_hi[idim] == ParticleBoundaryType::Thermal)
-                              || ( field_boundary_hi[idim] == FieldBoundaryType::PEC);
+                              || ( field_boundary_hi[idim] == FieldBoundaryType::PEC)
+                              || ( field_boundary_hi[idim] == FieldBoundaryType::PMC);
+        if (field_boundary_hi[idim] == FieldBoundaryType::PMC) { is_reflective[idim][1] = 2; }
         if (!is_reflective[idim][0]) { grown_domain_box.growLo(idim, ng_fieldgather[idim]); }
         if (!is_reflective[idim][1]) { grown_domain_box.growHi(idim, ng_fieldgather[idim]); }
 
@@ -800,30 +809,34 @@ PEC::ApplyReflectiveBoundarytoJfield(
 #if (defined WARPX_DIM_1D_Z)
             // For 1D : icomp=0 and icomp=1 (Ex and Ey are tangential to the z boundary)
             //          The logic below ensures that the flags are set right for 1D
-            is_tangent_to_bndy[icomp][idim] = (icomp != (idim+2));
+            is_tangent_to_bndy = (icomp != (idim+2));
 #elif (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
             // For 2D : for icomp==1, (Ey in XZ, Etheta in RZ),
             //          icomp=1 is tangential to both x and z boundaries
             //          The logic below ensures that the flags are set right for 2D
-            is_tangent_to_bndy[icomp][idim] = (icomp != AMREX_SPACEDIM*idim);
+            is_tangent_to_bndy = (icomp != AMREX_SPACEDIM*idim);
 #else
-            is_tangent_to_bndy[icomp][idim] = (icomp != idim);
+            is_tangent_to_bndy = (icomp != idim);
 #endif
 
-            if (is_tangent_to_bndy[icomp][idim]){
+            if (is_tangent_to_bndy){
                 psign[icomp][idim][0] = ( (particle_boundary_lo[idim] == ParticleBoundaryType::Reflecting)
-                                        ||(particle_boundary_lo[idim] == ParticleBoundaryType::Thermal))
+                                        ||(particle_boundary_lo[idim] == ParticleBoundaryType::Thermal)
+                                        ||(field_boundary_lo[idim] == FieldBoundaryType::PMC))
                                         ? 1._rt : -1._rt;
                 psign[icomp][idim][1] = ( (particle_boundary_hi[idim] == ParticleBoundaryType::Reflecting)
-                                        ||(particle_boundary_hi[idim] == ParticleBoundaryType::Thermal))
+                                        ||(particle_boundary_hi[idim] == ParticleBoundaryType::Thermal)
+                                        ||(field_boundary_hi[idim] == FieldBoundaryType::PMC))
                                         ? 1._rt : -1._rt;
             }
             else {
                 psign[icomp][idim][0] = ( (particle_boundary_lo[idim] == ParticleBoundaryType::Reflecting)
-                                        ||(particle_boundary_lo[idim] == ParticleBoundaryType::Thermal))
+                                        ||(particle_boundary_lo[idim] == ParticleBoundaryType::Thermal)
+                                        ||(field_boundary_lo[idim] == FieldBoundaryType::PMC))
                                         ? -1._rt : 1._rt;
                 psign[icomp][idim][1] = ( (particle_boundary_hi[idim] == ParticleBoundaryType::Reflecting)
-                                        ||(particle_boundary_hi[idim] == ParticleBoundaryType::Thermal))
+                                        ||(particle_boundary_hi[idim] == ParticleBoundaryType::Thermal)
+                                        ||(field_boundary_hi[idim] == FieldBoundaryType::PMC))
                                         ? -1._rt : 1._rt;
             }
         }
@@ -859,17 +872,13 @@ PEC::ApplyReflectiveBoundarytoJfield(
         // Loop over valid cells (i.e. cells inside the domain)
         amrex::ParallelFor(mfi.validbox(), Jx->nComp(),
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
-            amrex::ignore_unused(k);
-#elif (defined WARPX_DIM_1D_Z)
             amrex::ignore_unused(j,k);
-#endif
             // Store the array index
             const amrex::IntVect iv(AMREX_D_DECL(i,j,k));
 
             ::SetRhoOrJfieldFromPEC(
                 n, iv, Jx_array, mirrorfac[0], psign[0], is_reflective,
-                is_tangent_to_bndy[0], fabbox
+                Jx_nodal[0], fabbox
             );
         });
     }
@@ -894,17 +903,13 @@ PEC::ApplyReflectiveBoundarytoJfield(
         // Loop over valid cells (i.e. cells inside the domain)
         amrex::ParallelFor(mfi.validbox(), Jy->nComp(),
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
-            amrex::ignore_unused(k);
-#elif (defined WARPX_DIM_1D_Z)
             amrex::ignore_unused(j,k);
-#endif
             // Store the array index
             const amrex::IntVect iv(AMREX_D_DECL(i,j,k));
 
             ::SetRhoOrJfieldFromPEC(
                 n, iv, Jy_array, mirrorfac[1], psign[1], is_reflective,
-                is_tangent_to_bndy[1], fabbox
+                Jy_nodal[0], fabbox
             );
         });
     }
@@ -929,17 +934,13 @@ PEC::ApplyReflectiveBoundarytoJfield(
         // Loop over valid cells (i.e. cells inside the domain)
         amrex::ParallelFor(mfi.validbox(), Jz->nComp(),
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
-            amrex::ignore_unused(k);
-#elif (defined WARPX_DIM_1D_Z)
             amrex::ignore_unused(j,k);
-#endif
             // Store the array index
             const amrex::IntVect iv(AMREX_D_DECL(i,j,k));
 
             ::SetRhoOrJfieldFromPEC(
                 n, iv, Jz_array, mirrorfac[2], psign[2], is_reflective,
-                is_tangent_to_bndy[2], fabbox
+                Jz_nodal[0], fabbox
             );
         });
     }
@@ -948,8 +949,8 @@ PEC::ApplyReflectiveBoundarytoJfield(
 void
 PEC::ApplyPECtoElectronPressure (
     amrex::MultiFab* Pefield,
-    const amrex::Vector<FieldBoundaryType>& field_boundary_lo,
-    const amrex::Vector<FieldBoundaryType>& field_boundary_hi,
+    const amrex::Array<FieldBoundaryType,AMREX_SPACEDIM>& field_boundary_lo,
+    const amrex::Array<FieldBoundaryType,AMREX_SPACEDIM>& field_boundary_hi,
     const amrex::Geometry& geom,
     const int lev, PatchType patch_type, const amrex::Vector<amrex::IntVect>& ref_ratios)
 {
@@ -1000,11 +1001,7 @@ PEC::ApplyPECtoElectronPressure (
         // Loop over valid cells (i.e. cells inside the domain)
         amrex::ParallelFor(mfi.validbox(), nComp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
-#if (defined WARPX_DIM_XZ) || (defined WARPX_DIM_RZ)
-            amrex::ignore_unused(k);
-#elif (defined WARPX_DIM_1D_Z)
             amrex::ignore_unused(j,k);
-#endif
             // Store the array index
             const amrex::IntVect iv(AMREX_D_DECL(i,j,k));
 

@@ -21,12 +21,14 @@ public:
     /**
      * \brief Apply either the PEC or insulator boundary condition on the boundary and in the
      *        guard cells.
-     *        In the PEC, the nodal fields (in a Yee mesh) as made even relative to the boundary,
+     *        In the PEC, the nodal fields (in a Yee mesh) are made even relative to the boundary,
      *        the non-nodal fields are made odd.
      *        In the insulator, the tangential fields are set to the value if specified, otherwise unchanged,
      *        and the normal fields extrapolated from the valid cells.
      *
      * \param[in,out] Efield
+     * \param[in]     field_boundary_lo   lower field boundary conditions
+     * \param[in]     field_boundary_hi   upper field boundary conditions
      * \param[in]     ng_fieldgather      number of guard cells used by field gather
      * \param[in]     geom                geometry object of level "lev"
      * \param[in]     lev                 level of the Multifab
@@ -37,8 +39,8 @@ public:
      *                                    split pml field
      */
     void ApplyPEC_InsulatortoEfield (std::array<amrex::MultiFab*, 3> Efield,
-                                     amrex::Vector<FieldBoundaryType> const & field_boundary_lo,
-                                     amrex::Vector<FieldBoundaryType> const & field_boundary_hi,
+                                     amrex::Array<FieldBoundaryType,AMREX_SPACEDIM> const & field_boundary_lo,
+                                     amrex::Array<FieldBoundaryType,AMREX_SPACEDIM> const & field_boundary_hi,
                                      amrex::IntVect const & ng_fieldgather, amrex::Geometry const & geom,
                                      int lev, PatchType patch_type, amrex::Vector<amrex::IntVect> const & ref_ratios,
                                      amrex::Real time,
@@ -46,12 +48,14 @@ public:
     /**
      * \brief Apply either the PEC or insulator boundary condition on the boundary and in the
      *        guard cells.
-     *        In the PEC, the nodal fields (in a Yee mesh) as made even relative to the boundary,
+     *        In the PEC, the nodal fields (in a Yee mesh) are made even relative to the boundary,
      *        the non-nodal fields are made odd.
      *        In the insulator, the tangential fields are set to the value if specified, otherwise unchanged,
      *        and the normal fields extrapolated from the valid cells.
      *
      * \param[in,out] Bfield
+     * \param[in]     field_boundary_lo   lower field boundary conditions
+     * \param[in]     field_boundary_hi   upper field boundary conditions
      * \param[in]     ng_fieldgather      number of guard cells used by field gather
      * \param[in]     geom                geometry object of level "lev"
      * \param[in]     lev                 level of the Multifab
@@ -60,8 +64,8 @@ public:
      * \param[in]     time                current time of the simulation
      */
     void ApplyPEC_InsulatortoBfield (std::array<amrex::MultiFab*, 3> Bfield,
-                                     amrex::Vector<FieldBoundaryType> const & field_boundary_lo,
-                                     amrex::Vector<FieldBoundaryType> const & field_boundary_hi,
+                                     amrex::Array<FieldBoundaryType,AMREX_SPACEDIM> const & field_boundary_lo,
+                                     amrex::Array<FieldBoundaryType,AMREX_SPACEDIM> const & field_boundary_hi,
                                      amrex::IntVect const & ng_fieldgather, amrex::Geometry const & geom,
                                      int lev, PatchType patch_type, amrex::Vector<amrex::IntVect> const & ref_ratios,
                                      amrex::Real time);
@@ -70,6 +74,8 @@ public:
      * \brief The work routine applying the boundary condition
      *
      * \param[in,out] field
+     * \param[in]     field_boundary_lo   lower field boundary conditions
+     * \param[in]     field_boundary_hi   upper field boundary conditions
      * \param[in]     ng_fieldgather      number of guard cells used by field gather
      * \param[in]     geom                geometry object of level "lev"
      * \param[in]     lev                 level of the Multifab
@@ -100,26 +106,29 @@ public:
      */
     void
     ApplyPEC_InsulatortoField (std::array<amrex::MultiFab*, 3> field,
-                               amrex::Vector<FieldBoundaryType> const & field_boundary_lo,
-                               amrex::Vector<FieldBoundaryType> const & field_boundary_hi,
+                               amrex::Array<FieldBoundaryType,AMREX_SPACEDIM> const & field_boundary_lo,
+                               amrex::Array<FieldBoundaryType,AMREX_SPACEDIM> const & field_boundary_hi,
                                amrex::IntVect const & ng_fieldgather, amrex::Geometry const & geom,
                                int lev, PatchType patch_type, amrex::Vector<amrex::IntVect> const & ref_ratios,
                                amrex::Real time,
                                bool split_pml_field,
-                               bool E_like,
-#if (AMREX_SPACEDIM > 1)
-                               bool set_F_x_lo, bool set_F_x_hi,
+                               bool E_like
+#ifndef WARPX_DIM_1D_Z
+                               , bool set_F_x_lo, bool set_F_x_hi,
                                std::unique_ptr<amrex::Parser> const & a_Fy_x_lo, std::unique_ptr<amrex::Parser> const & a_Fz_x_lo,
-                               std::unique_ptr<amrex::Parser> const & a_Fy_x_hi, std::unique_ptr<amrex::Parser> const & a_Fz_x_hi,
+                               std::unique_ptr<amrex::Parser> const & a_Fy_x_hi, std::unique_ptr<amrex::Parser> const & a_Fz_x_hi
 #endif
 #if defined(WARPX_DIM_3D)
-                               bool set_F_y_lo, bool set_F_y_hi,
+                               , bool set_F_y_lo, bool set_F_y_hi,
                                std::unique_ptr<amrex::Parser> const & a_Fx_y_lo, std::unique_ptr<amrex::Parser> const & a_Fz_y_lo,
-                               std::unique_ptr<amrex::Parser> const & a_Fx_y_hi, std::unique_ptr<amrex::Parser> const & a_Fz_y_hi,
+                               std::unique_ptr<amrex::Parser> const & a_Fx_y_hi, std::unique_ptr<amrex::Parser> const & a_Fz_y_hi
 #endif
-                               bool set_F_z_lo, bool set_F_z_hi,
+#if defined(WARPX_ZINDEX)
+                               , bool set_F_z_lo, bool set_F_z_hi,
                                std::unique_ptr<amrex::Parser> const & a_Fx_z_lo, std::unique_ptr<amrex::Parser> const & a_Fy_z_lo,
-                               std::unique_ptr<amrex::Parser> const & a_Fx_z_hi, std::unique_ptr<amrex::Parser> const & a_Fy_z_hi);
+                               std::unique_ptr<amrex::Parser> const & a_Fx_z_hi, std::unique_ptr<amrex::Parser> const & a_Fy_z_hi
+#endif
+                               );
 
 private:
 
@@ -140,7 +149,7 @@ private:
     std::vector<std::unique_ptr<amrex::Parser>> m_insulator_area_lo;
     std::vector<std::unique_ptr<amrex::Parser>> m_insulator_area_hi;
 
-#if (AMREX_SPACEDIM > 1)
+#ifndef WARPX_DIM_1D_Z
     bool m_set_B_x_lo = false, m_set_B_x_hi = false;
     std::unique_ptr<amrex::Parser> m_By_x_lo, m_Bz_x_lo;
     std::unique_ptr<amrex::Parser> m_By_x_hi, m_Bz_x_hi;
@@ -155,7 +164,7 @@ private:
     std::unique_ptr<amrex::Parser> m_Bx_z_hi, m_By_z_hi;
 
 
-#if (AMREX_SPACEDIM > 1)
+#ifndef WARPX_DIM_1D_Z
     bool m_set_E_x_lo = false, m_set_E_x_hi = false;
     std::unique_ptr<amrex::Parser> m_Ey_x_lo, m_Ez_x_lo;
     std::unique_ptr<amrex::Parser> m_Ey_x_hi, m_Ez_x_hi;

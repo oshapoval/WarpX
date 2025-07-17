@@ -45,7 +45,7 @@
  */
 template <int N, typename DstPC, typename DstTile, typename FAB, typename Index,
           typename CreateFunc1, typename CreateFunc2, typename TransFunc,
-          amrex::EnableIf_t<std::is_integral<Index>::value, int> foo = 0>
+          amrex::EnableIf_t<std::is_integral_v<Index>, int> foo = 0>
 Index filterCreateTransformFromFAB (DstPC& pc1, DstPC& pc2,
                                     DstTile& dst1, DstTile& dst2, const amrex::Box box,
                                     const FAB *src_FAB, const Index* mask,
@@ -63,6 +63,9 @@ Index filterCreateTransformFromFAB (DstPC& pc1, DstPC& pc2,
 #if defined(WARPX_DIM_1D_Z)
     const Real zlo_global = geom_lev_zero.ProbLo(0);
     const Real dz         = geom_lev_zero.CellSize(0);
+#elif defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
+    const Real xlo_global = geom_lev_zero.ProbLo(0);
+    const Real dx         = geom_lev_zero.CellSize(0);
 #elif defined(WARPX_DIM_XZ) || defined(WARPX_DIM_RZ)
     const Real xlo_global = geom_lev_zero.ProbLo(0);
     const Real dx         = geom_lev_zero.CellSize(0);
@@ -113,6 +116,10 @@ Index filterCreateTransformFromFAB (DstPC& pc1, DstPC& pc2,
             Real const x = 0.0;
             Real const y = 0.0;
             Real const z = zlo_global + j*dz;
+#elif defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
+            Real const x = xlo_global + j*dx;
+            Real const y = 0.0;
+            Real const z = 0.0;
 #elif defined(WARPX_DIM_XZ) || defined(WARPX_DIM_RZ)
             Real const x = xlo_global + j*dx;
             Real const y = 0.0;
@@ -136,7 +143,7 @@ Index filterCreateTransformFromFAB (DstPC& pc1, DstPC& pc2,
     ParticleCreation::DefaultInitializeRuntimeAttributes(dst1,
                                        0, 0,
                                        pc1.getUserRealAttribs(), pc1.getUserIntAttribs(),
-                                       pc1.getParticleComps(), pc1.getParticleiComps(),
+                                       pc1.GetRealSoANames(), pc1.GetIntSoANames(),
                                        pc1.getUserRealAttribParser(),
                                        pc1.getUserIntAttribParser(),
 #ifdef WARPX_QED
@@ -150,7 +157,7 @@ Index filterCreateTransformFromFAB (DstPC& pc1, DstPC& pc2,
     ParticleCreation::DefaultInitializeRuntimeAttributes(dst2,
                                        0, 0,
                                        pc2.getUserRealAttribs(), pc2.getUserIntAttribs(),
-                                       pc2.getParticleComps(), pc2.getParticleiComps(),
+                                       pc2.GetRealSoANames(), pc2.GetIntSoANames(),
                                        pc2.getUserRealAttribParser(),
                                        pc2.getUserIntAttribParser(),
 #ifdef WARPX_QED

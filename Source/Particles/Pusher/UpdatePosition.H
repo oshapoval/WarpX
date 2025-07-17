@@ -22,7 +22,9 @@
  *    x^{n+1} - x^{n} = dt*u^{n+1/2}/gamma^{n+1/2}
  */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void UpdatePosition(amrex::ParticleReal& x, amrex::ParticleReal& y, amrex::ParticleReal& z,
+void UpdatePosition([[maybe_unused]] amrex::ParticleReal& x,
+                    [[maybe_unused]] amrex::ParticleReal& y,
+                    [[maybe_unused]] amrex::ParticleReal& z,
                     const amrex::ParticleReal ux, const amrex::ParticleReal uy, const amrex::ParticleReal uz,
                     const amrex::Real dt )
 {
@@ -33,17 +35,16 @@ void UpdatePosition(amrex::ParticleReal& x, amrex::ParticleReal& y, amrex::Parti
     // Compute inverse Lorentz factor
     const amrex::ParticleReal inv_gamma = 1._prt/std::sqrt(1._prt + (ux*ux + uy*uy + uz*uz)*inv_c2);
     // Update positions over one time step
-#if (AMREX_SPACEDIM >= 2)
+#if !defined(WARPX_DIM_1D_Z)
     x += ux * inv_gamma * dt;
-#else
-    amrex::ignore_unused(x);
 #endif
-#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_RZ) // RZ pushes particles in 3D
+#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
+    // Radial pushes particles in 3D
     y += uy * inv_gamma * dt;
-#else
-    amrex::ignore_unused(y);
 #endif
+#if !defined(WARPX_DIM_RCYLINDER)
     z += uz * inv_gamma * dt;
+#endif
 }
 
 /** \brief Push the particle's positions over one timestep,
@@ -53,10 +54,12 @@ void UpdatePosition(amrex::ParticleReal& x, amrex::ParticleReal& y, amrex::Parti
  *    See Eqs. 15 and 17 in Chen, JCP 407 (2020) 109228.
  */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void UpdatePositionImplicit(amrex::ParticleReal& x, amrex::ParticleReal& y, amrex::ParticleReal& z,
-                            const amrex::ParticleReal ux_n, const amrex::ParticleReal uy_n, const amrex::ParticleReal uz_n,
-                            const amrex::ParticleReal ux, const amrex::ParticleReal uy, const amrex::ParticleReal uz,
-                            const amrex::Real dt )
+void UpdatePositionImplicit ([[maybe_unused]] amrex::ParticleReal& x,
+                             [[maybe_unused]] amrex::ParticleReal& y,
+                             [[maybe_unused]] amrex::ParticleReal& z,
+                             const amrex::ParticleReal ux_n, const amrex::ParticleReal uy_n, const amrex::ParticleReal uz_n,
+                             const amrex::ParticleReal ux, const amrex::ParticleReal uy, const amrex::ParticleReal uz,
+                             const amrex::Real dt )
 {
     using namespace amrex::literals;
 
@@ -72,17 +75,16 @@ void UpdatePositionImplicit(amrex::ParticleReal& x, amrex::ParticleReal& y, amre
     const amrex::ParticleReal inv_gamma = 2.0_prt/(gamma_n + gamma_np1);
 
     // Update positions over one time step
-#if (AMREX_SPACEDIM >= 2)
+#if !defined(WARPX_DIM_1D_Z)
     x += ux * inv_gamma * dt;
-#else
-    amrex::ignore_unused(x);
 #endif
-#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_RZ) // RZ pushes particles in 3D
+#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
+    // Radial pushes particles in 3D
     y += uy * inv_gamma * dt;
-#else
-    amrex::ignore_unused(y);
 #endif
+#if !defined(WARPX_DIM_RCYLINDER)
     z += uz * inv_gamma * dt;
+#endif
 }
 
 /** \brief Check particle position for convergence. This is used by the theta-implicit
@@ -90,38 +92,43 @@ void UpdatePositionImplicit(amrex::ParticleReal& x, amrex::ParticleReal& y, amre
  *    of the particles for given electric and magnetic fields on the grid.
  */
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void PositionNorm( amrex::ParticleReal dxp, amrex::ParticleReal dyp, amrex::ParticleReal dzp,
-                   amrex::ParticleReal& dxp_save, amrex::ParticleReal& dyp_save, amrex::ParticleReal& dzp_save,
-                   amrex::ParticleReal idxg2, amrex::ParticleReal idyg2, amrex::ParticleReal idzg2,
+void PositionNorm ([[maybe_unused]] amrex::ParticleReal dxp,
+                   [[maybe_unused]] amrex::ParticleReal dyp,
+                   [[maybe_unused]] amrex::ParticleReal dzp,
+                   [[maybe_unused]] amrex::ParticleReal& dxp_save,
+                   [[maybe_unused]] amrex::ParticleReal& dyp_save,
+                   [[maybe_unused]] amrex::ParticleReal& dzp_save,
+                   [[maybe_unused]] amrex::ParticleReal idxg2,
+                   [[maybe_unused]] amrex::ParticleReal idyg2,
+                   [[maybe_unused]] amrex::ParticleReal idzg2,
                    amrex::ParticleReal& step_norm, const int iter )
 {
     using namespace amrex::literals;
 
-#if defined(WARPX_DIM_1D_Z)
-    amrex::ignore_unused(dxp, dxp_save, idxg2);
-#endif
-#if !defined(WARPX_DIM_3D)
-    amrex::ignore_unused(dyp, dyp_save, idyg2);
-#endif
-
     if (iter==0) { step_norm = 1.0_prt; }
     else {
+#if !defined(WARPX_DIM_RCYLINDER)
         step_norm = (dzp - dzp_save)*(dzp - dzp_save)*idzg2;
+#else
+        step_norm = 0._prt;
+#endif
 #if !defined(WARPX_DIM_1D_Z)
         step_norm += (dxp - dxp_save)*(dxp - dxp_save)*idxg2;
 #endif
 #if defined(WARPX_DIM_3D)
         step_norm += (dyp - dyp_save)*(dyp - dyp_save)*idyg2;
-#elif defined(WARPX_DIM_RZ)
+#elif defined(WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
         step_norm += (dyp - dyp_save)*(dyp - dyp_save)*idxg2;
 #endif
         step_norm = std::sqrt(step_norm);
     }
+#if !defined(WARPX_DIM_RCYLINDER)
     dzp_save = dzp;
+#endif
 #if !defined(WARPX_DIM_1D_Z)
     dxp_save = dxp;
 #endif
-#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_RZ)
+#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
     dyp_save = dyp;
 #endif
 

@@ -109,17 +109,10 @@ namespace ApplyParticleBoundaries {
     */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void
-    apply_boundaries (
-#ifndef WARPX_DIM_1D_Z
-              amrex::ParticleReal& x, amrex::Real xmin, amrex::Real xmax,
-#endif
-#if (defined WARPX_DIM_3D) || (defined WARPX_DIM_RZ)
-                      amrex::ParticleReal& y,
-#endif
-#if (defined WARPX_DIM_3D)
-                      amrex::Real ymin, amrex::Real ymax,
-#endif
-                      amrex::ParticleReal& z, amrex::Real zmin, amrex::Real zmax,
+    apply_boundaries ([[maybe_unused]] amrex::ParticleReal& x,
+                      [[maybe_unused]] amrex::ParticleReal& y,
+                      [[maybe_unused]] amrex::ParticleReal& z,
+                      amrex::XDim3 gridmin, amrex::XDim3 gridmax,
                       amrex::ParticleReal& ux, amrex::ParticleReal& uy, amrex::ParticleReal& uz,
                       bool& particle_lost,
                       ParticleBoundaries::ParticleBoundariesData const& boundaries,
@@ -131,7 +124,7 @@ namespace ApplyParticleBoundaries {
 
 #ifndef WARPX_DIM_1D_Z
         bool rethermalize_x = false; // stores if particle crosses x boundary and needs to be thermalized
-        apply_boundary(x, xmin, xmax, change_sign_ux, rethermalize_x, particle_lost,
+        apply_boundary(x, gridmin.x, gridmax.x, change_sign_ux, rethermalize_x, particle_lost,
                        boundaries.xmin_bc, boundaries.xmax_bc,
                        boundaries.reflection_model_xlo(-ux), boundaries.reflection_model_xhi(ux),
                        engine);
@@ -141,7 +134,7 @@ namespace ApplyParticleBoundaries {
 #endif
 #ifdef WARPX_DIM_3D
         bool rethermalize_y = false; // stores if particle crosses y boundary and needs to be thermalized
-        apply_boundary(y, ymin, ymax, change_sign_uy, rethermalize_y, particle_lost,
+        apply_boundary(y, gridmin.y, gridmax.y, change_sign_uy, rethermalize_y, particle_lost,
                        boundaries.ymin_bc, boundaries.ymax_bc,
                        boundaries.reflection_model_ylo(-uy), boundaries.reflection_model_yhi(uy),
                        engine);
@@ -149,21 +142,24 @@ namespace ApplyParticleBoundaries {
             thermalize_boundary_particle(uy, uz, ux, boundaries.m_uth, engine);
         }
 #endif
+#if defined(WARPX_ZINDEX)
         bool rethermalize_z = false; // stores if particle crosses z boundary and needs to be thermalized
-        apply_boundary(z, zmin, zmax, change_sign_uz, rethermalize_z, particle_lost,
+        apply_boundary(z, gridmin.z, gridmax.z, change_sign_uz, rethermalize_z, particle_lost,
                        boundaries.zmin_bc, boundaries.zmax_bc,
                        boundaries.reflection_model_zlo(-uz), boundaries.reflection_model_zhi(uz),
                        engine);
         if (rethermalize_z) {
             thermalize_boundary_particle(uz, ux, uy, boundaries.m_uth, engine);
         }
+#endif
 
         if (boundaries.reflect_all_velocities && (change_sign_ux | change_sign_uy | change_sign_uz)) {
             change_sign_ux = true;
             change_sign_uy = true;
             change_sign_uz = true;
         }
-#ifdef WARPX_DIM_RZ
+
+#if defined(WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER)
         // Note that the reflection of the position does "r = 2*rmax - r", but this is only approximate.
         // The exact calculation requires the position at the start of the step.
         if (change_sign_ux && change_sign_uy) {
@@ -178,11 +174,28 @@ namespace ApplyParticleBoundaries {
             ux = ur*std::cos(y) - ut*std::sin(y);
             uy = ur*std::sin(y) + ut*std::cos(y);
         }
+        if (change_sign_uz) { uz = -uz; }
+#elif defined(WARPX_DIM_RSPHERE)
+        // "y" is theta
+        // "z" is phi
+        const amrex::Real costheta = std::cos(y);
+        const amrex::Real sintheta = std::sin(y);
+        const amrex::Real cosphi = std::cos(z);
+        const amrex::Real sinphi = std::sin(z);
+        amrex::Real ur = +ux*costheta*sinphi + uy*sintheta*sinphi + uz*cosphi;
+        amrex::Real ut = -ux*sintheta + uy*costheta;
+        amrex::Real up = -ux*costheta*cosphi - uy*sintheta*cosphi + uz*sinphi;
+        if (change_sign_ux) { ur = -ur; }
+        if (change_sign_uy) { ut = -ut; }
+        if (change_sign_uz) { up = -up; }
+        ux = sinphi*costheta*ur - sintheta*ut - cosphi*costheta*up;
+        uy = sinphi*sintheta*ur + costheta*ut - cosphi*sintheta*up;
+        uz = cosphi*ur + sinphi*up;
 #else
         if (change_sign_ux) { ux = -ux; }
         if (change_sign_uy) { uy = -uy; }
-#endif
         if (change_sign_uz) { uz = -uz; }
+#endif
     }
 
 }

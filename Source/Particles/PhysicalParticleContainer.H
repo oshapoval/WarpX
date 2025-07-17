@@ -23,6 +23,7 @@
 #include "Particles/Gather/ScaleFields.H"
 #include "Particles/Resampling/Resampling.H"
 #include "WarpXParticleContainer.H"
+#include "Particles/Deposition/TemperatureDepositionTypes.H"
 
 #include <AMReX_GpuContainers.H>
 #include <AMReX_Particles.H>
@@ -64,6 +65,8 @@ public:
     PhysicalParticleContainer(PhysicalParticleContainer&& )                    = default;
     PhysicalParticleContainer& operator=(PhysicalParticleContainer&& )         = default;
 
+    virtual void AllocData () override;
+
     void InitData () override;
 
     void ReadHeader (std::istream& is) override;
@@ -81,27 +84,9 @@ public:
      * \brief Evolve is the central function PhysicalParticleContainer that
      * advances plasma particles for a time dt (typically one timestep).
      *
+     * \param fields the WarpX field register
      * \param lev level on which particles are living
-     * \param Ex MultiFab from which field Ex is gathered
-     * \param Ey MultiFab from which field Ey is gathered
-     * \param Ez MultiFab from which field Ez is gathered
-     * \param Bx MultiFab from which field Bx is gathered
-     * \param By MultiFab from which field By is gathered
-     * \param Bz MultiFab from which field Bz is gathered
-     * \param jx MultiFab to which the particles' current jx is deposited
-     * \param jy MultiFab to which the particles' current jy is deposited
-     * \param jz MultiFab to which the particles' current jz is deposited
-     * \param cjx Same as jx (coarser, from lev-1), when using deposition buffers
-     * \param cjy Same as jy (coarser, from lev-1), when using deposition buffers
-     * \param cjz Same as jz (coarser, from lev-1), when using deposition buffers
-     * \param rho MultiFab to which the particles' charge is deposited
-     * \param crho Same as rho (coarser, from lev-1), when using deposition buffers
-     * \param cEx Same as Ex (coarser, from lev-1), when using gather buffers
-     * \param cEy Same as Ey (coarser, from lev-1), when using gather buffers
-     * \param cEz Same as Ez (coarser, from lev-1), when using gather buffers
-     * \param cBx Same as Bx (coarser, from lev-1), when using gather buffers
-     * \param cBy Same as By (coarser, from lev-1), when using gather buffers
-     * \param cBz Same as Bz (coarser, from lev-1), when using gather buffers
+     * \param current_fp_string current coarse or fine patch identifier in fields
      * \param t current physical time
      * \param dt time step by which particles are advanced
      * \param a_dt_type type of time step (used for sub-cycling)
@@ -112,84 +97,35 @@ public:
      * field gather, particle push and current deposition for all particles
      * in the box.
      */
-    void Evolve (int lev,
-                         const amrex::MultiFab& Ex,
-                         const amrex::MultiFab& Ey,
-                         const amrex::MultiFab& Ez,
-                         const amrex::MultiFab& Bx,
-                         const amrex::MultiFab& By,
-                         const amrex::MultiFab& Bz,
-                         amrex::MultiFab& jx,
-                         amrex::MultiFab& jy,
-                         amrex::MultiFab& jz,
-                         amrex::MultiFab* cjx,
-                         amrex::MultiFab* cjy,
-                         amrex::MultiFab* cjz,
-                         amrex::MultiFab* rho,
-                         amrex::MultiFab* crho,
-                         const amrex::MultiFab* cEx,
-                         const amrex::MultiFab* cEy,
-                         const amrex::MultiFab* cEz,
-                         const amrex::MultiFab* cBx,
-                         const amrex::MultiFab* cBy,
-                         const amrex::MultiFab* cBz,
-                         amrex::Real t,
-                         amrex::Real dt,
-                         DtType a_dt_type=DtType::Full,
-                         bool skip_deposition=false,
-                         PushType push_type=PushType::Explicit) override;
-    void Evolve1 (int lev,
-                         const amrex::MultiFab& Ex,
-                         const amrex::MultiFab& Ey,
-                         const amrex::MultiFab& Ez,
-                         const amrex::MultiFab& Bx,
-                         const amrex::MultiFab& By,
-                         const amrex::MultiFab& Bz,
-                         amrex::MultiFab& jx,
-                         amrex::MultiFab& jy,
-                         amrex::MultiFab& jz,
-                         amrex::MultiFab* cjx,
-                         amrex::MultiFab* cjy,
-                         amrex::MultiFab* cjz,
-                         amrex::MultiFab* rho,
-                         amrex::MultiFab* crho,
-                         const amrex::MultiFab* cEx,
-                         const amrex::MultiFab* cEy,
-                         const amrex::MultiFab* cEz,
-                         const amrex::MultiFab* cBx,
-                         const amrex::MultiFab* cBy,
-                         const amrex::MultiFab* cBz,
-                         amrex::Real t,
-                         amrex::Real dt,
-                         DtType a_dt_type=DtType::Full,
-                         bool skip_deposition=false,
-                         PushType push_type=PushType::Explicit) override;
-    void Evolve2 (int lev,
-                         const amrex::MultiFab& Ex,
-                         const amrex::MultiFab& Ey,
-                         const amrex::MultiFab& Ez,
-                         const amrex::MultiFab& Bx,
-                         const amrex::MultiFab& By,
-                         const amrex::MultiFab& Bz,
-                         amrex::MultiFab& jx,
-                         amrex::MultiFab& jy,
-                         amrex::MultiFab& jz,
-                         amrex::MultiFab* cjx,
-                         amrex::MultiFab* cjy,
-                         amrex::MultiFab* cjz,
-                         amrex::MultiFab* rho,
-                         amrex::MultiFab* crho,
-                         const amrex::MultiFab* cEx,
-                         const amrex::MultiFab* cEy,
-                         const amrex::MultiFab* cEz,
-                         const amrex::MultiFab* cBx,
-                         const amrex::MultiFab* cBy,
-                         const amrex::MultiFab* cBz,
-                         amrex::Real t,
-                         amrex::Real dt,
-                         DtType a_dt_type=DtType::Full,
-                         bool skip_deposition=false,
-                         PushType push_type=PushType::Explicit) override;
+    void Evolve (ablastr::fields::MultiFabRegister& fields,
+                 int lev,
+                 const std::string& current_fp_string,
+                 amrex::Real t,
+                 amrex::Real dt,
+                 DtType a_dt_type=DtType::Full,
+                 bool skip_deposition=false,
+                 bool deposit_mass_matrices=false,
+                 PushType push_type=PushType::Explicit) override;
+
+    void Evolve1 (ablastr::fields::MultiFabRegister& fields,
+                 int lev,
+                 const std::string& current_fp_string,
+                 amrex::Real t,
+                 amrex::Real dt,
+                 DtType a_dt_type=DtType::Full,
+                 bool skip_deposition=false,
+                 bool deposit_mass_matrices=false,
+                 PushType push_type=PushType::Explicit) override;
+
+    void Evolve2 (ablastr::fields::MultiFabRegister& fields,
+                 int lev,
+                 const std::string& current_fp_string,
+                 amrex::Real t,
+                 amrex::Real dt,
+                 DtType a_dt_type=DtType::Full,
+                 bool skip_deposition=false,
+                 bool deposit_mass_matrices=false,
+                 PushType push_type=PushType::Explicit) override;
 
     virtual void PushPX (WarpXParIter& pti,
                          amrex::FArrayBox const * exfab,
@@ -261,6 +197,8 @@ public:
                         long np,
                         WarpXParIter& pti,
                         int lev,
+                        int n_field_gather_buffer,
+                        int n_current_deposition_buffer,
                         amrex::iMultiFab const* current_masks,
                         amrex::iMultiFab const* gather_masks );
 
@@ -404,9 +342,12 @@ public:
     * \brief This function determines if resampling should be done for the current species, and
     * if so, performs the resampling.
     *
+    * @param[in] geom the geometry of all refinement levels
     * @param[in] timestep the current timestep.
+    * @param[in] verbose flag to control if information on the resampling process is printed out.
     */
-    void resample (int timestep, bool verbose=true) final;
+    void resample (
+        const amrex::Vector<amrex::Geometry>& geom, int timestep, bool verbose=true) final;
 
 #ifdef WARPX_QED
     //Functions decleared in WarpXParticleContainer.H
@@ -471,7 +412,33 @@ public:
         return GetVecOfPtrs(m_user_real_attrib_parser);
     }
 
+    // By default this returns false; overridden here to return runtime value
+    virtual bool getTemperatureDepositionFlag () const noexcept override {return m_do_temperature_deposition;}
+
+    virtual void AccumulateVelocitiesAndComputeTemperature (
+        ablastr::fields::MultiLevelVectorField const & T_vf,
+        amrex::Real relative_time) override;
+
+    virtual void DepositTemperature (
+        WarpXParIter& pti,
+        RealVector const & wp, RealVector const & uxp,
+        RealVector const & uyp, RealVector const & uzp,
+        amrex::MultiFab * const Tx, amrex::MultiFab * const Ty, amrex::MultiFab * const Tz,
+        long const offset, long const np_to_deposit,
+        int const thread_num, const int lev, int const depos_lev,
+        amrex::Real const relative_time, PushType push_type,
+        const warpx::particles::deposition::TemperatureDepositionType type,
+        const warpx::particles::deposition::TemperatureDepositionPass pass) override;
+
 protected:
+
+    /*
+       Finds the box defining the region where refine injection should be used, if that
+       option is enabled. Currently this only works for numLevels() == 2 and static mesh
+       refinement.
+    */
+    bool findRefinedInjectionBox (amrex::Box& fine_injection_box, amrex::IntVect& rrfac);
+
     std::string species_name;
     std::vector<std::unique_ptr<PlasmaInjector>> plasma_injectors;
 
@@ -502,6 +469,11 @@ protected:
 
     // A flag to enable saving of the previous timestep positions
     bool m_save_previous_position = false;
+
+    // Flag controlling whether or not variance and then temperatures are computed per species
+    bool m_do_temperature_deposition = false;
+
+    std::unique_ptr<warpx::particles::deposition::VarianceAccumulationBuffer> local_temperature_arrays;
 
 #ifdef WARPX_QED
     // A flag to enable quantum_synchrotron process for leptons
