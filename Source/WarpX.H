@@ -742,7 +742,7 @@ public:
 
     static inline auto electrostatic_solver_id = ElectrostaticSolverAlgo::Default;
     static inline auto poisson_solver_id = PoissonSolverAlgo::Default;
-
+    static bool do_synchronized;
     static int do_moving_window; // boolean
     static int start_moving_window_step; // the first step to move window
     static int end_moving_window_step; // the last step to move window

@@ -165,6 +165,7 @@ utils::parser::IntervalsParser WarpX::sort_intervals;
 amrex::IntVect WarpX::sort_bin_size(AMREX_D_DECL(1,1,1));
 
 bool WarpX::do_dynamic_scheduling = true;
+bool WarpX::do_synchronized = true;
 
 IntVect WarpX::filter_npass_each_dir(1);
 
@@ -671,6 +672,7 @@ WarpX::ReadParameters ()
 
         utils::parser::queryWithParser(pp_warpx, "cfl", cfl);
         pp_warpx.query("verbose", verbose);
+        pp_warpx.query("do_synchronized", do_synchronized);
         pp_warpx.query("limit_verbose_step", m_limit_verbose_step);
         utils::parser::queryWithParser(pp_warpx, "regrid_int", regrid_int);
         pp_warpx.query("do_subcycling", m_do_subcycling);
