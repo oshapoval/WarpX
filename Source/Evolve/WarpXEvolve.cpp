@@ -516,7 +516,20 @@ WarpX::OneStep_nosub (
 
         // communicate particle data
         // FIXME Copy local communication from WarpX::HandleParticlesAtBoundaries
-        mypc->Redistribute();
+        //mypc->Redistribute();
+        const bool move_j = m_is_synchronized;
+        // If m_is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
+        // We might need to move j because we are going to make a plotfile.
+        const int num_moved = MoveWindow(a_step+1, move_j);
+
+        // Update the accelerator lattice element finder if the window has moved,
+        // from either a moving window or a boosted frame
+        if (num_moved != 0 || gamma_boost > 1) {
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                m_accelerator_lattice[lev]->UpdateElementFinder(lev, gett_new());
+            }
+        }
+        HandleParticlesAtBoundaries(a_step, a_cur_time, num_moved);
 
         // perform particle collisions
         ExecutePythonCallback("beforecollisions");
