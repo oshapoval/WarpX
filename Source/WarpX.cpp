@@ -1923,6 +1923,11 @@ WarpX::ReadParameters ()
             }
         }
     }
+    else {
+        pp_collisions.query("split_position_push", m_collisions_split_position_push);
+        amrex::Print()
+            << "used defined: m_collisions_split_position_push " << m_collisions_split_position_push << "\n";
+    }
 }
 
 void

@@ -515,12 +515,14 @@ WarpX::OneStep_nosub (
 
         // perform essential particle house keeping at the boundaries
         // (inject, communicate, scrape, sort, etc.)
+        amrex::Print() << " Handling particles at boundaries (first half push)...\n";
         HandleParticlesAtBoundaries(a_step, a_cur_time, /*num_moved=*/0);
+        amrex::Print() << " right aafter Handling particles at boundaries (first half push)...\n";
 
         // perform particle collisions
-        ExecutePythonCallback("beforecollisions");
-        mypc->doCollisions(a_step, a_cur_time, a_dt);
-        ExecutePythonCallback("aftercollisions");
+        // ExecutePythonCallback("beforecollisions");
+        // mypc->doCollisions(a_step, a_cur_time, a_dt);
+        // ExecutePythonCallback("aftercollisions");
 
         // push particles (half position)
         PushParticlesandDeposit(
@@ -705,6 +707,7 @@ void WarpX::ExplicitFillBoundaryEBUpdateAux ()
 void WarpX::HandleParticlesAtBoundaries (int step, amrex::Real cur_time, int num_moved)
 {
     mypc->ContinuousFluxInjection(cur_time, dt[0]);
+    amrex::Print() << " inside HandleParticlesAtBoundaries() \n";
 
     mypc->ApplyBoundaryConditions();
     m_particle_boundary_buffer->gatherParticlesFromDomainBoundaries(*mypc);
