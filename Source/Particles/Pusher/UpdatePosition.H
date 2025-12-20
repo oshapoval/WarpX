@@ -28,7 +28,6 @@ void UpdatePosition ([[maybe_unused]] amrex::ParticleReal& x,
                      const amrex::Real dt,
                      amrex::ParticleReal const mass)
 {
-    amrex::Print() << " ^^^^ inside UpdatePosition() ^^^^ " << "\n";
     using namespace amrex::literals;
 
     amrex::ParticleReal const u2 = ux*ux + uy*uy + uz*uz;

@@ -506,7 +506,7 @@ WarpX::OneStep_nosub (
     // with collisions placed in the middle of the position push and after the momentum push
     if (m_collisions_split_position_push) {
         // push particles (half position and full momentum)
-        amrex::Print() << " before 1-PushParticlesandDeposit( first half )...\n";
+        //amrex::Print() << " before 1-PushParticlesandDeposit( first half )...\n";
         PushParticlesandDeposit(
             a_cur_time,
             /*skip_deposition=*/true,
@@ -526,7 +526,7 @@ WarpX::OneStep_nosub (
         // ExecutePythonCallback("aftercollisions");
 
         // push particles (half position)
-        amrex::Print() << " before 2-PushParticlesandDeposit( second half )...\n";
+        //amrex::Print() << " before 2-PushParticlesandDeposit( second half )...\n";
 
         PushParticlesandDeposit(
             a_cur_time,
@@ -710,7 +710,7 @@ void WarpX::ExplicitFillBoundaryEBUpdateAux ()
 void WarpX::HandleParticlesAtBoundaries (int step, amrex::Real cur_time, int num_moved)
 {
     mypc->ContinuousFluxInjection(cur_time, dt[0]);
-    amrex::Print() << " inside HandleParticlesAtBoundaries() \n";
+    //amrex::Print() << " inside HandleParticlesAtBoundaries() \n";
 
     mypc->ApplyBoundaryConditions();
     m_particle_boundary_buffer->gatherParticlesFromDomainBoundaries(*mypc);
@@ -1407,7 +1407,7 @@ WarpX::PushParticlesandDeposit (
             );
         }
     }
-amrex::Print() << "--- end PushParticlesandDeposit ---" << "\n";
+//amrex::Print() << "--- end PushParticlesandDeposit ---" << "\n";
 }
 
 /* \brief Apply perfect mirror condition inside the box (not at a boundary).
