@@ -26,6 +26,7 @@ namespace ApplyParticleBoundaries {
                     amrex::RandomEngine const& engine )
     {
         if (x < xmin) {
+            amrex::Print() << "       ++++++++ particles crossed BC (x= " << x << ") \n";
             if (xmin_bc == ParticleBoundaryType::Open) {
                 particle_lost = true;
             }
@@ -44,7 +45,9 @@ namespace ApplyParticleBoundaries {
                 change_sign_ux = true;
             }
             else if (xmin_bc == ParticleBoundaryType::Thermal) {
+                amrex::Print() << "       ++++++++ BC: thermal ++++++++ "<<  "\n";
                 x = 2*xmin - x;
+                amrex::Print() << "       ++++++++ thermal new pos =  " << x << ") \n";
                 rethermalize_x = true;
             }
         }
@@ -86,6 +89,7 @@ namespace ApplyParticleBoundaries {
         u_tang1 = (uth > 0._rt) ? PhysConst::c * amrex::RandomNormal(0._rt, uth, engine) : 0._rt;
         u_tang2 = (uth > 0._rt) ? PhysConst::c * amrex::RandomNormal(0._rt, uth, engine) : 0._rt;
         u_norm = (uth > 0._rt) ? std::copysign(1._prt, -u_norm) * PhysConst::c * generateGaussianFluxDist(0._rt, uth, engine) : 0._rt;
+
     }
 
 
@@ -124,31 +128,37 @@ namespace ApplyParticleBoundaries {
 
 #ifndef WARPX_DIM_1D_Z
         bool rethermalize_x = false; // stores if particle crosses x boundary and needs to be thermalized
+        amrex::Print() << "       -> x BC = " << "\n";
         apply_boundary(x, gridmin.x, gridmax.x, change_sign_ux, rethermalize_x, particle_lost,
                        boundaries.xmin_bc, boundaries.xmax_bc,
                        boundaries.reflection_model_xlo(-ux), boundaries.reflection_model_xhi(ux),
                        engine);
         if (rethermalize_x) {
+            amrex::Print() << " ux_before_rethermalize = "<<  ux<<"\n";
             thermalize_boundary_particle(ux, uy, uz, boundaries.m_uth, engine);
         }
 #endif
 #ifdef WARPX_DIM_3D
         bool rethermalize_y = false; // stores if particle crosses y boundary and needs to be thermalized
+        amrex::Print() << "       -> y BC = " << "\n";
         apply_boundary(y, gridmin.y, gridmax.y, change_sign_uy, rethermalize_y, particle_lost,
                        boundaries.ymin_bc, boundaries.ymax_bc,
                        boundaries.reflection_model_ylo(-uy), boundaries.reflection_model_yhi(uy),
                        engine);
         if (rethermalize_y) {
+            amrex::Print() << " uy_before_rethermalize = "<<  uy<<"\n";
             thermalize_boundary_particle(uy, uz, ux, boundaries.m_uth, engine);
         }
 #endif
 #if defined(WARPX_ZINDEX)
         bool rethermalize_z = false; // stores if particle crosses z boundary and needs to be thermalized
+        amrex::Print() << "       -> z BC = " << "\n";
         apply_boundary(z, gridmin.z, gridmax.z, change_sign_uz, rethermalize_z, particle_lost,
                        boundaries.zmin_bc, boundaries.zmax_bc,
                        boundaries.reflection_model_zlo(-uz), boundaries.reflection_model_zhi(uz),
                        engine);
         if (rethermalize_z) {
+            amrex::Print() << " uz_before_rethermalize = "<<  uz<<"\n";
             thermalize_boundary_particle(uz, ux, uy, boundaries.m_uth, engine);
         }
 #endif

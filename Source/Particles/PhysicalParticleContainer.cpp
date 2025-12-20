@@ -311,7 +311,10 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     }
 
     // If old particle positions should be saved add the needed components
-    pp_species_name.query("save_previous_position", m_save_previous_position);
+    //pp_species_name.query("save_previous_position", m_save_previous_position);
+
+
+
     if (m_save_previous_position) {
 #if !defined(WARPX_DIM_1D_Z)
         AddRealComp("prev_x");
@@ -729,6 +732,8 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
                         amrex::MultiFab * jx = fields.get(current_fp_string, Direction{0}, lev);
                         amrex::MultiFab * jy = fields.get(current_fp_string, Direction{1}, lev);
                         amrex::MultiFab * jz = fields.get(current_fp_string, Direction{2}, lev);
+                        amrex::Print() << "just ++++++ Before DepositCurrent() "  << "\n";
+
                         DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, jx, jy, jz,
                                        0, np_to_deposit, thread_num,
                                        lev, lev, dt, relative_time, push_type);
@@ -1381,6 +1386,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
     }
 
     const bool save_previous_position = m_save_previous_position;
+    amrex::Print() << "        ^^^^ save_previous_position = " << save_previous_position << "\n";
     ParticleReal* x_old = nullptr;
     ParticleReal* y_old = nullptr;
     ParticleReal* z_old = nullptr;
@@ -1454,6 +1460,8 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
             z_old[ip] = zp;
 #endif
         }
+        amrex::Print() << "        -----------+++ x_old/z_old = " << ip << ", pos = (" << xp << ", " << zp << ")\n";
+
 
         amrex::ParticleReal Exp = Ex_external_particle;
         amrex::ParticleReal Eyp = Ey_external_particle;
@@ -1515,17 +1523,20 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
         if (collisions_split_position_push) {
             // Update average momentum
             if (momentum_push_type != MomentumPushType::None) {
-                ux_avg[ip] = ux[ip];
-                uy_avg[ip] = uy[ip];
-                uz_avg[ip] = uz[ip];
+                amrex::Print() << "(1)Updating avg momentum during PushPX for ip=0\n";
+                ux_avg[ip] = xp;
+                //uy_avg[ip] = y_old[ip];
+                uz_avg[ip] = zp;
             }
             else { // The momentum was updated during collisions
-                ux_avg[ip] += ux[ip];
-                uy_avg[ip] += uy[ip];
-                uz_avg[ip] += uz[ip];
-                ux_avg[ip] *= 0.5_rt;
-                uy_avg[ip] *= 0.5_rt;
-                uz_avg[ip] *= 0.5_rt;
+                amrex::Print() << "(2)Updating avg momentum during PushPX for ip=0\n";
+                //ux_avg[ip] += x_old[ip];
+                //uy_avg[ip] += y_old[ip];
+                //uz_avg[ip] += z_old[ip];
+
+                // ux_avg[ip] *= 0.5_rt;
+                // uy_avg[ip] *= 0.5_rt;
+                // uz_avg[ip] *= 0.5_rt;
             }
         }
 
@@ -1535,6 +1546,33 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
         }
         UpdatePosition(xp, yp, zp, ux[ip], uy[ip], uz[ip], position_dt, mass);
         setPosition(ip, xp, yp, zp);
+        amrex::Print() << "        -------------------- x/z-pos after x-push = " << ip << ", pos = (" << xp << ", " << zp << ")\n";
+
+
+        if (momentum_push_type == MomentumPushType::None) {
+            amrex::Print() << "        -------------------- x/z-pos after x-push = " << ip << ", pos = (" << xp << ", " << zp << ")\n";
+
+            ux_avg[ip] -= xp;
+            uz_avg[ip] -= zp;
+
+            ux_avg[ip] /= -dt;
+            uy_avg[ip]  = uy[ip];
+            uz_avg[ip] /= -dt;
+
+            amrex::Print() << "        -------------------- vx_tmp/vz_tmp = " << ip << ", pos = (" << ux_avg[ip] << ", " << uz_avg[ip] << ")\n";
+
+            amrex::ParticleReal tmp_gamma = std::sqrt(1.0_rt + (ux_avg[ip]*ux_avg[ip] + uy_avg[ip]*uy_avg[ip] + uz_avg[ip]*uz_avg[ip]) / (PhysConst::c * PhysConst::c));
+
+            ux_avg[ip] /= tmp_gamma;
+            uy_avg[ip] /= tmp_gamma;
+            uz_avg[ip] /= tmp_gamma;
+            amrex::Print() << "        -------------------- vx_tmp/vz_tmp = " << ip << ", pos = (" << ux_avg[ip] << ", " << uz_avg[ip] << ")\n";
+
+        }
+
+
+
+
 
 #ifdef WARPX_QED
         [[maybe_unused]] auto foo_local_has_quantum_sync = local_has_quantum_sync;

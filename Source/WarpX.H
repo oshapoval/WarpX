@@ -302,6 +302,7 @@ public:
     static bool use_kspace_filter;
     //! If true, a compensation step is added to the bilinear filtering of charge and currents
     static bool use_filter_compensation;
+    bool m_save_previous_position;
 
     //! If true, the initial conditions from random number generators are serialized (useful for reproducible testing with OpenMP)
     static bool serialize_initial_conditions;

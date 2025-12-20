@@ -506,6 +506,7 @@ WarpX::OneStep_nosub (
     // with collisions placed in the middle of the position push and after the momentum push
     if (m_collisions_split_position_push) {
         // push particles (half position and full momentum)
+        amrex::Print() << " before 1-PushParticlesandDeposit( first half )...\n";
         PushParticlesandDeposit(
             a_cur_time,
             /*skip_deposition=*/true,
@@ -515,9 +516,9 @@ WarpX::OneStep_nosub (
 
         // perform essential particle house keeping at the boundaries
         // (inject, communicate, scrape, sort, etc.)
-        amrex::Print() << " Handling particles at boundaries (first half push)...\n";
+        ///amrex::Print() << " Handling particles at boundaries (first half push: before)...\n";
         HandleParticlesAtBoundaries(a_step, a_cur_time, /*num_moved=*/0);
-        amrex::Print() << " right aafter Handling particles at boundaries (first half push)...\n";
+       // amrex::Print() << " right aafter Handling particles at boundaries (first half push: after)...\n";
 
         // perform particle collisions
         // ExecutePythonCallback("beforecollisions");
@@ -525,6 +526,8 @@ WarpX::OneStep_nosub (
         // ExecutePythonCallback("aftercollisions");
 
         // push particles (half position)
+        amrex::Print() << " before 2-PushParticlesandDeposit( second half )...\n";
+
         PushParticlesandDeposit(
             a_cur_time,
             /*skip_deposition=*/false,
@@ -1404,6 +1407,7 @@ WarpX::PushParticlesandDeposit (
             );
         }
     }
+amrex::Print() << "--- end PushParticlesandDeposit ---" << "\n";
 }
 
 /* \brief Apply perfect mirror condition inside the box (not at a boundary).
