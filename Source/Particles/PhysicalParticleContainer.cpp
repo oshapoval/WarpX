@@ -1560,11 +1560,11 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
 
             //amrex::Print() << "        -------------------- vx_tmp/vz_tmp = " << ip << ", pos = (" << ux_avg[ip] << ", " << uz_avg[ip] << ")\n";
 
-            amrex::ParticleReal tmp_gamma = std::sqrt(1.0_rt + (ux_avg[ip]*ux_avg[ip] + uy_avg[ip]*uy_avg[ip] + uz_avg[ip]*uz_avg[ip]) / (PhysConst::c * PhysConst::c));
+            amrex::ParticleReal tmp_gamma = 1.0_rt / std::sqrt( 1.0_rt -  (ux_avg[ip]*ux_avg[ip] + uy_avg[ip]*uy_avg[ip] + uz_avg[ip]*uz_avg[ip]) / (PhysConst::c * PhysConst::c) );
 
-            ux_avg[ip] /= tmp_gamma;
-            uy_avg[ip] /= tmp_gamma;
-            uz_avg[ip] /= tmp_gamma;
+            ux_avg[ip] *= tmp_gamma;
+            uy_avg[ip] *= tmp_gamma;
+            uz_avg[ip] *= tmp_gamma;
             //amrex::Print() << "        -------------------- vx_tmp/vz_tmp = " << ip << ", pos = (" << ux_avg[ip] << ", " << uz_avg[ip] << ")\n";
 
         }
