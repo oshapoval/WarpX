@@ -521,9 +521,9 @@ WarpX::OneStep_nosub (
        // amrex::Print() << " right aafter Handling particles at boundaries (first half push: after)...\n";
 
         // perform particle collisions
-        // ExecutePythonCallback("beforecollisions");
-        // mypc->doCollisions(a_step, a_cur_time, a_dt);
-        // ExecutePythonCallback("aftercollisions");
+        ExecutePythonCallback("beforecollisions");
+        mypc->doCollisions(a_step, a_cur_time, a_dt);
+        ExecutePythonCallback("aftercollisions");
 
         // push particles (half position)
         //amrex::Print() << " before 2-PushParticlesandDeposit( second half )...\n";
