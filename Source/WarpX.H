@@ -1430,6 +1430,7 @@ private:
      * @param num_moved number of cells the moving window moved
      */
     void HandleParticlesAtBoundaries (int step, amrex::Real cur_time, int num_moved);
+    void HandleParticlesAtBoundariesHalf (int step, amrex::Real cur_time, int num_moved);
 
     /** Update the E and B fields in the explicit em PIC scheme.
      *

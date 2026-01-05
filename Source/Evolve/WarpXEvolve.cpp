@@ -516,7 +516,7 @@ WarpX::OneStep_nosub (
 
         // perform essential particle house keeping at the boundaries
         // (inject, communicate, scrape, sort, etc.)
-        HandleParticlesAtBoundaries(a_step, a_cur_time, /*num_moved=*/0);
+        HandleParticlesAtBoundariesHalf(a_step, a_cur_time, /*num_moved=*/0);
 
         // perform particle collisions
         ExecutePythonCallback("beforecollisions");
@@ -706,6 +706,58 @@ void WarpX::ExplicitFillBoundaryEBUpdateAux ()
 void WarpX::HandleParticlesAtBoundaries (int step, amrex::Real cur_time, int num_moved)
 {
     mypc->ContinuousFluxInjection(cur_time, dt[0]);
+
+    mypc->ApplyBoundaryConditions();
+    m_particle_boundary_buffer->gatherParticlesFromDomainBoundaries(*mypc);
+
+    // Non-Maxwell solver: particles can move by an arbitrary number of cells
+    if( electromagnetic_solver_id == ElectromagneticSolverAlgo::None ||
+        electromagnetic_solver_id == ElectromagneticSolverAlgo::HybridPIC )
+    {
+        mypc->Redistribute();
+    }
+    else
+    {
+        // Electromagnetic solver: due to CFL condition, particles can
+        // only move by one or two cells per time step
+        // The implicit scheme can allow additional cell crossings, as specified by particle_max_grid_crossings.
+        if (max_level == 0) {
+            int num_redistribute_ghost = num_moved;
+            if ((m_v_galilean[0]!=0) or (m_v_galilean[1]!=0) or (m_v_galilean[2]!=0)) {
+                // Galilean algorithm ; particles can move by up to one additional cell beyond the max number
+                num_redistribute_ghost += particle_max_grid_crossings + 1;
+            } else {
+                // Standard algorithm ; particles can move by up to the max number
+                num_redistribute_ghost += particle_max_grid_crossings;
+            }
+            mypc->RedistributeLocal(num_redistribute_ghost);
+        }
+        else {
+            mypc->Redistribute();
+        }
+    }
+
+    // interact the particles with EB walls (if present)
+    if (EB::enabled()) {
+        using warpx::fields::FieldType;
+        mypc->ScrapeParticlesAtEB(m_fields.get_mr_levels(FieldType::distance_to_eb, finest_level));
+        m_particle_boundary_buffer->gatherParticlesFromEmbeddedBoundaries(
+            *mypc, m_fields.get_mr_levels(FieldType::distance_to_eb, finest_level));
+        mypc->deleteInvalidParticles();
+    }
+
+    if (sort_intervals.contains(step+1)) {
+        if (verbose && !m_limit_verbose_step) {
+            amrex::Print() << Utils::TextMsg::Info("re-sorting particles");
+        }
+        mypc->SortParticlesByBin(
+            sort_bin_size, m_sort_particles_for_deposition, m_sort_idx_type);
+    }
+}
+
+void WarpX::HandleParticlesAtBoundariesHalf(int step, amrex::Real cur_time, int num_moved)
+{
+    mypc->ContinuousFluxInjection(cur_time, dt[0]/2._rt);
 
     mypc->ApplyBoundaryConditions();
     m_particle_boundary_buffer->gatherParticlesFromDomainBoundaries(*mypc);
