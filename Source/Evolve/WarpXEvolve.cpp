@@ -509,7 +509,7 @@ WarpX::OneStep_nosub (
         // push particles (half position and full momentum)
         PushParticlesandDeposit(
             a_cur_time,
-            /*skip_deposition=*/true,
+            /*skip_deposition=*/false,
             PositionPushType::FirstHalf,
             MomentumPushType::Full
         );

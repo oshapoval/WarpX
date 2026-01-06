@@ -701,7 +701,7 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
                 if (deposit_current)
                 {
                     // Deposit at t_{n+1/2} with explicit push
-                    const amrex::Real relative_time = (push_type == PushType::Explicit ? -0.5_rt * dt : 0.0_rt);
+                    const amrex::Real relative_time = (push_type == PushType::Explicit ? -0.25_rt * dt : 0.0_rt);
 
                     const int* const AMREX_RESTRICT ion_lev = (do_field_ionization)?
                         pti.GetiAttribs("ionizationLevel").dataPtr():nullptr;
@@ -1520,12 +1520,12 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
                 uz_avg[ip] = uz[ip];
             }
             else { // The momentum was updated during collisions
-                ux_avg[ip] += ux[ip];
-                uy_avg[ip] += uy[ip];
-                uz_avg[ip] += uz[ip];
-                ux_avg[ip] *= 0.5_rt;
-                uy_avg[ip] *= 0.5_rt;
-                uz_avg[ip] *= 0.5_rt;
+                ux_avg[ip] = ux[ip];  // += ux[ip];
+                uy_avg[ip] = uy[ip];  // += uy[ip];
+                uz_avg[ip]= uz[ip];  // += uz[ip];
+                // ux_avg[ip] *= 0.5_rt;
+                // uy_avg[ip] *= 0.5_rt;
+                // uz_avg[ip] *= 0.5_rt;
             }
         }
 
