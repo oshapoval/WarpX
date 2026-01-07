@@ -1514,19 +1514,9 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
 #endif
         if (collisions_split_position_push) {
             // Update average momentum
-            if (momentum_push_type != MomentumPushType::None) {
-                ux_avg[ip] = ux[ip];
-                uy_avg[ip] = uy[ip];
-                uz_avg[ip] = uz[ip];
-            }
-            else { // The momentum was updated during collisions
-                ux_avg[ip] = ux[ip];  // += ux[ip];
-                uy_avg[ip] = uy[ip];  // += uy[ip];
-                uz_avg[ip]= uz[ip];  // += uz[ip];
-                // ux_avg[ip] *= 0.5_rt;
-                // uy_avg[ip] *= 0.5_rt;
-                // uz_avg[ip] *= 0.5_rt;
-            }
+            ux_avg[ip] = ux[ip];
+            uy_avg[ip] = uy[ip];
+            uz_avg[ip] = uz[ip];
         }
 
         amrex::Real position_dt = dt;
