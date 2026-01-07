@@ -36,7 +36,6 @@ function(add_warpx_test
 )
     # cannot run MPI tests w/o MPI build
     if(nprocs GREATER_EQUAL 2 AND NOT WarpX_MPI)
-        message(WARNING "${name}: cannot run MPI tests without MPI build")
         return()
     endif()
 
@@ -109,10 +108,16 @@ function(add_warpx_test
         return()
     endif()
 
+    # Avoid the following error seen with Open MPI 4.1.6 in the Azure pipelines:
+    # "There are not enough slots available in the system to satisfy the 2 slots
+    # that were requested by the application"
+    set(MPI_HOST_NUMPROC --host localhost:${nprocs})
+
     # set MPI executable
     set(THIS_MPI_TEST_EXE
         ${MPIEXEC_EXECUTABLE}
         ${MPI_ALLOW_ROOT}
+        ${MPI_HOST_NUMPROC}
         ${MPIEXEC_NUMPROC_FLAG} ${nprocs}
         ${MPIEXEC_POSTFLAGS}
         ${MPIEXEC_PREFLAGS}
