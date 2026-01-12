@@ -496,7 +496,7 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
         !skip_deposition &&
         !do_not_deposit &&
         !(implicit_options && implicit_options->evolve_suborbit_particles_only) &&
-        (position_push_type == PositionPushType::Full || position_push_type == PositionPushType::SecondHalf)
+        (position_push_type == PositionPushType::Full  || position_push_type == PositionPushType::FirstHalf|| position_push_type == PositionPushType::SecondHalf)
     );
     bool const split_particles = (
         do_splitting &&
