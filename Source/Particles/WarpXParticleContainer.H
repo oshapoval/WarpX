@@ -596,6 +596,9 @@ public:
 protected:
     int species_id;
 
+    // A flag to enable saving of the previous timestep positions
+    bool m_save_previous_position = true;
+
     amrex::ParticleReal charge;
     amrex::ParticleReal m_mass;
     PhysicalSpecies physical_species = PhysicalSpecies::unspecified;

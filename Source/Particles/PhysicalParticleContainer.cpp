@@ -311,21 +311,21 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     }
 
     // If old particle positions should be saved add the needed components
-    pp_species_name.query("save_previous_position", m_save_previous_position);
-    if (m_save_previous_position) {
-#if !defined(WARPX_DIM_1D_Z)
-        AddRealComp("prev_x");
-#endif
-#if defined(WARPX_DIM_3D)
-        AddRealComp("prev_y");
-#endif
-#if defined(WARPX_ZINDEX)
-        AddRealComp("prev_z");
-#endif
-#if defined(WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
-      amrex::Abort("Saving previous particle positions not yet implemented in RZ");
-#endif
-    }
+    //pp_species_name.query("save_previous_position", m_save_previous_position);
+//     if (m_save_previous_position) {
+// #if !defined(WARPX_DIM_1D_Z)
+//         AddRealComp("prev_x");
+// #endif
+// #if defined(WARPX_DIM_3D)
+//         AddRealComp("prev_y");
+// #endif
+// #if defined(WARPX_ZINDEX)
+//         AddRealComp("prev_z");
+// #endif
+// #if defined(WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
+//       amrex::Abort("Saving previous particle positions not yet implemented in RZ");
+// #endif
+//     }
 
     // Read reflection models for absorbing boundaries; defaults to a zero
     pp_species_name.query("reflection_model_xlo(E)", m_boundary_conditions.reflection_model_xlo_str);
@@ -526,7 +526,7 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
             auto wt = static_cast<amrex::Real>(amrex::second());
 
             const Box& box = pti.validbox();
-
+            amrex::Print()<<  " box= " << box <<"\n";
             // Extract particle data
             auto& attribs = pti.GetAttribs();
             auto&  wp = attribs[PIdx::w];
@@ -614,6 +614,7 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
                 const auto np_to_push = np_gather;
                 const auto gather_lev = lev;
                 if (push_type == PushType::Explicit) {
+                    amrex::Print() << " Evolve->Explicit PushPX .\n";
                     PushPX(pti, exfab, eyfab, ezfab,
                            bxfab, byfab, bzfab,
                            Ex.nGrowVect(), e_is_nodal,
@@ -672,6 +673,7 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
                     // Field gather and push for particles in gather buffers
                     e_is_nodal = cEx.is_nodal() and cEy.is_nodal() and cEz.is_nodal();
                     if (push_type == PushType::Explicit) {
+                        amrex::Print() << " Evolve->Explicit PushPX in buffer+ fuffers.\n";
                         PushPX(pti, cexfab, ceyfab, cezfab,
                                cbxfab, cbyfab, cbzfab,
                                cEx.nGrowVect(), e_is_nodal,
@@ -1381,10 +1383,11 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
     }
 
     const bool save_previous_position = m_save_previous_position;
+    //amrex::Print() << " save_previous_position " << save_previous_position<< "\n";
     ParticleReal* x_old = nullptr;
     ParticleReal* y_old = nullptr;
     ParticleReal* z_old = nullptr;
-    if (save_previous_position) {
+    if (save_previous_position && position_push_type == PositionPushType::FirstHalf ) {
 #if !defined(WARPX_DIM_1D_Z)
         x_old = pti.GetAttribs("prev_x").dataPtr() + offset;
 #endif
@@ -1443,7 +1446,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
         amrex::ParticleReal xp, yp, zp;
         getPosition(ip, xp, yp, zp);
 
-        if (save_previous_position) {
+        if (save_previous_position && position_push_type == PositionPushType::FirstHalf ) {
 #if !defined(WARPX_DIM_1D_Z)
             x_old[ip] = xp;
 #endif
@@ -1452,9 +1455,10 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
 #endif
 #if defined(WARPX_ZINDEX)
             z_old[ip] = zp;
+            //amrex::Print() << "---- ip = " << ip << " --- z_old[ip] =  " << z_old[ip] << "\n";
+            amrex::Print() <<  "---- ip = " << ip << " --- z_old[ip] =  " << z_old[ip] << "Species: " << species_name << " Container: " << this << std::endl;
 #endif
         }
-
         amrex::ParticleReal Exp = Ex_external_particle;
         amrex::ParticleReal Eyp = Ey_external_particle;
         amrex::ParticleReal Ezp = Ez_external_particle;

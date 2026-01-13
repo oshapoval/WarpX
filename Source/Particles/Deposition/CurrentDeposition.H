@@ -495,7 +495,9 @@ void doDepositionSharedShapeN (const GetParticlePosition<PIdx>& GetPosition,
                                const amrex::Geometry& geom,
                                const amrex::IntVect& a_tbox_max_size,
                                const int threads_per_block,
-                               const amrex::IntVect bin_size)
+                               const amrex::IntVect bin_size,
+                               const amrex::ParticleReal * const prev_x,
+                               const amrex::ParticleReal * const prev_z) // pointer to prev_x array
 {
     using namespace amrex::literals;
 
@@ -691,8 +693,9 @@ void doEsirkepovDepositionShapeN (const GetParticlePosition<PIdx>& GetPosition,
                                   amrex::Real q,
                                   [[maybe_unused]] int n_rz_azimuthal_modes,
                                   const amrex::Array4<const int>& reduced_particle_shape_mask,
-                                  bool enable_reduced_shape
-                                  )
+                                  bool enable_reduced_shape,
+                                  const amrex::ParticleReal * const prev_x,
+                                  const amrex::ParticleReal * const prev_z)
 {
     using namespace amrex;
     using namespace amrex::literals;
@@ -789,7 +792,9 @@ void doEsirkepovDepositionShapeN (const GetParticlePosition<PIdx>& GetPosition,
 #if !defined(WARPX_DIM_1D_Z)
             // Keep these double to avoid bug in single precision
             double x_new = (xp - xyzmin.x + (relative_time + 0.5_rt*dt)*uxp[ip]*gaminv)*dinv.x;
-            double const x_old = x_new - dt*dinv.x*uxp[ip]*gaminv;
+            //double const x_old = (prev_x[ip] - xyzmin.x)*dinv.x;
+            double const  x_old = x_new - dt*dinv.x*uxp[ip]*gaminv;
+
 #endif
 #endif
 #if defined(WARPX_DIM_3D)

@@ -507,13 +507,14 @@ WarpX::OneStep_nosub (
     // with collisions placed in the middle of the position push and after the momentum push
     if (m_collisions_split_position_push) {
         // push particles (half position and full momentum)
+        amrex::Print() << " $$$$$$$$$$$$$$$$$$$$$$$$ \n";
         PushParticlesandDeposit(
             a_cur_time,
             /*skip_deposition=*/true,
             PositionPushType::FirstHalf,
             MomentumPushType::Full
         );
-
+        amrex::Print() << " ^^^^^^^^^^^^^^^^^^^^^^^ \n";
         // perform essential particle house keeping at the boundaries
         // (inject, communicate, scrape, sort, etc.)
         HandleParticlesAtBoundaries(a_step, a_cur_time, /*num_moved=*/0);
@@ -522,7 +523,7 @@ WarpX::OneStep_nosub (
         ExecutePythonCallback("beforecollisions");
         mypc->doCollisions(a_step, a_cur_time, a_dt);
         ExecutePythonCallback("aftercollisions");
-
+        amrex::Print() << " +++++++++++++++++++ \n";
         // push particles (half position)
         PushParticlesandDeposit(
             a_cur_time,

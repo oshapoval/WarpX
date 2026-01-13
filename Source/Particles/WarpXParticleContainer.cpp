@@ -105,6 +105,22 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     // Reading the external fields needs to be here since ReadParameters
     // is static but the m_E_external_particle and B are not
     const ParmParse pp_particles("particles");
+    //const ParmParse pp_species_name(species_name);
+    pp_particles.query("save_previous_position", m_save_previous_position);
+    if (m_save_previous_position) {
+#if !defined(WARPX_DIM_1D_Z)
+        AddRealComp("prev_x");
+#endif
+#if defined(WARPX_DIM_3D)
+        AddRealComp("prev_y");
+#endif
+#if defined(WARPX_ZINDEX)
+        AddRealComp("prev_z");
+#endif
+#if defined(WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
+      amrex::Abort("Saving previous particle positions not yet implemented in RZ");
+#endif
+    }
 
     // allocating and initializing default values of external fields for particles
     m_E_external_particle.resize(3, 0.);
@@ -550,6 +566,21 @@ WarpXParticleContainer::DepositCurrent (WarpXParIter& pti,
     }
 
     WARPX_PROFILE_VAR_START(blp_deposit);
+    ParticleReal* x_old_prev = nullptr;
+    ParticleReal* y_old_prev = nullptr;
+    ParticleReal* z_old_prev = nullptr;
+
+#if !defined(WARPX_DIM_1D_Z)
+    x_old_prev = pti.GetAttribs("prev_x").dataPtr() + offset;
+#endif
+#if defined(WARPX_DIM_3D)
+    y_old_prev = pti.GetAttribs("prev_y").dataPtr() + offset;
+#endif
+#if defined(WARPX_ZINDEX)
+    z_old_prev = pti.GetAttribs("prev_z").dataPtr() + offset;
+#endif
+    amrex::ignore_unused(x_old_prev, y_old_prev, z_old_prev);
+    }
 
     // If doing shared mem current deposition, get tile info
     if (WarpX::do_shared_mem_current_deposition) {
@@ -596,7 +627,8 @@ WarpXParticleContainer::DepositCurrent (WarpXParIter& pti,
         const int sizeY = getMaxTboxAlongDim(box.size()[2], WarpX::shared_tilesize[2]);
 #endif
         const amrex::IntVect max_tbox_size( AMREX_D_DECL(sizeX,sizeZ,sizeY) );
-        WARPX_PROFILE_VAR_STOP(blp_get_max_tilesize);
+        WARPX_PROFILE_VAR_STOP(blp_get_max_tilesize)
+
 
         // Now pick current deposition algorithm
         if (push_type == PushType::Implicit) {
@@ -629,7 +661,7 @@ WarpXParticleContainer::DepositCurrent (WarpXParIter& pti,
                         uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
                         jx_fab, jy_fab, jz_fab, np_to_deposit, relative_time, dinv,
                         xyzmin, lo, q, WarpX::n_rz_azimuthal_modes,
-                        bins, box, geom, max_tbox_size, threads_per_block, bin_size);
+                        bins, box, geom, max_tbox_size, threads_per_block, bin_size,);
             } else if (WarpX::nox == 3){
                 doDepositionSharedShapeN<3>(
                         GetPosition, wp.dataPtr() + offset, uxp.dataPtr() + offset,
@@ -665,7 +697,7 @@ WarpXParticleContainer::DepositCurrent (WarpXParIter& pti,
                         jx_arr, jy_arr, jz_arr,
                         np_to_deposit, dt, relative_time, dinv, xyzmin, lo, q,
                         WarpX::n_rz_azimuthal_modes,
-                        eb_reduce_particle_shape, EB::enabled() );
+                        eb_reduce_particle_shape, EB::enabled(),x_old_prev, z_old_prev );
                 } else if (WarpX::nox == 2){
                     doEsirkepovDepositionShapeN<2>(
                         GetPosition, wp.dataPtr() + offset, uxp.dataPtr() + offset,
@@ -673,7 +705,7 @@ WarpXParticleContainer::DepositCurrent (WarpXParIter& pti,
                         jx_arr, jy_arr, jz_arr,
                         np_to_deposit, dt, relative_time, dinv, xyzmin, lo, q,
                         WarpX::n_rz_azimuthal_modes,
-                        eb_reduce_particle_shape, EB::enabled() );
+                        eb_reduce_particle_shape, EB::enabled(),x_old_prev, z_old_prev );
                 } else if (WarpX::nox == 3){
                     doEsirkepovDepositionShapeN<3>(
                         GetPosition, wp.dataPtr() + offset, uxp.dataPtr() + offset,
@@ -681,7 +713,7 @@ WarpXParticleContainer::DepositCurrent (WarpXParIter& pti,
                         jx_arr, jy_arr, jz_arr,
                         np_to_deposit, dt, relative_time, dinv, xyzmin, lo, q,
                         WarpX::n_rz_azimuthal_modes,
-                        eb_reduce_particle_shape, EB::enabled() );
+                        eb_reduce_particle_shape, EB::enabled(),x_old_prev, z_old_prev );
                 } else if (WarpX::nox == 4){
                     doEsirkepovDepositionShapeN<4>(
                         GetPosition, wp.dataPtr() + offset, uxp.dataPtr() + offset,
@@ -689,7 +721,7 @@ WarpXParticleContainer::DepositCurrent (WarpXParIter& pti,
                         jx_arr, jy_arr, jz_arr,
                         np_to_deposit, dt, relative_time, dinv, xyzmin, lo, q,
                         WarpX::n_rz_azimuthal_modes,
-                        eb_reduce_particle_shape, EB::enabled() );
+                        eb_reduce_particle_shape, EB::enabled(),x_old_prev, z_old_prev );
                 }
 
             } else if (push_type == PushType::Implicit) {
