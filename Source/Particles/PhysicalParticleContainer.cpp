@@ -526,7 +526,6 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
             auto wt = static_cast<amrex::Real>(amrex::second());
 
             const Box& box = pti.validbox();
-            amrex::Print()<<  " box= " << box <<"\n";
             // Extract particle data
             auto& attribs = pti.GetAttribs();
             auto&  wp = attribs[PIdx::w];
@@ -614,7 +613,6 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
                 const auto np_to_push = np_gather;
                 const auto gather_lev = lev;
                 if (push_type == PushType::Explicit) {
-                    amrex::Print() << " Evolve->Explicit PushPX .\n";
                     PushPX(pti, exfab, eyfab, ezfab,
                            bxfab, byfab, bzfab,
                            Ex.nGrowVect(), e_is_nodal,
@@ -673,7 +671,6 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
                     // Field gather and push for particles in gather buffers
                     e_is_nodal = cEx.is_nodal() and cEy.is_nodal() and cEz.is_nodal();
                     if (push_type == PushType::Explicit) {
-                        amrex::Print() << " Evolve->Explicit PushPX in buffer+ fuffers.\n";
                         PushPX(pti, cexfab, ceyfab, cezfab,
                                cbxfab, cbyfab, cbzfab,
                                cEx.nGrowVect(), e_is_nodal,
@@ -1455,8 +1452,6 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
 #endif
 #if defined(WARPX_ZINDEX)
             z_old[ip] = zp;
-            //amrex::Print() << "---- ip = " << ip << " --- z_old[ip] =  " << z_old[ip] << "\n";
-            amrex::Print() <<  "---- ip = " << ip << " --- z_old[ip] =  " << z_old[ip] << "Species: " << species_name << " Container: " << this << std::endl;
 #endif
         }
         amrex::ParticleReal Exp = Ex_external_particle;

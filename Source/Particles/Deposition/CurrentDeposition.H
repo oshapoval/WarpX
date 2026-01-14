@@ -495,9 +495,7 @@ void doDepositionSharedShapeN (const GetParticlePosition<PIdx>& GetPosition,
                                const amrex::Geometry& geom,
                                const amrex::IntVect& a_tbox_max_size,
                                const int threads_per_block,
-                               const amrex::IntVect bin_size,
-                               const amrex::ParticleReal * const prev_x,
-                               const amrex::ParticleReal * const prev_z) // pointer to prev_x array
+                               const amrex::IntVect bin_size) // pointer to prev_x array
 {
     using namespace amrex::literals;
 
@@ -694,8 +692,8 @@ void doEsirkepovDepositionShapeN (const GetParticlePosition<PIdx>& GetPosition,
                                   [[maybe_unused]] int n_rz_azimuthal_modes,
                                   const amrex::Array4<const int>& reduced_particle_shape_mask,
                                   bool enable_reduced_shape,
-                                  const amrex::ParticleReal * const prev_x,
-                                  const amrex::ParticleReal * const prev_z)
+                                  const amrex::ParticleReal * const xoldprev,
+                                  const amrex::ParticleReal * const zoldprev)
 {
     using namespace amrex;
     using namespace amrex::literals;
@@ -793,7 +791,8 @@ void doEsirkepovDepositionShapeN (const GetParticlePosition<PIdx>& GetPosition,
             // Keep these double to avoid bug in single precision
             double x_new = (xp - xyzmin.x + (relative_time + 0.5_rt*dt)*uxp[ip]*gaminv)*dinv.x;
             //double const x_old = (prev_x[ip] - xyzmin.x)*dinv.x;
-            double const  x_old = x_new - dt*dinv.x*uxp[ip]*gaminv;
+            double const x_old =(xoldprev[ip] - xyzmin.x)*dinv.x; // x_new - dt*dinv.x*uxp[ip]*gaminv;
+            //double const  x_old_olga  = (xoldprev[ip] - xyzmin.x)*dinv.x;
 
 #endif
 #endif
@@ -805,7 +804,8 @@ void doEsirkepovDepositionShapeN (const GetParticlePosition<PIdx>& GetPosition,
 #if !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
             // Keep these double to avoid bug in single precision
             double z_new = (zp - xyzmin.z + (relative_time + 0.5_rt*dt)*uzp[ip]*gaminv)*dinv.z;
-            double const z_old = z_new - dt*dinv.z*uzp[ip]*gaminv;
+            double const z_old = (zoldprev[ip] - xyzmin.z)*dinv.z; // z_new - dt*dinv.z*uzp[ip]*gaminv;
+            //double const  z_old_olga  = (zoldprev[ip] - xyzmin.z)*dinv.z;
 #endif
 
             // Check whether the particle is close to the EB at the old and new position

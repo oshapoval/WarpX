@@ -580,7 +580,7 @@ WarpXParticleContainer::DepositCurrent (WarpXParIter& pti,
     z_old_prev = pti.GetAttribs("prev_z").dataPtr() + offset;
 #endif
     amrex::ignore_unused(x_old_prev, y_old_prev, z_old_prev);
-    }
+
 
     // If doing shared mem current deposition, get tile info
     if (WarpX::do_shared_mem_current_deposition) {
@@ -627,7 +627,7 @@ WarpXParticleContainer::DepositCurrent (WarpXParIter& pti,
         const int sizeY = getMaxTboxAlongDim(box.size()[2], WarpX::shared_tilesize[2]);
 #endif
         const amrex::IntVect max_tbox_size( AMREX_D_DECL(sizeX,sizeZ,sizeY) );
-        WARPX_PROFILE_VAR_STOP(blp_get_max_tilesize)
+        WARPX_PROFILE_VAR_STOP(blp_get_max_tilesize);
 
 
         // Now pick current deposition algorithm
@@ -661,7 +661,7 @@ WarpXParticleContainer::DepositCurrent (WarpXParIter& pti,
                         uyp.dataPtr() + offset, uzp.dataPtr() + offset, ion_lev,
                         jx_fab, jy_fab, jz_fab, np_to_deposit, relative_time, dinv,
                         xyzmin, lo, q, WarpX::n_rz_azimuthal_modes,
-                        bins, box, geom, max_tbox_size, threads_per_block, bin_size,);
+                        bins, box, geom, max_tbox_size, threads_per_block, bin_size);
             } else if (WarpX::nox == 3){
                 doDepositionSharedShapeN<3>(
                         GetPosition, wp.dataPtr() + offset, uxp.dataPtr() + offset,
@@ -684,6 +684,23 @@ WarpXParticleContainer::DepositCurrent (WarpXParIter& pti,
     else {
         if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov) {
             if (push_type == PushType::Explicit) {
+
+
+            // ParticleReal* x_old = nullptr;
+            // ParticleReal* y_old = nullptr;
+            // ParticleReal* z_old = nullptr;
+            // if (save_previous_position) {
+        // #if !defined(WARPX_DIM_1D_Z)
+        //     x_old_prev = pti.GetAttribs("prev_x").dataPtr() + offset;
+        // #endif
+        // #if defined(WARPX_DIM_3D)
+        //     y_old_prev = pti.GetAttribs("prev_y").dataPtr() + offset;
+        // #endif
+        // #if defined(WARPX_ZINDEX)
+        //     z_old_prev = pti.GetAttribs("prev_z").dataPtr() + offset;
+        // #endif
+        //     amrex::ignore_unused(x_old_prev, y_old_prev, z_old_prev);
+        //     }
 
                 amrex::Array4<const int> eb_reduce_particle_shape;
                 if (EB::enabled()) {
