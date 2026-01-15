@@ -700,8 +700,13 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
                 // Current deposition
                 if (deposit_current)
                 {
+                    amrex::Real position_dt = dt;
+                    if (position_push_type == PositionPushType::FirstHalf || position_push_type == PositionPushType::SecondHalf) {
+                        position_dt *= 0.5_rt;
+                    }
                     // Deposit at t_{n+1/2} with explicit push
-                    const amrex::Real relative_time = (push_type == PushType::Explicit ? -0.25_rt * dt : 0.0_rt);
+
+                    const amrex::Real relative_time = (push_type == PushType::Explicit ? -0.5_rt * position_dt : 0.0_rt);
 
                     const int* const AMREX_RESTRICT ion_lev = (do_field_ionization)?
                         pti.GetiAttribs("ionizationLevel").dataPtr():nullptr;
@@ -731,7 +736,7 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
                         amrex::MultiFab * jz = fields.get(current_fp_string, Direction{2}, lev);
                         DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, jx, jy, jz,
                                        0, np_to_deposit, thread_num,
-                                       lev, lev, dt, relative_time, push_type);
+                                       lev, lev, position_dt, relative_time, push_type);
                     }
                     if (has_buffer)
                     {
@@ -741,7 +746,7 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
                         amrex::MultiFab * cjz = fields.get(FieldType::current_buf, Direction{2}, lev);
                         DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev, cjx, cjy, cjz,
                                        np_to_deposit, np-np_to_deposit, thread_num,
-                                       lev, lev-1, dt, relative_time, push_type);
+                                       lev, lev-1, position_dt, relative_time, push_type);
                     }
                 }
 
