@@ -1465,6 +1465,11 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
             copyAttribs(ip);
         }
 
+        amrex::Real position_dt = dt;
+        if (position_push_type == PositionPushType::FirstHalf || position_push_type == PositionPushType::SecondHalf) {
+            position_dt *= 0.5_rt;
+        }
+
 #ifdef WARPX_QED
         if (momentum_push_type != MomentumPushType::None) {
             if (!do_sync) {
@@ -1473,7 +1478,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
                                           ion_lev ? ion_lev[ip] : 1,
                                           mass, q, pusher_algo, do_crr,
                                           t_chi_max,
-                                          dt);
+                                          position_dt);
             } else {
                 if constexpr (qed_control == has_qed) {
                     doParticleMomentumPush<1>(ux[ip], uy[ip], uz[ip],
@@ -1481,7 +1486,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
                                               ion_lev ? ion_lev[ip] : 1,
                                               mass, q, pusher_algo, do_crr,
                                               t_chi_max,
-                                              dt);
+                                              position_dt);
                 }
             }
         }
@@ -1491,17 +1496,13 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
                                       Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                                       ion_lev ? ion_lev[ip] : 1,
                                       mass, q, pusher_algo, do_crr,
-                                      dt);
+                                      position_dt);
         }
 #endif
-
-        amrex::Real position_dt = dt;
-        if (position_push_type == PositionPushType::FirstHalf || position_push_type == PositionPushType::SecondHalf) {
-            position_dt *= 0.5_rt;
+        if (position_push_type == PositionPushType::Full || position_push_type == PositionPushType::SecondHalf) {
+            UpdatePosition(xp, yp, zp, ux[ip], uy[ip], uz[ip], dt, mass);
+            setPosition(ip, xp, yp, zp);
         }
-        UpdatePosition(xp, yp, zp, ux[ip], uy[ip], uz[ip], position_dt, mass);
-        setPosition(ip, xp, yp, zp);
-
 #ifdef WARPX_QED
         [[maybe_unused]] auto foo_local_has_quantum_sync = local_has_quantum_sync;
         [[maybe_unused]] auto *foo_podq = p_optical_depth_QSR;

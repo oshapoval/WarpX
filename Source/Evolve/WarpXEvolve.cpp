@@ -399,12 +399,12 @@ void WarpX::OneStep (
             electromagnetic_solver_id == ElectromagneticSolverAlgo::HybridPIC) {
             // with collisions placed in the middle of the position push and after the momentum push
             if (m_collisions_split_position_push) {
-                // push particles (half position and full momentum)
+                // push particles (no position and half momentum)
                 PushParticlesandDeposit(
                     a_cur_time,
                     /*skip_deposition=*/true,
-                    PositionPushType::FirstHalf,
-                    MomentumPushType::Full
+                    PositionPushType::None,
+                    MomentumPushType::FirstHalf
                 );
 
                 // communicate particle data
@@ -415,12 +415,12 @@ void WarpX::OneStep (
                 mypc->doCollisions(a_step, a_cur_time, a_dt);
                 ExecutePythonCallback("aftercollisions");
 
-                // push particles (half position)
+                // push particles (full position and half momentum)
                 PushParticlesandDeposit(
                     a_cur_time,
                     /*skip_deposition=*/true,
-                    PositionPushType::SecondHalf,
-                    MomentumPushType::None
+                    PositionPushType::Full,
+                    MomentumPushType::SecondHalf
                 );
             }
             // with collisions placed before the position and momentum push, or without collisions
@@ -430,7 +430,7 @@ void WarpX::OneStep (
                 mypc->doCollisions(a_step, a_cur_time, a_dt);
                 ExecutePythonCallback("aftercollisions");
 
-                // push particles (half position)
+                // push particles (full position and full momentum)
                 PushParticlesandDeposit(
                     a_cur_time,
                     /*skip_deposition=*/true,
@@ -506,12 +506,12 @@ WarpX::OneStep_nosub (
 
     // with collisions placed in the middle of the position push and after the momentum push
     if (m_collisions_split_position_push) {
-        // push particles (half position and full momentum)
+        // push particles (no position and half momentum)
         PushParticlesandDeposit(
             a_cur_time,
             /*skip_deposition=*/true,
-            PositionPushType::FirstHalf,
-            MomentumPushType::Full
+            PositionPushType::None,
+            MomentumPushType::FirstHalf
         );
 
         // perform essential particle house keeping at the boundaries
@@ -523,12 +523,12 @@ WarpX::OneStep_nosub (
         mypc->doCollisions(a_step, a_cur_time, a_dt);
         ExecutePythonCallback("aftercollisions");
 
-        // push particles (half position)
+        // push particles (full position and no momentum)
         PushParticlesandDeposit(
             a_cur_time,
             /*skip_deposition=*/false,
-            PositionPushType::SecondHalf,
-            MomentumPushType::None
+            PositionPushType::Full,
+            MomentumPushType::SecondHalf
         );
     }
     // with collisions placed before the position and momentum push, or without collisions
@@ -538,7 +538,7 @@ WarpX::OneStep_nosub (
         mypc->doCollisions(a_step, a_cur_time, a_dt);
         ExecutePythonCallback("aftercollisions");
 
-        // push particles (half position)
+        // push particles (full position and full momentum)
         PushParticlesandDeposit(
             a_cur_time,
             /*skip_deposition=*/false,
