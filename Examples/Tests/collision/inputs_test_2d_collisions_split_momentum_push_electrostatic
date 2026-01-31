@@ -1,5 +1,5 @@
 # base input parameters
-FILE = inputs_base_2d_collisions_split_position_push
+FILE = inputs_base_2d_collisions_split_momentum_push
 
 # test input parameters
 warpx.do_electrostatic = labframe

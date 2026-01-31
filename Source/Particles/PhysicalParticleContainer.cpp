@@ -117,11 +117,11 @@
 using namespace amrex;
 
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int ispecies,
-                                                      const std::string& name,
-                                                      bool const collisions_split_position_push)
+                                    const std::string& name,
+                                    bool const collisions_split_momentum_push)
     : WarpXParticleContainer(amr_core, ispecies),
       species_name(name),
-      m_collisions_split_position_push(collisions_split_position_push)
+    m_collisions_split_momentum_push(collisions_split_momentum_push)
 {
     BackwardCompatibility();
 
@@ -1410,7 +1410,7 @@ PhysicalParticleContainer::PushPX (WarpXParIter& pti,
 #endif
 
     // Local copy for device lambda capture
-    bool const collisions_split_position_push = m_collisions_split_position_push;
+    bool const collisions_split_momentum_push = m_collisions_split_momentum_push;
 
     // Loop over the particles and update their momentum.
     // Using this version of ParallelFor with compile time options

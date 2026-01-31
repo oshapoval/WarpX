@@ -52,7 +52,7 @@ public:
     PhysicalParticleContainer (amrex::AmrCore* amr_core,
                                int ispecies,
                                const std::string& name,
-                               bool const collisions_split_position_push);
+                               bool const collisions_split_momentum_push);
 
     PhysicalParticleContainer (amrex::AmrCore* amr_core);
 
@@ -492,7 +492,7 @@ protected:
      *        or before both the position and momentum push. The default value
      *        is set in WarpX::ReadParameters().
      */
-    bool m_collisions_split_position_push;
+    bool m_collisions_split_momentum_push;
 
     std::unique_ptr<warpx::particles::deposition::VarianceAccumulationBuffer> local_temperature_arrays;
 

@@ -36,7 +36,7 @@ public:
     PhotonParticleContainer (amrex::AmrCore* amr_core,
                                     int ispecies,
                                     const std::string& name,
-                                    bool const collisions_split_position_push);
+                                    bool const collisions_split_momentum_push);
     ~PhotonParticleContainer () override = default;
 
     PhotonParticleContainer ( PhotonParticleContainer const &)             = delete;
