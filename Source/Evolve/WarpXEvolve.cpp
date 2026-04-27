@@ -53,7 +53,6 @@
 #include <AMReX_Vector.H>
 
 #include <algorithm>
-#include <array>
 #include <memory>
 #include <ostream>
 #include <vector>
@@ -1071,6 +1070,7 @@ WarpX::OneStep_sub1 (Real cur_time)
     const int coarse_lev = 0;
 
     using warpx::fields::FieldType;
+    using ablastr::fields::Direction;
 
     bool const skip_lev0_coarse_patch = true;
 
@@ -1125,6 +1125,7 @@ WarpX::OneStep_sub1 (Real cur_time)
         m_fields.get_mr_levels_alldirs(FieldType::current_fp, finest_level),
         m_fields.get_mr_levels_alldirs(FieldType::current_cp, finest_level, skip_lev0_coarse_patch),
         m_fields.get_mr_levels_alldirs(FieldType::current_buf, finest_level, skip_lev0_coarse_patch), coarse_lev);
+    SaveSubcyclingCurrentFirstHalf();
 
     if (m_fields.has(FieldType::rho_fp, finest_level) &&
         m_fields.has(FieldType::rho_cp, finest_level) &&
@@ -1209,6 +1210,7 @@ WarpX::OneStep_sub1 (Real cur_time)
         m_fields.get_mr_levels_alldirs(FieldType::current_cp, finest_level, skip_lev0_coarse_patch),
         m_fields.get_mr_levels_alldirs(FieldType::current_buf, finest_level, skip_lev0_coarse_patch),
         coarse_lev);
+    SaveSubcyclingCurrentAverage();
 
     if (m_fields.has(FieldType::rho_fp, finest_level) &&
         m_fields.has(FieldType::rho_cp, finest_level) &&

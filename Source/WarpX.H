@@ -944,6 +944,22 @@ public:
     //! This function is called in amrex::AmrCore::InitFromScratch.
     void PostProcessBaseGrids (amrex::BoxArray& ba0) const final;
 
+    /**
+     * Use ``warpx.subcycling_current_average_diagnostic``:
+     *  store a separate level-0 time-averaged current ``J`` for diagnostics,
+     *  computed as the average across the two subcycling half steps
+     */
+    [[nodiscard]] bool doSubcyclingCurrentAverageDiagnostic () const noexcept {
+        return m_do_subcycling_current_average_diagnostic;
+    }
+    /** Get Level 0 current averaged across the two subcycling half steps,
+     *  :math:`(J^{(1)} + J^{(2)})/2`, computed after each ``OneStep_sub1``
+     *  when ``warpx.subcycling_current_average_diagnostic`` is enabled.
+     *  Diagnostic-only: does not modify the solver current (``current_fp``).
+     *  Returns ``nullptr`` if the diagnostic is disabled.
+     */
+    [[nodiscard]] amrex::MultiFab const* getSubcyclingCurrentFpAverage (int dir) const;
+
 protected:
 
     /**
@@ -1047,6 +1063,11 @@ private:
     );
 
     void OneStep_sub1 (amrex::Real cur_time);
+
+    /** Copy level-0 ``current_fp`` after first ``AddCurrentFromFineLevelandSumBoundary``*/
+    void SaveSubcyclingCurrentFirstHalf ();
+    /** Set ``m_subcycling_current_fp_avg`` to average of first- and second-half coarse ``current_fp``; does not modify ``current_fp``. */
+    void SaveSubcyclingCurrentAverage ();
 
     /**
      * \brief Perform one PIC iteration, with the multiple J deposition per time step
@@ -1284,6 +1305,11 @@ private:
 
     // whether to use subcycling
     bool m_do_subcycling = false;
+
+    //! When true with MR subcycling, keep separate level-0 multifabs for diagnostic \f$(J^{(1)}+J^{(2)})/2\f$.
+    bool m_do_subcycling_current_average_diagnostic = false;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> m_subcycling_current_fp_half1;
+    std::array<std::unique_ptr<amrex::MultiFab>,3> m_subcycling_current_fp_avg;
 
     //! Flag whether the Verboncoeur correction is applied to the current and charge density
     //! on the axis when using RZ.

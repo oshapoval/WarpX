@@ -629,6 +629,20 @@ FlushFormatPlotfile::WriteAllRawFields(
                     default_level_prefix, "jy_fp", lev,plot_raw_fields_guards );
         WriteRawMF( *warpx.m_fields.get(FieldType::current_fp,Direction{2}, lev), dm, raw_pltname,
                     default_level_prefix, "jz_fp", lev,plot_raw_fields_guards );
+        if (lev == 0 && warpx.doSubcyclingCurrentAverageDiagnostic()) {
+            if (MultiFab const* mf = warpx.getSubcyclingCurrentFpAverage(0)) {
+                WriteRawMF(*mf, dm, raw_pltname,
+                    default_level_prefix, "jx_fp_subcycle_avg", lev, plot_raw_fields_guards);
+            }
+            if (MultiFab const* mf = warpx.getSubcyclingCurrentFpAverage(1)) {
+                WriteRawMF(*mf, dm, raw_pltname,
+                    default_level_prefix, "jy_fp_subcycle_avg", lev, plot_raw_fields_guards);
+            }
+            if (MultiFab const* mf = warpx.getSubcyclingCurrentFpAverage(2)) {
+                WriteRawMF(*mf, dm, raw_pltname,
+                    default_level_prefix, "jz_fp_subcycle_avg", lev, plot_raw_fields_guards);
+            }
+        }
         WriteRawMF( *warpx.m_fields.get(FieldType::Bfield_fp, Direction{0}, lev), dm, raw_pltname,
                     default_level_prefix, "Bx_fp", lev, plot_raw_fields_guards );
         WriteRawMF( *warpx.m_fields.get(FieldType::Bfield_fp, Direction{1}, lev), dm, raw_pltname,

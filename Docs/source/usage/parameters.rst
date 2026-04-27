@@ -3836,6 +3836,19 @@ Additional parameters
     ``amr.max_level = 1``. More information can be found at
     https://ieeexplore.ieee.org/document/8659392.
 
+.. pp:param:: warpx.subcycling_current_average_diagnostic
+    :type: ``0`` or ``1``
+    :default: 0
+
+    When ``1`` with ``warpx.do_subcycling = 1`` and mesh refinement (``amr.max_level = 1``), WarpX allocates
+    extra level-0 multifabs and, each ``OneStep_sub1``, stores the diagnostic average
+    :math:`(J^{(1)}+J^{(2)})/2` in separate storage, where :math:`J^{(1)}` is ``current_fp`` on level 0
+    immediately after the first-half ``AddCurrentFromFineLevelandSumBoundary`` and :math:`J^{(2)}` after the second-half.
+    The live ``current_fp`` used by the field solver is not overwritten.
+    If ``diag.plot_raw_fields = 1`` (plotfile format), ``raw_fields/jx_fp_subcycle_average``, ``jy_fp_subcycle_average``,
+    and ``jz_fp_subcycle_average`` are written on level 0 in addition to ``jx_fp`` / ``jy_fp`` / ``jz_fp``.
+    Ignored when subcycling is off.
+
 .. pp:param:: warpx.override_sync_intervals
     :type: ``string``
     :default: ``1``

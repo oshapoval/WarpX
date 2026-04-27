@@ -681,6 +681,14 @@ WarpX::ReadParameters ()
         pp_warpx.query("limit_verbose_step", m_limit_verbose_step);
         utils::parser::queryWithParser(pp_warpx, "regrid_int", regrid_int);
         pp_warpx.query("do_subcycling", m_do_subcycling);
+        pp_warpx.query("subcycling_current_average_diagnostic", m_do_subcycling_current_average_diagnostic);
+        if (m_do_subcycling_current_average_diagnostic && !m_do_subcycling) {
+            ablastr::warn_manager::WMRecordWarning(
+                "Warpx",
+                "subcycling_current_average_diagnostic requires warpx.do_subcycling=1. Disabling.",
+                ablastr::warn_manager::WarnPriority::low);
+            m_do_subcycling_current_average_diagnostic = false;
+        }
         pp_warpx.query("use_hybrid_QED", use_hybrid_QED);
         pp_warpx.query("safe_guard_cells", m_safe_guard_cells);
         std::vector<std::string> override_sync_intervals_string_vec = {"1"};
@@ -2248,6 +2256,13 @@ WarpX::ClearLevel (int lev)
 {
     m_fields.clear_level(lev);
 
+    if (lev == 0) {
+        for (int idim = 0; idim < 3; ++idim) {
+            m_subcycling_current_fp_half1[idim].reset();
+            m_subcycling_current_fp_avg[idim].reset();
+        }
+    }
+
     for (int i = 0; i < 3; ++i) {
         Efield_dotMask [lev][i].reset();
         Bfield_dotMask [lev][i].reset();
@@ -2704,6 +2719,19 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         m_fields.alloc_init(FieldType::current_store, Direction{0}, lev, amrex::convert(ba,jx_nodal_flag), dm, ncomps, ngJ, 0.0_rt);
         m_fields.alloc_init(FieldType::current_store, Direction{1}, lev, amrex::convert(ba,jy_nodal_flag), dm, ncomps, ngJ, 0.0_rt);
         m_fields.alloc_init(FieldType::current_store, Direction{2}, lev, amrex::convert(ba,jz_nodal_flag), dm, ncomps, ngJ, 0.0_rt);
+
+        if (m_do_subcycling_current_average_diagnostic) {
+            for (int idim = 0; idim < 3; ++idim) {
+                amrex::IntVect const nodal = (idim == 0) ? jx_nodal_flag :
+                    (idim == 1) ? jy_nodal_flag : jz_nodal_flag;
+                m_subcycling_current_fp_half1[idim] = std::make_unique<MultiFab>(
+                    amrex::convert(ba, nodal), dm, ncomps, ngJ,
+                    MFInfo().SetTag("subcycling_j_half1"));
+                m_subcycling_current_fp_avg[idim] = std::make_unique<MultiFab>(
+                    amrex::convert(ba, nodal), dm, ncomps, ngJ,
+                    MFInfo().SetTag("subcycling_j_avg"));
+            }
+        }
     }
 
     if (do_dive_cleaning)
@@ -3613,4 +3641,58 @@ WarpX::getFieldDotMaskPointer ( FieldType field_type, int lev, ablastr::fields::
             WARPX_ABORT_WITH_MESSAGE("Invalid field type for dotMask");
             return Efield_dotMask[lev][dir].get();
     }
+}
+
+void
+WarpX::SaveSubcyclingCurrentFirstHalf ()
+{
+    if (!m_do_subcycling_current_average_diagnostic) { return; }
+
+    constexpr int lev = 0;
+    using ablastr::fields::Direction;
+    using warpx::fields::FieldType;
+
+    for (int idim = 0; idim < 3; ++idim) {
+        const auto dir = Direction{idim};
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            m_subcycling_current_fp_half1[idim],
+            "subcycling_current_average_diagnostic: half1 MultiFab not allocated (need MR subcycling on level 0).");
+        MultiFab const& src = *m_fields.get(FieldType::current_fp, dir, lev);
+        MultiFab::Copy(
+            *m_subcycling_current_fp_half1[idim], src,
+            0, 0, ncomps, src.nGrowVect());
+    }
+}
+
+void
+WarpX::SaveSubcyclingCurrentAverage ()
+{
+    if (!m_do_subcycling_current_average_diagnostic) { return; }
+
+    constexpr Real half = 0.5_rt;
+    using ablastr::fields::Direction;
+    using warpx::fields::FieldType;
+
+    for (int idim = 0; idim < 3; ++idim) {
+        const auto dir = Direction{idim};
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            m_subcycling_current_fp_half1[idim] && m_subcycling_current_fp_avg[idim],
+            "subcycling_current_average_diagnostic: averaging MultiFabs not allocated.");
+        MultiFab& avg = *m_subcycling_current_fp_avg[idim];
+        MultiFab const& a = *m_subcycling_current_fp_half1[idim];
+        MultiFab const& b = *m_fields.get(FieldType::current_fp, dir, 0);
+        MultiFab::LinComb(
+            avg,
+            half, a, 0,
+            half, b, 0,
+            0, ncomps, avg.nGrowVect());
+    }
+}
+
+amrex::MultiFab const*
+WarpX::getSubcyclingCurrentFpAverage (int dir) const
+{
+    AMREX_ASSERT(dir >= 0 && dir < 3);
+    if (!m_do_subcycling_current_average_diagnostic) { return nullptr; }
+    return m_subcycling_current_fp_avg[static_cast<std::size_t>(dir)].get();
 }
