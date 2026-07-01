@@ -8,6 +8,7 @@
 
 #include "VelocityProperties.H"
 
+#include "ExternalField.H"
 #include "Utils/Parser/ParserUtils.H"
 #include "Utils/TextMsg.H"
 
@@ -67,6 +68,20 @@ namespace {
                     pp.query("read_u_mean_distributed", vel.m_read_u_mean_distributed);
                 }
             }
+            amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const problo =
+                vel.m_geom.ProbLoArray();
+            amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const dx =
+                vel.m_geom.CellSizeArray();
+            amrex::Box const dombox = amrex::convert(vel.m_geom.Domain(), amrex::IntVect(1));
+            vel.m_u_mean_x_reader = std::make_unique<ExternalFieldReader>(
+                vel.m_read_u_mean_path, "u_mean", "x", problo, dx, dombox,
+                vel.m_read_u_mean_distributed);
+            vel.m_u_mean_y_reader = std::make_unique<ExternalFieldReader>(
+                vel.m_read_u_mean_path, "u_mean", "y", problo, dx, dombox,
+                vel.m_read_u_mean_distributed);
+            vel.m_u_mean_z_reader = std::make_unique<ExternalFieldReader>(
+                vel.m_read_u_mean_path, "u_mean", "z", problo, dx, dombox,
+                vel.m_read_u_mean_distributed);
             vel.m_type = VelFromFileVector;
 #else
             WARPX_ABORT_WITH_MESSAGE(
@@ -123,3 +138,5 @@ VelocityProperties::VelocityProperties (const amrex::ParmParse& pp, std::string 
             "' (expected 'maxwellian', 'maxwell_juttner', or 'parse_momentum_function').");
     }
 }
+
+VelocityProperties::~VelocityProperties () = default;

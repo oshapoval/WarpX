@@ -7,6 +7,7 @@
  */
 #include "TemperatureProperties.H"
 
+#include "ExternalField.H"
 #include "Utils/Parser/ParserUtils.H"
 #include "Utils/TextMsg.H"
 
@@ -95,6 +96,20 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                     pp.query("read_u_std_distributed", m_read_u_std_distributed);
                 }
             }
+            amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const problo =
+                m_geom.ProbLoArray();
+            amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const dx =
+                m_geom.CellSizeArray();
+            amrex::Box const dombox = amrex::convert(m_geom.Domain(), amrex::IntVect(1));
+            m_u_std_x_reader = std::make_unique<ExternalFieldReader>(
+                m_read_u_std_path, "u_std", "x", problo, dx, dombox,
+                m_read_u_std_distributed);
+            m_u_std_y_reader = std::make_unique<ExternalFieldReader>(
+                m_read_u_std_path, "u_std", "y", problo, dx, dombox,
+                m_read_u_std_distributed);
+            m_u_std_z_reader = std::make_unique<ExternalFieldReader>(
+                m_read_u_std_path, "u_std", "z", problo, dx, dombox,
+                m_read_u_std_distributed);
             m_type = TempFromFileVector;
 #else
             WARPX_ABORT_WITH_MESSAGE(
@@ -116,3 +131,5 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
             "' (expected 'maxwellian' or 'maxwell_juttner').");
     }
 }
+
+TemperatureProperties::~TemperatureProperties () = default;

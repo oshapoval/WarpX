@@ -515,6 +515,12 @@ struct InjectorMomentum
            object(t, temperature, velocity)
     { }
 
+    InjectorMomentum (InjectorMomentumMaxwellian* t,
+                      InjectorMomentumMaxwellian const& maxwellian) noexcept
+        : type(Type::maxwellian),
+          object(t, maxwellian)
+    { }
+
     // This constructor stores a InjectorMomentumJuttner in union object.
     InjectorMomentum (InjectorMomentumJuttner* t,
                       GetTemperature const& temperature, GetVelocityVector const& velocity)
@@ -646,6 +652,10 @@ struct InjectorMomentum
 
 private:
 
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+    void clearThreadCopies ();
+#endif
+
     // An instance of union Object constructs and stores any one of
     // the objects declared (constant or gaussian or parser).
     union Object {
@@ -671,6 +681,9 @@ private:
         Object (InjectorMomentumMaxwellian*,
                 GetTemperatureVector const& t, GetVelocityVector const& b) noexcept
             : maxwellian(t,b) {}
+        Object (InjectorMomentumMaxwellian*,
+                InjectorMomentumMaxwellian const& m) noexcept
+            : maxwellian(m) {}
         Object (InjectorMomentumJuttner*,
                 GetTemperature const& t, GetVelocityVector const& b) noexcept
             : juttner(t,b) {}

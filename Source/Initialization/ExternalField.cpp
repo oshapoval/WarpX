@@ -581,35 +581,19 @@ ExternalFieldView ExternalFieldReader::make_view (amrex::BaseFab<double> const& 
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
 ExternalFieldVectorFromFile::ExternalFieldVectorFromFile (
-    std::string const& file_name,
-    std::string const& field_name,
-    amrex::Geometry const& geom,
-    bool distributed,
-    bool active)
+    ExternalFieldReader* x_reader,
+    ExternalFieldReader* y_reader,
+    ExternalFieldReader* z_reader)
+    : m_x_reader{x_reader},
+      m_y_reader{y_reader},
+      m_z_reader{z_reader}
 {
-    if (!active) {
-        return;
-    }
-
-    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const problo = geom.ProbLoArray();
-    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const dx = geom.CellSizeArray();
-    amrex::Box const dombox = amrex::convert(geom.Domain(), amrex::IntVect(1));
-
-    m_x_reader = new ExternalFieldReader(file_name, field_name, "x", problo, dx,
-                                         dombox, distributed);
-    m_y_reader = new ExternalFieldReader(file_name, field_name, "y", problo, dx,
-                                         dombox, distributed);
-    m_z_reader = new ExternalFieldReader(file_name, field_name, "z", problo, dx,
-                                         dombox, distributed);
 }
 
 void ExternalFieldVectorFromFile::clear ()
 {
-    delete m_x_reader;
     m_x_reader = nullptr;
-    delete m_y_reader;
     m_y_reader = nullptr;
-    delete m_z_reader;
     m_z_reader = nullptr;
 }
 

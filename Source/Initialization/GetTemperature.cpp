@@ -25,8 +25,8 @@ GetTemperatureVector::GetTemperatureVector (TemperatureProperties const& temp)
     : m_type{temp.m_type}
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
-    , m_from_file{temp.m_read_u_std_path, "u_std", temp.m_geom, temp.m_read_u_std_distributed,
-                  temp.m_type == TempFromFileVector}
+    , m_from_file{temp.m_u_std_x_reader.get(), temp.m_u_std_y_reader.get(),
+                  temp.m_u_std_z_reader.get()}
 #endif
 {
     if (m_type == TempConstantVector) {

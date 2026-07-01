@@ -1293,9 +1293,13 @@ PhysicalParticleContainer::AddPlasmaFlux (PlasmaInjector& plasma_injector, amrex
                                                      m_user_int_attrib_parser,
                                                      m_user_real_attrib_parser);
 
-    plasma_injector.prepare(this->ParticleBoxArray(0),
-                            this->ParticleDistributionMap(0), IntVect(0),
-                            nullptr);
+    if (plasma_injector.injectorMomentumNeedsPreparation() &&
+        !plasma_injector.injectorMomentumIsPrepared())
+    {
+        plasma_injector.prepare(this->ParticleBoxArray(0),
+                                this->ParticleDistributionMap(0), IntVect(0),
+                                nullptr);
+    }
 
     MFItInfo info;
     if (do_tiling && amrex::Gpu::notInLaunchRegion()) {

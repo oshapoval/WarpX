@@ -275,11 +275,9 @@ struct ExternalFieldVectorFromFile
 {
     ExternalFieldVectorFromFile () = default;
 
-    ExternalFieldVectorFromFile (std::string const& file_name,
-                                 std::string const& field_name,
-                                 amrex::Geometry const& geom,
-                                 bool distributed,
-                                 bool active);
+    ExternalFieldVectorFromFile (ExternalFieldReader* x_reader,
+                                 ExternalFieldReader* y_reader,
+                                 ExternalFieldReader* z_reader);
 
     void clear ();
 

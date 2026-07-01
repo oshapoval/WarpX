@@ -10,8 +10,8 @@
 #include <AMReX_GpuDevice.H>
 #include <AMReX_OpenMP.H>
 
-#include <cstring>
 #include <memory>
+#include <new>
 
 void InjectorMomentum::clear () // NOLINT(readability-make-member-function-const)
 {
@@ -33,10 +33,20 @@ void InjectorMomentum::clear () // NOLINT(readability-make-member-function-const
     }
     }
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
-    inj_mom_data.reset();
-    inj_mom_omp.clear();
+    clearThreadCopies();
 #endif
 }
+
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+void InjectorMomentum::clearThreadCopies ()
+{
+    for (auto* q : inj_mom_omp) {
+        q->~InjectorMomentum();
+    }
+    inj_mom_omp.clear();
+    inj_mom_data.reset();
+}
+#endif
 
 bool InjectorMomentum::needPreparation () const noexcept
 {
@@ -56,19 +66,18 @@ void InjectorMomentum::prepare (
     object.maxwellian.prepare(grids, dmap, ngrow, get_zlab);
 
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+    clearThreadCopies();
     if (distributed()) {
         auto const nthreads = amrex::OpenMP::get_max_threads();
         inj_mom_data = std::unique_ptr<void, amrex::DataDeleter>(
             amrex::The_Cpu_Arena()->alloc(sizeof(InjectorMomentum) * nthreads),
             amrex::DataDeleter{amrex::The_Cpu_Arena()});
         auto* p = reinterpret_cast<InjectorMomentum*>(inj_mom_data.get());
-        inj_mom_omp.clear();
         for (int tid = 0; tid < nthreads; ++tid) {
-            inj_mom_omp.push_back(p++);
-        }
-        for (auto* q : inj_mom_omp) {
-            std::memcpy(static_cast<void*>(q), static_cast<void const*>(this),
-                        sizeof(InjectorMomentum));
+            auto* q = p++;
+            new (q) InjectorMomentum(
+                static_cast<InjectorMomentumMaxwellian*>(nullptr), object.maxwellian);
+            inj_mom_omp.push_back(q);
         }
     }
 #endif
@@ -87,8 +96,7 @@ void InjectorMomentum::prepare (
     object.maxwellian.prepare(pbox, moving_dir, moving_sign, get_zlab);
 
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
-    inj_mom_data.reset();
-    inj_mom_omp.clear();
+    clearThreadCopies();
 #endif
 }
 

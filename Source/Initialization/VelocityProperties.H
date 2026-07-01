@@ -8,6 +8,8 @@
 #ifndef WARPX_VELOCITY_PROPERTIES_H_
 #define WARPX_VELOCITY_PROPERTIES_H_
 
+#include "ExternalField_fwd.H"
+
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Parser.H>
@@ -43,6 +45,8 @@ struct VelocityProperties
     VelocityProperties (const amrex::ParmParse& pp, std::string const& source_name,
                         amrex::Geometry const& geom);
 
+    ~VelocityProperties ();
+
     [[nodiscard]] bool needPreparation () const noexcept
     {
         return m_type == VelFromFileVector;
@@ -60,6 +64,13 @@ struct VelocityProperties
     bool m_read_u_mean_distributed{true};
 
     amrex::Geometry m_geom;
+
+#if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
+    !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
+    std::unique_ptr<ExternalFieldReader> m_u_mean_x_reader;
+    std::unique_ptr<ExternalFieldReader> m_u_mean_y_reader;
+    std::unique_ptr<ExternalFieldReader> m_u_mean_z_reader;
+#endif
 };
 
 #endif //WARPX_VELOCITY_PROPERTIES_H_

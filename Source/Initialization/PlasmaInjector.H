@@ -154,6 +154,11 @@ public:
     [[nodiscard]] InjectorMomentum* getInjectorMomentumDevice () const;
     [[nodiscard]] InjectorMomentum* getInjectorMomentumHost () const;
     [[nodiscard]] InjectorMomentum* getInjectorMomentum (int li) const;
+    [[nodiscard]] bool injectorMomentumNeedsPreparation () const noexcept
+    {
+        return h_inj_mom && h_inj_mom->needPreparation();
+    }
+    [[nodiscard]] bool injectorMomentumIsPrepared () const noexcept { return inj_mom_prepared; }
 
     void prepare (amrex::BoxArray const& grids,
                   amrex::DistributionMapping const& dmap,

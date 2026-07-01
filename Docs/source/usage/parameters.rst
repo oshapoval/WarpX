@@ -1735,8 +1735,8 @@ Particle initialization
           ``RSPHERE``). The following is required:
           ``<species_name>.read_u_mean_from_path`` (openPMD file path). The file must contain
           an openPMD vector record ``u_mean`` with components ``x``, ``y`` and ``z``.
-          Optional: ``<species_name>.read_u_mean_distributed`` (`0` or `1`, default `1`).
-          If `1`, each MPI rank loads only a chunk of the openPMD data; otherwise the
+          Optional: ``<species_name>.read_u_mean_distributed`` (``0`` or ``1``, default ``1``).
+          If ``1``, each MPI rank loads only a chunk of the openPMD data; otherwise the
           entire openPMD data is loaded on all MPI ranks. Distributed mode is not available
           when ballistic coordinate correction is active, e.g. in a boosted-frame run or at
           nonzero injection time. Set ``<species_name>.read_u_mean_distributed = 0`` in
@@ -1762,8 +1762,8 @@ Particle initialization
           ``RSPHERE``). The following is required:
           ``<species_name>.read_u_std_from_path`` (openPMD file path). The file must contain
           an openPMD vector record ``u_std`` with components ``x``, ``y`` and ``z``.
-          Optional: ``<species_name>.read_u_std_distributed`` (`0` or `1`, default `1`).
-          If `1`, each MPI rank loads only a chunk of the openPMD data; otherwise the
+          Optional: ``<species_name>.read_u_std_distributed`` (``0`` or ``1``, default ``1``).
+          If ``1``, each MPI rank loads only a chunk of the openPMD data; otherwise the
           entire openPMD data is loaded on all MPI ranks.
 
         Particles may be relativistic in the lab frame, but the sampling model treats them as
