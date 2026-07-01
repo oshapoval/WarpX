@@ -308,7 +308,14 @@ struct ExternalFieldVectorFromFile
 #else
         amrex::RealVect const pos{x, y, z};
 #endif
+#if defined(AMREX_USE_GPU)
+        AMREX_IF_ON_HOST((amrex::Abort(
+            "For GPU builds, ExternalFieldVectorFromFile only works on device.");))
+        AMREX_IF_ON_DEVICE((return amrex::XDim3{m_x_view(pos), m_y_view(pos), m_z_view(pos)};))
+        return amrex::XDim3{0.0, 0.0, 0.0};
+#else
         return amrex::XDim3{m_x_view(pos), m_y_view(pos), m_z_view(pos)};
+#endif
     }
 
 private:
