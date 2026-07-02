@@ -63,7 +63,7 @@ namespace {
                     source_name.empty() ? std::string("read_u_mean_distributed")
                                         : source_name + ".read_u_mean_distributed";
                 if (pp.contains(key_with_src)) {
-                    pp.query(key_with_src.c_str(), vel.m_read_u_mean_distributed);
+                    pp.query(key_with_src, vel.m_read_u_mean_distributed);
                 } else {
                     pp.query("read_u_mean_distributed", vel.m_read_u_mean_distributed);
                 }

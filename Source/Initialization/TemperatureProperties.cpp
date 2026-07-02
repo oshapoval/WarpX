@@ -91,7 +91,7 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                     source_name.empty() ? std::string("read_u_std_distributed")
                                         : source_name + ".read_u_std_distributed";
                 if (pp.contains(key_with_src)) {
-                    pp.query(key_with_src.c_str(), m_read_u_std_distributed);
+                    pp.query(key_with_src, m_read_u_std_distributed);
                 } else {
                     pp.query("read_u_std_distributed", m_read_u_std_distributed);
                 }
