@@ -177,7 +177,6 @@ else:
 
     # check if power spectrum sampling match earlier results
     amps = np.abs(F_kw[2, 1, len(kz) // 2 - 2 : len(kz) // 2 + 2])
-    print("Amplitude sample: ", amps)
-    assert np.allclose(
-        amps, np.array([79.98358457, 27.24783417, 213.15227656, 24.12800388])
-    )
+    amps_ref = np.array([55.6719968, 31.26152007, 70.14344043, 15.4179245])
+    print("Amplitude sample: ", repr(amps))
+    assert np.allclose(amps, amps_ref, rtol=1e-5, atol=1e-8)

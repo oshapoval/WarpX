@@ -27,10 +27,10 @@ FieldReduction::FieldReduction (const std::string& rd_name)
 {
     using namespace amrex::literals;
 
-    // RZ coordinate is not working
-#if (defined WARPX_DIM_RZ)
+    // Non-Cartesian coordinates not working
+#if (defined WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
     WARPX_ALWAYS_ASSERT_WITH_MESSAGE(false,
-        "FieldReduction reduced diagnostics does not work for RZ coordinate.");
+        "FieldReduction reduced diagnostics not implemented for cylindrical and spherical coordinates.");
 #endif
 
     // read number of levels
@@ -60,7 +60,7 @@ FieldReduction::FieldReduction (const std::string& rd_name)
     parser_string = std::regex_replace(parser_string, std::regex("\n\\s*"), " ");
 
     // read reduction type
-    pp_rd_name.get_enum_sloppy("reduction_type", m_reduction_type, "-_");
+    pp_rd_name.get_enum_case_insensitive("reduction_type", m_reduction_type);
 
     if (amrex::ParallelDescriptor::IOProcessor())
     {

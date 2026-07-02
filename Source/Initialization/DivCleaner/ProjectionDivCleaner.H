@@ -35,6 +35,8 @@
 #include <AMReX_SPACE.H>
 #include <AMReX_Vector.H>
 
+#include <ablastr/utils/Enums.H>
+
 #include "Fields.H"
 #include "Utils/Parser/ParserUtils.H"
 
@@ -65,31 +67,67 @@ protected:
     amrex::Real m_atol;
 
     std::string m_field_name;
+    ablastr::utils::enums::GridType m_grid_type;
+
+    bool m_vector_potential;
+
+    // Component of the field to clean. Some external fields (e.g. applied particle fields)
+    // are stored as several stacked, independent field maps -- one component per map, each
+    // with its own time dependence -- so each map must be cleaned separately. Defaults to 0,
+    // which is the only component for ordinary single-component fields and preserves the
+    // existing interface for callers that do not load stacked field maps.
+    int m_comp = 0;
+
+private:
+    // Helper template for executing the MLMG solver with cell and node based solvers
+    template <typename T>
+    AMREX_FORCE_INLINE void runMLMG (
+        T &linop,
+        amrex::Array<amrex::LinOpBCType,AMREX_SPACEDIM> const& lobc,
+        amrex::Array<amrex::LinOpBCType,AMREX_SPACEDIM> const& hibc,
+        int lev
+    )
+    {
+        linop.setMaxOrder(m_linop_maxorder);
+        linop.setDomainBC(lobc, hibc);
+
+        if (lev > 0) {
+            linop.setCoarseFineBC(m_solution[lev-1].get(), m_ref_ratio);
+        }
+
+        linop.setLevelBC(lev, m_solution[lev].get());
+
+        amrex::MLMG mlmg(linop);
+        mlmg.setMaxIter(m_max_iter);
+        mlmg.setMaxFmgIter(m_max_fmg_iter);
+        mlmg.setBottomSolver(m_bottom_solver);
+        mlmg.setVerbose(m_verbose);
+        mlmg.setBottomVerbose(m_bottom_verbose);
+        mlmg.setConvergenceNormType(amrex::MLMGNormType::greater);
+        mlmg.solve({m_solution[lev].get()}, {m_source[lev].get()}, m_rtol, m_atol);
+    }
 
 public:
     amrex::Vector< std::unique_ptr<amrex::MultiFab> > m_solution;
     amrex::Vector< std::unique_ptr<amrex::MultiFab> > m_source;
 
     amrex::Vector<amrex::Real> m_h_stencil_coefs_x;
-#if !defined(WARPX_DIM_RZ)
     amrex::Vector<amrex::Real> m_h_stencil_coefs_y;
-#endif
     amrex::Vector<amrex::Real> m_h_stencil_coefs_z;
 
     amrex::Gpu::DeviceVector<amrex::Real> m_stencil_coefs_x;
-#if !defined(WARPX_DIM_RZ)
     amrex::Gpu::DeviceVector<amrex::Real> m_stencil_coefs_y;
-#endif
     amrex::Gpu::DeviceVector<amrex::Real> m_stencil_coefs_z;
 
     // Default Constructor
-    ProjectionDivCleaner (std::string const& a_field_name);
+    explicit ProjectionDivCleaner (std::string const& a_field_name, bool a_vector_potential=false,
+                                   int a_comp=0);
 
     void ReadParameters ();
 
     void solve ();
-    void setSourceFromBfield ();
-    void correctBfield ();
+    void setSourceFromField ();
+    void correctField ();
 
 };
 

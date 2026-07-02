@@ -27,10 +27,12 @@ Functions can be called at the following times:
 
 * ``loadExternalFields``: during ``WarpX::LoadExternalFields`` to write ``B/Efield_fp_external`` values
 * ``beforeInitEsolve``: before the initial solve for the E fields (i.e. before the PIC loop starts)
+* ``afterInitEsolve``: after the initial solve for the E fields (i.e. before the PIC loop starts)
 * ``afterinit``: immediately after the init is complete
-* ``beforeEsolve``: before the solve for E fields
+* ``allocdata``: during initialization (from scratch and from restart), when new MultiFabs should be allocated
+* ``beforeEsolve``: before the solve for E fields (not called during init E solve, use beforeInitEsolve to apply to first solve)
 * ``poissonsolver``: In place of the computePhi call but only in an electrostatic simulation
-* ``afterEsolve``: after the solve for E fields
+* ``afterEsolve``: after the solve for E fields (not called after init E solve, use afterInitEsolve to apply to first solve)
 * ``afterBpush``: after the B field advance for electromagnetic solvers
 * ``afterEpush``: after the E field advance for electromagnetic solvers
 * ``beforedeposition``: before the particle deposition (for charge and/or current)
@@ -40,8 +42,7 @@ Functions can be called at the following times:
 * ``afterdiagnostics``: after diagnostic output
 * ``oncheckpointsignal``: on a checkpoint signal
 * ``onbreaksignal``: on a break signal. These callbacks will be the last ones executed before the simulation ends.
-* ``particlescraper``: just after the particle boundary conditions are applied
-  but before lost particles are processed
+* ``particlescraper``: before particle boundary conditions are applied
 * ``particleloader``: at the time that the standard particle loader is called
 * ``particleinjection``: called when particle injection happens, after the position
   advance and before deposition is called, allowing a user
@@ -282,6 +283,7 @@ callback_instances = {
     "afterInitEsolve": {},
     "afterInitatRestart": {},
     "afterinit": {},
+    "allocdata": {},
     "beforecollisions": {},
     "aftercollisions": {},
     "beforeEsolve": {},
@@ -425,6 +427,16 @@ def callfromafterinit(f):
 
 def installafterinit(f):
     installcallback("afterinit", f)
+
+
+# ----------------------------------------------------------------------------
+def callfromallocdata(f):
+    installcallback("allocdata", f)
+    return f
+
+
+def installallocdata(f):
+    installcallback("allocdata", f)
 
 
 # ----------------------------------------------------------------------------

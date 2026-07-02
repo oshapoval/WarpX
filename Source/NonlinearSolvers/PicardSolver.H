@@ -38,18 +38,18 @@ public:
     PicardSolver(PicardSolver&&) noexcept = delete;
     PicardSolver& operator=(PicardSolver&&) noexcept = delete;
 
-    void Define ( const Vec&  a_U,
-                        Ops*  a_ops ) override;
+    void Define (const Vec&  a_U,
+                       Ops*  a_ops) override;
 
-    void Solve ( Vec&   a_U,
-           const Vec&   a_b,
-           amrex::Real  a_time,
-           amrex::Real  a_dt,
-           int          a_step) const override;
+    void Solve (Vec&   a_U,
+          const Vec&   a_b,
+          amrex::Real  a_time,
+          amrex::Real  a_dt,
+          int          a_step) const override;
 
-    void GetSolverParams ( amrex::Real&  a_rtol,
-                           amrex::Real&  a_atol,
-                           int&          a_maxits ) override
+    void GetSolverParams (amrex::Real&  a_rtol,
+                          amrex::Real&  a_atol,
+                          int&          a_maxits) override
     {
         a_rtol = m_rtol;
         a_atol = m_atol;
@@ -96,13 +96,18 @@ private:
      */
     int m_maxits = 100;
 
+    /**
+     * \brief Total iterations for the diagnostic file
+     */
+    mutable int m_total_iters = 0;
+
     void ParseParameters( );
 
 };
 
 template <class Vec, class Ops>
-void PicardSolver<Vec,Ops>::Define ( const Vec&  a_U,
-                                     Ops*        a_ops )
+void PicardSolver<Vec,Ops>::Define (const Vec&  a_U,
+                                    Ops*        a_ops)
 {
     WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
         !this->m_is_defined,
@@ -137,6 +142,8 @@ void PicardSolver<Vec,Ops>::Define ( const Vec&  a_U,
         diagnostic_file << " ";
         diagnostic_file << "[" << c++ << "]iters";
         diagnostic_file << " ";
+        diagnostic_file << "[" << c++ << "]total_iters";
+        diagnostic_file << " ";
         diagnostic_file << "[" << c++ << "]norm_abs";
         diagnostic_file << " ";
         diagnostic_file << "[" << c++ << "]norm_rel";
@@ -160,11 +167,11 @@ void PicardSolver<Vec,Ops>::ParseParameters ()
 }
 
 template <class Vec, class Ops>
-void PicardSolver<Vec,Ops>::Solve ( Vec&         a_U,
-                              const Vec&         a_b,
-                                    amrex::Real  a_time,
-                                    amrex::Real  a_dt,
-                                    int          a_step) const
+void PicardSolver<Vec,Ops>::Solve (Vec&         a_U,
+                             const Vec&         a_b,
+                                   amrex::Real  a_time,
+                                   amrex::Real  a_dt,
+                                   int          a_step) const
 {
     BL_PROFILE("PicardSolver::Solve()");
     WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
@@ -210,42 +217,52 @@ void PicardSolver<Vec,Ops>::Solve ( Vec&         a_U,
         }
 
         if (norm_abs < m_atol) {
-            amrex::Print() << "Picard: exiting at iter = " << std::setw(3) << iter
-                           << ". Satisfied absolute tolerance " << m_atol << "\n";
+            this->m_exit_status = 2;
+            if (this->m_verbose) {
+                amrex::Print() << "Picard: exiting at iter = " << std::setw(3) << iter
+                               << ". Satisfied absolute tolerance " << m_atol << "\n";
+            }
             break;
         }
 
         if (norm_rel < m_rtol) {
-            amrex::Print() << "Picard: exiting at iter = " << std::setw(3) << iter
-                           << ". Satisfied relative tolerance " << m_rtol << "\n";
+            this->m_exit_status = 3;
+            if (this->m_verbose) {
+                amrex::Print() << "Picard: exiting at iter = " << std::setw(3) << iter
+                               << ". Satisfied relative tolerance " << m_rtol << "\n";
+            }
             break;
         }
 
         if (iter >= m_maxits) {
-            amrex::Print() << "Picard: exiting at iter = " << std::setw(3) << iter
-                           << ". Maximum iteration reached: iter = " << m_maxits << "\n";
+            if (this->m_verbose) {
+                amrex::Print() << "Picard: exiting at iter = " << std::setw(3) << iter
+                               << ". Maximum iteration reached: iter = " << m_maxits << "\n";
+            }
             break;
         }
 
     }
 
+    // Update total iteration count
+    m_total_iters += iter;
+
     if (m_rtol > 0. && iter == m_maxits) {
-       std::stringstream convergenceMsg;
-       convergenceMsg << "Picard solver failed to converge after " << iter <<
-                         " iterations. Relative norm is " << norm_rel <<
-                         " and the relative tolerance is " << m_rtol <<
-                         ". Absolute norm is " << norm_abs <<
-                         " and the absolute tolerance is " << m_atol;
-       if (this->m_verbose) { amrex::Print() << convergenceMsg.str() << "\n"; }
-       if (m_require_convergence) {
-           WARPX_ABORT_WITH_MESSAGE(convergenceMsg.str());
-       } else {
-           ablastr::warn_manager::WMRecordWarning("PicardSolver", convergenceMsg.str());
-       }
+        std::stringstream convergenceMsg;
+        convergenceMsg << "Picard solver failed to converge after " << iter <<
+                          " iterations. Relative norm is " << norm_rel <<
+                          " and the relative tolerance is " << m_rtol <<
+                          ". Absolute norm is " << norm_abs <<
+                          " and the absolute tolerance is " << m_atol;
+        if (this->m_verbose) { amrex::Print() << convergenceMsg.str() << "\n"; }
+        ablastr::warn_manager::WMRecordWarning("PicardSolver", convergenceMsg.str());
+
+        if (m_require_convergence) { this->m_exit_status = -5; }
+        else { this->m_exit_status = 0; }
     }
 
     if (!this->m_diagnostic_file.empty() && amrex::ParallelDescriptor::IOProcessor() &&
-        (a_step%this->m_diagnostic_interval==0 || a_step==0)) {
+        ((a_step+1)%this->m_diagnostic_interval==0 || a_step==0)) {
         std::ofstream diagnostic_file{this->m_diagnostic_file, std::ofstream::out | std::ofstream::app};
         diagnostic_file << std::setprecision(14);
         diagnostic_file << a_step+1;
@@ -253,6 +270,8 @@ void PicardSolver<Vec,Ops>::Solve ( Vec&         a_U,
         diagnostic_file << a_time + a_dt;
         diagnostic_file << " ";
         diagnostic_file << iter;
+        diagnostic_file << " ";
+        diagnostic_file << m_total_iters;
         diagnostic_file << " ";
         diagnostic_file << norm_abs;
         diagnostic_file << " ";
