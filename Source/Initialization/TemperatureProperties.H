@@ -48,6 +48,11 @@ struct TemperatureProperties
     TemperatureProperties (const amrex::ParmParse& pp, std::string const& source_name,
                            amrex::Geometry const& geom);
 
+    TemperatureProperties (TemperatureProperties const&) = delete;
+    TemperatureProperties& operator= (TemperatureProperties const&) = delete;
+    TemperatureProperties (TemperatureProperties&&) = delete;
+    TemperatureProperties& operator= (TemperatureProperties&&) = delete;
+
     ~TemperatureProperties ();
 
     [[nodiscard]] bool needPreparation () const noexcept

@@ -45,6 +45,11 @@ struct VelocityProperties
     VelocityProperties (const amrex::ParmParse& pp, std::string const& source_name,
                         amrex::Geometry const& geom);
 
+    VelocityProperties (VelocityProperties const&) = delete;
+    VelocityProperties& operator= (VelocityProperties const&) = delete;
+    VelocityProperties (VelocityProperties&&) = delete;
+    VelocityProperties& operator= (VelocityProperties&&) = delete;
+
     ~VelocityProperties ();
 
     [[nodiscard]] bool needPreparation () const noexcept
