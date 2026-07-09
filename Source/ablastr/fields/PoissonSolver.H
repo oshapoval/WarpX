@@ -183,7 +183,9 @@ inline void interpolatePhiBetweenLevels (
  * \param[in] eb_enabled solve with embedded boundaries
  * \param[in] do_single_precision_comms perform communications in single precision
  * \param[in] rel_ref_ratio mesh refinement ratio between levels (default: 1)
- * \param[in] num_sweeps if set, MLMG pre/post smooth sweeps and final smooth (4x) sweeps; if unset, AMReX defaults apply
+ * \param[in] num_sweeps Optional MLMG smoothing count. If set, used for pre- and
+ * post-smoothing; final smoothing uses four times this value. If unset, AMReX MLMG
+ * defaults are used (pre/post/final: 2/2/8).
  * \param[in] post_phi_calculation perform a calculation per level directly after phi was calculated; required for embedded boundaries (default: none)
  * \param[in] boundary_handler a handler for boundary conditions, for example @see ElectrostaticSolver::PoissonBoundaryHandler
  * \param[in] current_time the current time; required for embedded boundaries (default: none)
