@@ -473,7 +473,7 @@ Overall simulation parameters
 
 .. pp:param:: warpx.self_fields_num_sweeps
     :type: ``integer``
-    :default: AMReX MLMG defaults (pre/post: 2, final: 8)
+    :default: 2
 
     Number of relaxation, or smoothing, sweeps performed during each pre- and
     post-smoothing stage of the AMReX MLMG Poisson solve for electrostatic

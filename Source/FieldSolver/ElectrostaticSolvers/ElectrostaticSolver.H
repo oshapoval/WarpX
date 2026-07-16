@@ -157,7 +157,7 @@ public:
      */
     int self_fields_verbosity = 2;
     /** If set, MLMG pre/post smooth sweeps; final smooth is 4x this value */
-    std::optional<int> self_fields_num_sweeps;
+    int self_fields_num_sweeps = 2;
 
     /** Parameters for FFT Poisson solver aka IGF */
     // 0: full 3D, 1: many 2D z-slices (quasi-3D)
