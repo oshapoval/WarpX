@@ -471,23 +471,15 @@ Overall simulation parameters
     verbose output. When using ``labframe-electromagnetostatic``, this value
     is also used as the default for ``magnetostatic_solver_verbosity``.
 
-.. pp:param:: warpx.self_fields_num_sweeps
+.. pp:param:: warpx.self_fields_num_final_sweeps
     :type: ``integer``
     :default: 2
 
-    Number of relaxation, or smoothing, sweeps performed during each pre- and
-    post-smoothing stage of the AMReX MLMG Poisson solve for electrostatic
-    self fields. This value sets the AMReX MLMG pre- and post-smoothing counts.
-    When this parameter is set, WarpX also sets the AMReX final smoothing count
-    to four times this value.
-    For example, ``warpx.self_fields_num_sweeps = 4`` uses 4 pre-smoothing
-    sweeps, 4 post-smoothing sweeps, and 16 final smoothing sweeps.
+    Number of relaxation (smoothing) sweeps performed during the final smoothing
+    stage of the AMReX MLMG Poisson solve for electrostatic self fields.
 
-    In one MLMG V-cycle, pre-smoothing is performed before restricting the residual
-    to the next coarser multigrid level, and post-smoothing is performed after
-    interpolating the coarse-level correction back to the finer level. Final
-    smoothing is used by AMReX when the smoother itself is used as the bottom
-    solver.
+    Final smoothing is applied by AMReX when the smoother is used as the bottom
+    solver of the multigrid solve.
 
     Increasing this value can improve residual reduction per MLMG iteration,
     which may help convergence, but it also increases the work performed in each

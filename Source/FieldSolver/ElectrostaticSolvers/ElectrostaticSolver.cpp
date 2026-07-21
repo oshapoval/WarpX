@@ -42,10 +42,10 @@ void ElectrostaticSolver::ReadParameters () {
     utils::parser::queryWithParser(
         pp_warpx, "self_fields_verbosity", self_fields_verbosity);
 
-    utils::parser::queryWithParser(pp_warpx, "self_fields_num_sweeps", self_fields_num_sweeps); {
+    utils::parser::queryWithParser(pp_warpx, "self_fields_num_final_sweeps", self_fields_num_final_sweeps); {
     WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
-            self_fields_num_sweeps > 0,
-            "warpx.self_fields_num_sweeps must be > 0");
+            self_fields_num_final_sweeps > 0,
+            "warpx.self_fields_num_final_sweeps must be > 0");
     }
     // FFT solver flags
     utils::parser::queryWithParser(
@@ -220,7 +220,7 @@ ElectrostaticSolver::computePhi (
         EB::enabled(),
         WarpX::do_single_precision_comms,
         warpx.refRatio(),
-        self_fields_num_sweeps,
+        self_fields_num_final_sweeps,
         post_phi_calculation,
         *m_poisson_boundary_handler,
         warpx.gett_new(0),
