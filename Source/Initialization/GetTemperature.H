@@ -13,13 +13,6 @@
 #include "TemperatureProperties.H"
 
 #include <AMReX.H>
-#include <AMReX_Box.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_RealBox.H>
-
-#include <functional>
 
 /**
  * \brief Get temperature at a point on the grid
@@ -97,30 +90,6 @@ struct GetTemperatureVector
      * populate the functor
      */
     explicit GetTemperatureVector (TemperatureProperties const& temp);
-
-    [[nodiscard]] bool needPreparation () const noexcept
-    {
-#if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
-    !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
-        return m_type == TempFromFileVector;
-#else
-        return false;
-#endif
-    }
-
-    void prepare (amrex::BoxArray const& grids,
-                  amrex::DistributionMapping const& dmap,
-                  amrex::IntVect const& ngrow,
-                  std::function<amrex::Real(amrex::Real)> const& get_zlab);
-
-    void prepare (amrex::RealBox const& pbox, int moving_dir, int moving_sign,
-                  std::function<amrex::Real(amrex::Real)> const& get_zlab);
-
-    void prepare (int li);
-
-    void clear ();
-
-    [[nodiscard]] bool distributed () const noexcept;
 
     /**
      * \brief Functor call. Returns the value of temperature at the location (x,y,z)

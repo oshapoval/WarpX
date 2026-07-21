@@ -706,51 +706,11 @@ PlasmaInjector::getInjectorMomentumHost () const
     return h_inj_mom.get();
 }
 
-InjectorMomentum*
-PlasmaInjector::getInjectorMomentum (int li) const
-{
-    auto* inj_mom = d_inj_mom;
-    if (h_inj_mom && h_inj_mom->needPreparation()) {
-        if (inj_mom_prepared) {
-            if (inj_mom_distributed) {
-                h_inj_mom->prepare(li, &inj_mom);
-            }
-        } else {
-            WARPX_ABORT_WITH_MESSAGE("Plasma Momentum Injector is not prepared");
-        }
-    }
-    return inj_mom;
-}
-
 void PlasmaInjector::prepare (amrex::BoxArray const& grids,
                               amrex::DistributionMapping const& dmap,
                               amrex::IntVect const& ngrow,
                               std::function<amrex::Real(amrex::Real)> const& get_zlab)
 {
-    if (h_inj_mom && h_inj_mom->needPreparation()) {
-        if (get_zlab && h_inj_mom->bulkMomentumFromFileIsDistributed()) {
-            WARPX_ABORT_WITH_MESSAGE(
-                "Species '" + species_name + "': boosted-frame or nonzero-time "
-                "ballistic coordinate correction with "
-                "maxwellian_u_mean_distribution_type = read_from_file requires "
-                "read_u_mean_distributed = 0. Distributed read_from_file u_mean "
-                "cannot be used to compute get_zlab while read_from_file data are "
-                "being prepared.");
-        }
-        h_inj_mom->prepare(grids, dmap, ngrow, get_zlab);
-        inj_mom_distributed = h_inj_mom->distributed();
-#ifdef AMREX_USE_GPU
-        if (!inj_mom_distributed) {
-            amrex::Gpu::htod_memcpy_async(d_inj_mom, h_inj_mom.get(), sizeof(InjectorMomentum));
-            amrex::Gpu::streamSynchronize();
-        }
-#endif
-        inj_mom_prepared = true;
-    } else {
-        inj_mom_distributed = false;
-        inj_mom_prepared = false;
-    }
-
     if (h_inj_rho) {
         h_inj_rho->prepare(grids, dmap, ngrow, get_zlab);
         inj_rho_distributed = h_inj_rho->distributed();
@@ -767,28 +727,6 @@ void PlasmaInjector::prepare (amrex::BoxArray const& grids,
 void PlasmaInjector::prepare (amrex::RealBox const& pbox, int moving_dir, int moving_sign,
                               std::function<amrex::Real(amrex::Real)> const& get_zlab)
 {
-    if (h_inj_mom && h_inj_mom->needPreparation()) {
-        if (get_zlab && h_inj_mom->bulkMomentumFromFileIsDistributed()) {
-            WARPX_ABORT_WITH_MESSAGE(
-                "Species '" + species_name + "': boosted-frame or nonzero-time "
-                "ballistic coordinate correction with "
-                "maxwellian_u_mean_distribution_type = read_from_file requires "
-                "read_u_mean_distributed = 0. Distributed read_from_file u_mean "
-                "cannot be used to compute get_zlab while read_from_file data are "
-                "being prepared.");
-        }
-        h_inj_mom->prepare(pbox, moving_dir, moving_sign, get_zlab);
-#ifdef AMREX_USE_GPU
-        amrex::Gpu::htod_memcpy_async(d_inj_mom, h_inj_mom.get(), sizeof(InjectorMomentum));
-        amrex::Gpu::streamSynchronize();
-#endif
-        inj_mom_distributed = false;
-        inj_mom_prepared = true;
-    } else {
-        inj_mom_distributed = false;
-        inj_mom_prepared = false;
-    }
-
     if (h_inj_rho) {
         h_inj_rho->prepare(pbox, moving_dir, moving_sign, get_zlab);
 #ifdef AMREX_USE_GPU

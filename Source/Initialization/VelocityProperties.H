@@ -52,11 +52,6 @@ struct VelocityProperties
 
     ~VelocityProperties ();
 
-    [[nodiscard]] bool needPreparation () const noexcept
-    {
-        return m_type == VelFromFileVector;
-    }
-
     /* Type of velocity initialization */
     VelocityInitType m_type;
 
@@ -66,9 +61,6 @@ struct VelocityProperties
     std::unique_ptr<amrex::Parser> m_ptr_ux_mean_parser, m_ptr_uy_mean_parser, m_ptr_uz_mean_parser;
 
     std::string m_read_u_mean_path;
-    bool m_read_u_mean_distributed{true};
-
-    amrex::Geometry m_geom;
 
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)

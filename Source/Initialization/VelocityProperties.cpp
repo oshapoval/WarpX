@@ -12,6 +12,10 @@
 #include "Utils/Parser/ParserUtils.H"
 #include "Utils/TextMsg.H"
 
+#include <AMReX_BoxArray.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_IntVect.H>
+
 #include <cmath>
 
 namespace {
@@ -24,8 +28,11 @@ namespace {
      * by default, `parser`, or `read_from_file`).
      */
     void ParseVelocityVector (const amrex::ParmParse& pp, std::string const& source_name,
-                              std::string const& dist_type_param, VelocityProperties& vel)
+                              std::string const& dist_type_param, VelocityProperties& vel,
+                              amrex::Geometry const& geom)
     {
+        amrex::ignore_unused(geom);
+
         std::string u_mean_dist_s = "constant";
         utils::parser::query(pp, source_name, dist_type_param.c_str(), u_mean_dist_s);
         if (u_mean_dist_s == "constant") {
@@ -58,30 +65,38 @@ namespace {
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
             utils::parser::get(pp, source_name, "read_u_mean_from_path",
                                vel.m_read_u_mean_path);
+            bool read_u_mean_distributed = false;
             {
                 std::string const key_with_src =
                     source_name.empty() ? std::string("read_u_mean_distributed")
                                         : source_name + ".read_u_mean_distributed";
                 if (pp.contains(key_with_src)) {
-                    pp.query(key_with_src, vel.m_read_u_mean_distributed);
+                    pp.query(key_with_src, read_u_mean_distributed);
                 } else {
-                    pp.query("read_u_mean_distributed", vel.m_read_u_mean_distributed);
+                    pp.query("read_u_mean_distributed", read_u_mean_distributed);
                 }
             }
+            if (read_u_mean_distributed) {
+                WARPX_ABORT_WITH_MESSAGE(
+                    "Distributed read_from_file is not implemented yet for "
+                    "maxwellian_u_mean_distribution_type. Set read_u_mean_distributed = 0.");
+            }
             amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const problo =
-                vel.m_geom.ProbLoArray();
+                geom.ProbLoArray();
             amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const dx =
-                vel.m_geom.CellSizeArray();
-            amrex::Box const dombox = amrex::convert(vel.m_geom.Domain(), amrex::IntVect(1));
+                geom.CellSizeArray();
+            amrex::Box const dombox = amrex::convert(geom.Domain(), amrex::IntVect(1));
             vel.m_u_mean_x_reader = std::make_unique<ExternalFieldReader>(
-                vel.m_read_u_mean_path, "u_mean", "x", problo, dx, dombox,
-                vel.m_read_u_mean_distributed);
+                vel.m_read_u_mean_path, "u_mean", "x", problo, dx, dombox, false);
             vel.m_u_mean_y_reader = std::make_unique<ExternalFieldReader>(
-                vel.m_read_u_mean_path, "u_mean", "y", problo, dx, dombox,
-                vel.m_read_u_mean_distributed);
+                vel.m_read_u_mean_path, "u_mean", "y", problo, dx, dombox, false);
             vel.m_u_mean_z_reader = std::make_unique<ExternalFieldReader>(
-                vel.m_read_u_mean_path, "u_mean", "z", problo, dx, dombox,
-                vel.m_read_u_mean_distributed);
+                vel.m_read_u_mean_path, "u_mean", "z", problo, dx, dombox, false);
+            amrex::BoxArray const grids;
+            amrex::DistributionMapping const dmap;
+            vel.m_u_mean_x_reader->prepare(grids, dmap, amrex::IntVect(0));
+            vel.m_u_mean_y_reader->prepare(grids, dmap, amrex::IntVect(0));
+            vel.m_u_mean_z_reader->prepare(grids, dmap, amrex::IntVect(0));
             vel.m_type = VelFromFileVector;
 #else
             WARPX_ABORT_WITH_MESSAGE(
@@ -107,14 +122,14 @@ namespace {
 */
 VelocityProperties::VelocityProperties (const amrex::ParmParse& pp, std::string const& source_name,
                                         amrex::Geometry const& geom)
-    : m_geom(geom)
 {
     std::string mom_dist_s;
     utils::parser::query(pp, source_name, "momentum_distribution_type", mom_dist_s);
     if (mom_dist_s == "maxwell_juttner") {
-        ParseVelocityVector(pp, source_name, "maxwell_juttner_u_mean_distribution_type", *this);
+        ParseVelocityVector(pp, source_name, "maxwell_juttner_u_mean_distribution_type", *this,
+                            geom);
     } else if (mom_dist_s == "maxwellian") {
-        ParseVelocityVector(pp, source_name, "maxwellian_u_mean_distribution_type", *this);
+        ParseVelocityVector(pp, source_name, "maxwellian_u_mean_distribution_type", *this, geom);
     }
     else if (mom_dist_s == "parse_momentum_function") {
         std::string str_ux_mean_function, str_uy_mean_function, str_uz_mean_function;

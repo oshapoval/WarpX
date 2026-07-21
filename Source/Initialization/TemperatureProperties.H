@@ -55,11 +55,6 @@ struct TemperatureProperties
 
     ~TemperatureProperties ();
 
-    [[nodiscard]] bool needPreparation () const noexcept
-    {
-        return m_type == TempFromFileVector;
-    }
-
     /* Type of temperature initialization */
     TemperatureInitType m_type;
 
@@ -74,9 +69,6 @@ struct TemperatureProperties
     std::unique_ptr<amrex::Parser> m_ptr_ux_std_parser, m_ptr_uy_std_parser, m_ptr_uz_std_parser;
 
     std::string m_read_u_std_path;
-    bool m_read_u_std_distributed{true};
-
-    amrex::Geometry m_geom;
 
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)

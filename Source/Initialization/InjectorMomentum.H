@@ -17,24 +17,16 @@
 #include "Utils/WarpXConst.H"
 
 #include <AMReX.H>
-#include <AMReX_BoxArray.H>
 #include <AMReX_Config.H>
-#include <AMReX_DataAllocator.H>
 #include <AMReX_Dim3.H>
-#include <AMReX_DistributionMapping.H>
 #include <AMReX_GpuQualifiers.H>
-#include <AMReX_IntVect.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Parser.H>
 #include <AMReX_Random.H>
-#include <AMReX_RealBox.H>
-#include <AMReX_Vector.H>
 
 #include <AMReX_BaseFwd.H>
 
 #include <cmath>
-#include <functional>
-#include <memory>
 #include <string>
 
 // struct whose getMomentum returns constant momentum.
@@ -244,53 +236,6 @@ struct InjectorMomentumMaxwellian
         using namespace amrex::literals;
         const amrex::XDim3 u_mean = velocity(x,y,z);
         return amrex::XDim3 {u_mean.x, u_mean.y, u_mean.z};
-    }
-
-    void prepare (amrex::BoxArray const& grids,
-                  amrex::DistributionMapping const& dmap,
-                  amrex::IntVect const& ngrow,
-                  std::function<amrex::Real(amrex::Real)> const& get_zlab)
-    {
-        // get_zlab uses getBulkMomentum(), so the mean-momentum reader must not
-        // call get_zlab while preparing itself.
-        velocity.prepare(grids, dmap, ngrow);
-        temperature.prepare(grids, dmap, ngrow, get_zlab);
-    }
-
-    void prepare (amrex::RealBox const& pbox, int moving_dir, int moving_sign,
-                  std::function<amrex::Real(amrex::Real)> const& get_zlab)
-    {
-        // get_zlab uses getBulkMomentum(), so the mean-momentum reader must not
-        // call get_zlab while preparing itself.
-        velocity.prepare(pbox, moving_dir, moving_sign);
-        temperature.prepare(pbox, moving_dir, moving_sign, get_zlab);
-    }
-
-    void prepare (int li)
-    {
-        velocity.prepare(li);
-        temperature.prepare(li);
-    }
-
-    void clear ()
-    {
-        velocity.clear();
-        temperature.clear();
-    }
-
-    [[nodiscard]] bool distributed () const noexcept
-    {
-        return velocity.distributed() || temperature.distributed();
-    }
-
-    [[nodiscard]] bool bulkMomentumFromFileIsDistributed () const noexcept
-    {
-        return velocity.distributed();
-    }
-
-    [[nodiscard]] bool needPreparation () const noexcept
-    {
-        return velocity.needPreparation() || temperature.needPreparation();
     }
 
 private:
@@ -515,12 +460,6 @@ struct InjectorMomentum
            object(t, temperature, velocity)
     { }
 
-    InjectorMomentum (InjectorMomentumMaxwellian* t,
-                      InjectorMomentumMaxwellian const& maxwellian) noexcept
-        : type(Type::maxwellian),
-          object(t, maxwellian)
-    { }
-
     // This constructor stores a InjectorMomentumJuttner in union object.
     InjectorMomentum (InjectorMomentumJuttner* t,
                       GetTemperature const& temperature, GetVelocityVector const& velocity)
@@ -539,22 +478,6 @@ struct InjectorMomentum
     ~InjectorMomentum() = default;
 
     void clear ();
-
-    [[nodiscard]] bool needPreparation () const noexcept;
-
-    void prepare (amrex::BoxArray const& grids,
-                  amrex::DistributionMapping const& dmap,
-                  amrex::IntVect const& ngrow,
-                  std::function<amrex::Real(amrex::Real)> const& get_zlab);
-
-    void prepare (amrex::RealBox const& pbox, int moving_dir, int moving_sign,
-                  std::function<amrex::Real(amrex::Real)> const& get_zlab);
-
-    void prepare (int li, InjectorMomentum** inj_mom);
-
-    [[nodiscard]] bool distributed () const noexcept;
-
-    [[nodiscard]] bool bulkMomentumFromFileIsDistributed () const noexcept;
 
     // call getMomentum from the object stored in the union
     // (the union is called Object, and the instance is called object).
@@ -652,10 +575,6 @@ struct InjectorMomentum
 
 private:
 
-#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
-    void clearThreadCopies ();
-#endif
-
     // An instance of union Object constructs and stores any one of
     // the objects declared (constant or gaussian or parser).
     union Object {
@@ -681,9 +600,6 @@ private:
         Object (InjectorMomentumMaxwellian*,
                 GetTemperatureVector const& t, GetVelocityVector const& b) noexcept
             : maxwellian(t,b) {}
-        Object (InjectorMomentumMaxwellian*,
-                InjectorMomentumMaxwellian const& m) noexcept
-            : maxwellian(m) {}
         Object (InjectorMomentumJuttner*,
                 GetTemperature const& t, GetVelocityVector const& b) noexcept
             : juttner(t,b) {}
@@ -699,10 +615,6 @@ private:
         InjectorMomentumParser parser;
     };
     Object object;
-#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
-    std::unique_ptr<void, amrex::DataDeleter> inj_mom_data;
-    amrex::Vector<InjectorMomentum*> inj_mom_omp;
-#endif
 };
 
 // In order for InjectorMomentum to be trivially copyable, its destructor

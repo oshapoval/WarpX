@@ -1752,12 +1752,8 @@ Particle initialization
           ``RSPHERE``). The following is required:
           ``<species_name>.read_u_mean_from_path`` (openPMD file path). The file must contain
           an openPMD vector record ``u_mean`` with components ``x``, ``y`` and ``z``.
-          Optional: ``<species_name>.read_u_mean_distributed`` (``0`` or ``1``, default ``1``).
-          If ``1``, each MPI rank loads only a chunk of the openPMD data; otherwise the
-          entire openPMD data is loaded on all MPI ranks. Distributed mode is not available
-          when ballistic coordinate correction is active, e.g. in a boosted-frame run or at
-          nonzero injection time. Set ``<species_name>.read_u_mean_distributed = 0`` in
-          those cases.
+          Optional: ``<species_name>.read_u_mean_distributed`` (``0`` or ``1``, default ``0``).
+          Distributed mode is not implemented yet for this option; setting it to ``1`` aborts.
 
       * ``<species_name>.maxwellian_u_std_distribution_type`` (`string`, default ``constant``):
         Specifies the distribution type for the thermal spread (standard deviation) of the
@@ -1779,9 +1775,8 @@ Particle initialization
           ``RSPHERE``). The following is required:
           ``<species_name>.read_u_std_from_path`` (openPMD file path). The file must contain
           an openPMD vector record ``u_std`` with components ``x``, ``y`` and ``z``.
-          Optional: ``<species_name>.read_u_std_distributed`` (``0`` or ``1``, default ``1``).
-          If ``1``, each MPI rank loads only a chunk of the openPMD data; otherwise the
-          entire openPMD data is loaded on all MPI ranks.
+          Optional: ``<species_name>.read_u_std_distributed`` (``0`` or ``1``, default ``0``).
+          Distributed mode is not implemented yet for this option; setting it to ``1`` aborts.
 
         Particles may be relativistic in the lab frame, but the sampling model treats them as
         non-relativistic in the drift frame. For a relativistic thermal spread, use ``maxwell_juttner`` instead.

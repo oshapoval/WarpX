@@ -586,81 +586,18 @@ ExternalFieldView ExternalFieldReader::make_view (amrex::BaseFab<double> const& 
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
 ExternalFieldVectorFromFile::ExternalFieldVectorFromFile (
-    ExternalFieldReader* x_reader,
-    ExternalFieldReader* y_reader,
-    ExternalFieldReader* z_reader)
-    : m_x_reader{x_reader},
-      m_y_reader{y_reader},
-      m_z_reader{z_reader}
+    ExternalFieldReader const* x_reader,
+    ExternalFieldReader const* y_reader,
+    ExternalFieldReader const* z_reader)
 {
-}
-
-void ExternalFieldVectorFromFile::clear ()
-{
-    m_x_reader = nullptr;
-    m_y_reader = nullptr;
-    m_z_reader = nullptr;
-}
-
-void ExternalFieldVectorFromFile::prepare (
-    amrex::BoxArray const& grids,
-    amrex::DistributionMapping const& dmap,
-    amrex::IntVect const& ngrow,
-    std::function<amrex::Real(amrex::Real)> const& get_zlab)
-{
-    if (m_x_reader) {
-        m_x_reader->prepare(grids, dmap, ngrow, get_zlab);
-        m_x_view = m_x_reader->getView();
+    if (x_reader) {
+        m_x_view = x_reader->getView();
     }
-    if (m_y_reader) {
-        m_y_reader->prepare(grids, dmap, ngrow, get_zlab);
-        m_y_view = m_y_reader->getView();
+    if (y_reader) {
+        m_y_view = y_reader->getView();
     }
-    if (m_z_reader) {
-        m_z_reader->prepare(grids, dmap, ngrow, get_zlab);
-        m_z_view = m_z_reader->getView();
-    }
-}
-
-void ExternalFieldVectorFromFile::prepare (
-    amrex::RealBox const& pbox,
-    int moving_dir,
-    int moving_sign,
-    std::function<amrex::Real(amrex::Real)> const& get_zlab)
-{
-    if (m_x_reader) {
-        m_x_reader->prepare(pbox, moving_dir, moving_sign, get_zlab);
-        m_x_view = m_x_reader->getView();
-    }
-    if (m_y_reader) {
-        m_y_reader->prepare(pbox, moving_dir, moving_sign, get_zlab);
-        m_y_view = m_y_reader->getView();
-    }
-    if (m_z_reader) {
-        m_z_reader->prepare(pbox, moving_dir, moving_sign, get_zlab);
-        m_z_view = m_z_reader->getView();
-    }
-}
-
-void ExternalFieldVectorFromFile::prepare (int li)
-{
-    if (m_x_reader) {
-        m_x_view = m_x_reader->getView(li);
-    }
-    if (m_y_reader) {
-        m_y_view = m_y_reader->getView(li);
-    }
-    if (m_z_reader) {
-        m_z_view = m_z_reader->getView(li);
-    }
-}
-
-bool ExternalFieldVectorFromFile::distributed () const
-{
-    if (m_x_reader) {
-        return m_x_reader->distributed();
-    } else {
-        return false;
+    if (z_reader) {
+        m_z_view = z_reader->getView();
     }
 }
 #endif
