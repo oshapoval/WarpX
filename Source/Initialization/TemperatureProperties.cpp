@@ -98,20 +98,11 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
             }
             utils::parser::get(pp, source_name, "read_u_std_from_path", m_read_u_std_path);
             bool read_u_std_distributed = false;
-            {
-                std::string const key_with_src =
-                    source_name.empty() ? std::string("read_u_std_distributed")
-                                        : source_name + ".read_u_std_distributed";
-                if (pp.contains(key_with_src)) {
-                    pp.query(key_with_src, read_u_std_distributed);
-                } else {
-                    pp.query("read_u_std_distributed", read_u_std_distributed);
-                }
-            }
+            pp.query("read_u_std_distributed", read_u_std_distributed);
             if (read_u_std_distributed) {
                 WARPX_ABORT_WITH_MESSAGE(
-                    "Distributed read_from_file is not implemented yet for "
-                    "maxwellian_u_std_distribution_type. Set read_u_std_distributed = 0.");
+                    "The combination of read_u_std_distributed = 1 and "
+                    "maxwellian_u_std_distribution_type = read_from_file is not implemented yet. Set read_u_std_distributed = 0.");
             }
             amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const problo =
                 geom.ProbLoArray();
