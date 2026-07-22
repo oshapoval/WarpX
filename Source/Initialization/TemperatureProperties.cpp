@@ -10,6 +10,7 @@
 #include "ExternalField.H"
 #include "Utils/Parser/ParserUtils.H"
 #include "Utils/TextMsg.H"
+#include "WarpX.H"
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
@@ -90,6 +91,11 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
         else if (u_std_dist_s == "read_from_file") {
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
+            if (WarpX::gamma_boost > 1.0) {
+                WARPX_ABORT_WITH_MESSAGE(
+                    "maxwellian_u_std_distribution_type = read_from_file is not "
+                    "supported in boosted-frame simulations yet.");
+            }
             utils::parser::get(pp, source_name, "read_u_std_from_path", m_read_u_std_path);
             bool read_u_std_distributed = false;
             {

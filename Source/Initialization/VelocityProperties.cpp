@@ -11,6 +11,7 @@
 #include "ExternalField.H"
 #include "Utils/Parser/ParserUtils.H"
 #include "Utils/TextMsg.H"
+#include "WarpX.H"
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
@@ -63,6 +64,11 @@ namespace {
             }
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
+            if (WarpX::gamma_boost > 1.0) {
+                WARPX_ABORT_WITH_MESSAGE(
+                    "maxwellian_u_mean_distribution_type = read_from_file is not "
+                    "supported in boosted-frame simulations yet.");
+            }
             utils::parser::get(pp, source_name, "read_u_mean_from_path",
                                vel.m_read_u_mean_path);
             bool read_u_mean_distributed = false;
