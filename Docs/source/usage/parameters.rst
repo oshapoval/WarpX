@@ -473,7 +473,7 @@ Overall simulation parameters
 
 .. pp:param:: warpx.self_fields_num_final_sweeps
     :type: ``integer``
-    :default: 2
+    :default: 8
 
     Number of relaxation (smoothing) sweeps performed during the final smoothing
     stage of the AMReX MLMG Poisson solve for electrostatic self fields.

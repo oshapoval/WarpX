@@ -37,7 +37,6 @@ my_constants.wpe = sqrt(source_n*q_e*q_e/m_e/epsilon0)
 warpx.self_fields_absolute_tolerance = 1e-1
 warpx.self_fields_required_precision = 1e-1
 
-warpx.self_fields_num_final_sweeps = 8
 #############################
 # Simulation time
 max_step = 1000
