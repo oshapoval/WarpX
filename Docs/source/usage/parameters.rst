@@ -1763,9 +1763,9 @@ Particle initialization
           ``<species_name>.ux_mean_function(x,y,z)``,
           ``<species_name>.uy_mean_function(x,y,z)``,
           ``<species_name>.uz_mean_function(x,y,z)``.
-        * If ``read_from_file``, the spatial bulk drift is read from an openPMD file
-          (requires a WarpX build with openPMD; not supported yet in ``RZ`` / ``RCYLINDER`` /
-          ``RSPHERE``). The following is required:
+        * If ``read_from_file``, ``u_mean`` is read as a function of position from an openPMD
+          file and interpolated to the particle positions (requires a WarpX build with openPMD;
+          not supported yet in ``RZ`` / ``RCYLINDER`` / ``RSPHERE``). The following is required:
           ``<species_name>.read_u_mean_from_path`` (openPMD file path). The file must contain
           an openPMD vector record ``u_mean`` with components ``x``, ``y`` and ``z``.
 
@@ -1784,9 +1784,9 @@ Particle initialization
           ``<species_name>.ux_std_function(x,y,z)``,
           ``<species_name>.uy_std_function(x,y,z)``,
           ``<species_name>.uz_std_function(x,y,z)``.
-        * If ``read_from_file``, the spatial thermal spread is read from an openPMD file
-          (requires a WarpX build with openPMD; not supported yet in ``RZ`` / ``RCYLINDER`` /
-          ``RSPHERE``). The following is required:
+        * If ``read_from_file``, ``u_std`` is read as a function of position from an openPMD
+          file and interpolated to the particle positions (requires a WarpX build with openPMD;
+          not supported yet in ``RZ`` / ``RCYLINDER`` / ``RSPHERE``). The following is required:
           ``<species_name>.read_u_std_from_path`` (openPMD file path). The file must contain
           an openPMD vector record ``u_std`` with components ``x``, ``y`` and ``z``.
 
