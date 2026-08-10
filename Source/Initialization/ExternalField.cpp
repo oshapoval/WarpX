@@ -585,7 +585,7 @@ ExternalFieldView ExternalFieldReader::make_view (amrex::BaseFab<double> const& 
 
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
-ExternalFieldVectorFromFile::ExternalFieldVectorFromFile (
+ExternalFieldVectorView::ExternalFieldVectorView (
     ExternalFieldReader const* x_reader,
     ExternalFieldReader const* y_reader,
     ExternalFieldReader const* z_reader) noexcept

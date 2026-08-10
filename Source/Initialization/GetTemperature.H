@@ -81,7 +81,7 @@ struct GetTemperatureVector
     amrex::ParserExecutor<3> m_ux_std_parser, m_uy_std_parser, m_uz_std_parser;
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
-    ExternalFieldVectorFromFile m_from_file;
+    ExternalFieldVectorView m_from_file;
 #endif
     /**
      * \brief Construct the functor with information provided by temp

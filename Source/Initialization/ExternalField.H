@@ -23,6 +23,7 @@
 #include <AMReX_RealVect.H>
 #include <AMReX_TableData.H>
 
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <string>
@@ -265,35 +266,39 @@ private:
 
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
-//! Combine three scalar external-field views into a vector-valued view.
-struct ExternalFieldVectorFromFile
+/**
+ * \brief Companion class for a triplet of ExternalFieldReader.
+ *
+ * This groups the views of the three components of a vector record into a
+ * single lightweight functor that can be used in kernels. It is the
+ * vector-valued analogue of ExternalFieldView.
+ */
+struct ExternalFieldVectorView
 {
-    ExternalFieldVectorFromFile (ExternalFieldReader const* x_reader,
-                                 ExternalFieldReader const* y_reader,
-                                 ExternalFieldReader const* z_reader) noexcept;
+    ExternalFieldVectorView (ExternalFieldReader const* x_reader,
+                             ExternalFieldReader const* y_reader,
+                             ExternalFieldReader const* z_reader) noexcept;
 
+    //! Return the three components for a given position. This returns zero
+    //! for the components for which no data are available.
     [[nodiscard]]
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     amrex::XDim3
     getValue (amrex::Real x, amrex::Real y, amrex::Real z) const noexcept
     {
+#if (AMREX_SPACEDIM < 3)
+        amrex::ignore_unused(x,y,z);
+#endif
 #if (AMREX_SPACEDIM == 1)
-        amrex::ignore_unused(x, y);
         amrex::RealVect const pos{z};
+#elif defined(WARPX_DIM_RZ)
+        amrex::RealVect const pos{std::sqrt(x*x+y*y),z};
 #elif defined(WARPX_DIM_XZ)
-        amrex::ignore_unused(y);
-        amrex::RealVect const pos{x, z};
+        amrex::RealVect const pos{x,z};
 #else
-        amrex::RealVect const pos{x, y, z};
+        amrex::RealVect const pos{x,y,z};
 #endif
-#if defined(AMREX_USE_GPU)
-        AMREX_IF_ON_HOST((amrex::Abort(
-            "For GPU builds, ExternalFieldVectorFromFile only works on device.");))
-        AMREX_IF_ON_DEVICE((return amrex::XDim3{m_x_view(pos), m_y_view(pos), m_z_view(pos)};))
-        return amrex::XDim3{0.0, 0.0, 0.0};
-#else
         return amrex::XDim3{m_x_view(pos), m_y_view(pos), m_z_view(pos)};
-#endif
     }
 
 private:
