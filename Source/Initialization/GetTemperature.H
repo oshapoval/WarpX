@@ -89,7 +89,7 @@ struct GetTemperatureVector
      * \param[in] temp: const reference to the TemperatureProperties object that will be used to
      * populate the functor
      */
-    explicit GetTemperatureVector (TemperatureProperties const& temp);
+    explicit GetTemperatureVector (TemperatureProperties const& temp) noexcept;
 
     /**
      * \brief Functor call. Returns the value of temperature at the location (x,y,z)

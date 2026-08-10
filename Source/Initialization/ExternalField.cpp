@@ -552,12 +552,12 @@ ExternalFieldView ExternalFieldReader::getView (int li) const
     }
 }
 
-ExternalFieldView ExternalFieldReader::getView () const
+ExternalFieldView ExternalFieldReader::getView () const noexcept
 {
     return make_view(m_fab);
 }
 
-ExternalFieldView ExternalFieldReader::make_view (amrex::BaseFab<double> const& fab) const
+ExternalFieldView ExternalFieldReader::make_view (amrex::BaseFab<double> const& fab) const noexcept
 {
     ExternalFieldView view;
     view.dx = m_dx;
@@ -588,7 +588,7 @@ ExternalFieldView ExternalFieldReader::make_view (amrex::BaseFab<double> const& 
 ExternalFieldVectorFromFile::ExternalFieldVectorFromFile (
     ExternalFieldReader const* x_reader,
     ExternalFieldReader const* y_reader,
-    ExternalFieldReader const* z_reader)
+    ExternalFieldReader const* z_reader) noexcept
 {
     if (x_reader) {
         m_x_view = x_reader->getView();

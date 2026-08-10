@@ -7,7 +7,7 @@
 
 #include "GetVelocity.H"
 
-GetVelocityVector::GetVelocityVector (VelocityProperties const& vel)
+GetVelocityVector::GetVelocityVector (VelocityProperties const& vel) noexcept
     : m_type{vel.m_type}
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)

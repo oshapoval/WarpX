@@ -204,7 +204,7 @@ public:
     [[nodiscard]] ExternalFieldView getView (int li) const;
 
     //! Return lightweight view that can be used in kernels
-    [[nodiscard]] ExternalFieldView getView () const;
+    [[nodiscard]] ExternalFieldView getView () const noexcept;
 
     /**
      * \brief This must be called before calling `getView` to prepare for
@@ -240,7 +240,7 @@ private:
     //! Read data within this box
     void load_data (amrex::RealBox const& pbox);
     //! Used by getView to make ExternalFieldView
-    [[nodiscard]] ExternalFieldView make_view (amrex::BaseFab<double> const& fab) const;
+    [[nodiscard]] ExternalFieldView make_view (amrex::BaseFab<double> const& fab) const noexcept;
     //! During the moving window stage, we cache the data for
     //! performance. This function makes a Box for caching.
     void make_cache_box (amrex::RealBox const& pbox, int moving_dir, int moving_sign);
@@ -270,7 +270,7 @@ struct ExternalFieldVectorFromFile
 {
     ExternalFieldVectorFromFile (ExternalFieldReader const* x_reader,
                                  ExternalFieldReader const* y_reader,
-                                 ExternalFieldReader const* z_reader);
+                                 ExternalFieldReader const* z_reader) noexcept;
 
     [[nodiscard]]
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
