@@ -71,13 +71,6 @@ namespace {
             }
             utils::parser::get(pp, source_name, "read_u_mean_from_path",
                                vel.m_read_u_mean_path);
-            bool read_u_mean_distributed = false;
-            pp.query("read_u_mean_distributed", read_u_mean_distributed);
-            if (read_u_mean_distributed) {
-                WARPX_ABORT_WITH_MESSAGE(
-                    "The combination of read_u_mean_distributed = 1 and "
-                    "maxwellian_u_mean_distribution_type = read_from_file is not implemented yet. Set read_u_mean_distributed = 0.");
-            }
             amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const problo =
                 geom.ProbLoArray();
             amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const dx =

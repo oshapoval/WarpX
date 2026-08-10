@@ -97,13 +97,6 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                     "supported in boosted-frame simulations yet.");
             }
             utils::parser::get(pp, source_name, "read_u_std_from_path", m_read_u_std_path);
-            bool read_u_std_distributed = false;
-            pp.query("read_u_std_distributed", read_u_std_distributed);
-            if (read_u_std_distributed) {
-                WARPX_ABORT_WITH_MESSAGE(
-                    "The combination of read_u_std_distributed = 1 and "
-                    "maxwellian_u_std_distribution_type = read_from_file is not implemented yet. Set read_u_std_distributed = 0.");
-            }
             amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const problo =
                 geom.ProbLoArray();
             amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const dx =
