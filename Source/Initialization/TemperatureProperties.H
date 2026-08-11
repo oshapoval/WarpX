@@ -9,12 +9,14 @@
 #ifndef WARPX_TEMPERATURE_PROPERTIES_H_
 #define WARPX_TEMPERATURE_PROPERTIES_H_
 
+#include "ExternalField_fwd.H"
+
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Parser.H>
 #include <AMReX_REAL.H>
 
-#include <limits>
+#include <memory>
 #include <string>
 
 /* Type of temperature initialization. Used by TemperatureProperties and GetTemperature. */
@@ -46,11 +48,6 @@ struct TemperatureProperties
     TemperatureProperties (const amrex::ParmParse& pp, std::string const& source_name,
                            amrex::Geometry const& geom);
 
-    [[nodiscard]] bool needPreparation () const noexcept
-    {
-        return m_type == TempFromFileVector;
-    }
-
     /* Type of temperature initialization */
     TemperatureInitType m_type;
 
@@ -65,9 +62,13 @@ struct TemperatureProperties
     std::unique_ptr<amrex::Parser> m_ptr_ux_std_parser, m_ptr_uy_std_parser, m_ptr_uz_std_parser;
 
     std::string m_read_u_std_path;
-    bool m_read_u_std_distributed{true};
 
-    amrex::Geometry m_geom;
+#if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
+    !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
+    std::unique_ptr<ExternalFieldReader> m_u_std_x_reader;
+    std::unique_ptr<ExternalFieldReader> m_u_std_y_reader;
+    std::unique_ptr<ExternalFieldReader> m_u_std_z_reader;
+#endif
 };
 
 #endif //WARPX_TEMPERATURE_PROPERTIES_H_

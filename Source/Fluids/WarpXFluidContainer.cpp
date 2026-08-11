@@ -35,7 +35,7 @@ WarpXFluidContainer::WarpXFluidContainer(int ispecies, const std::string &name):
     const ParmParse pp_species_name(species_name);
     SpeciesUtils::parseDensity(species_name, "", h_inj_rho, density_parser, geom);
     SpeciesUtils::parseMomentum(species_name, "", "none", h_inj_mom,
-        ux_parser, uy_parser, uz_parser, h_mom_temp, h_mom_vel, geom);
+        h_mom_temp, h_mom_vel, geom);
     if (h_inj_rho) {
 #ifdef AMREX_USE_GPU
         d_inj_rho = static_cast<InjectorDensity*>
@@ -183,6 +183,9 @@ void WarpXFluidContainer::InitData(
     const auto problo = geom_lev.ProbLoArray();
     const amrex::Real clight = PhysConst::c;
 
+    // Create local copies of pointers for GPU kernels
+    InjectorMomentum* inj_mom = d_inj_mom;
+
     if (h_inj_rho && h_inj_rho->needPreparation()) {
         auto get_zlab = [=] (amrex::Real z) -> amrex::Real
         {
@@ -195,21 +198,6 @@ void WarpXFluidContainer::InitData(
 #endif
     }
 
-    if (h_inj_mom && h_inj_mom->needPreparation()) {
-        auto get_zlab_mom = [=] (amrex::Real z) -> amrex::Real
-        {
-            return gamma_boost*(z + beta_boost*clight*cur_time);
-        };
-        auto const& mf_mom = *fields.get(name_mf_N, lev);
-        h_inj_mom->prepare(
-            mf_mom.boxArray(), mf_mom.DistributionMap(), IntVect(0), get_zlab_mom);
-#ifdef AMREX_USE_GPU
-        if (!h_inj_mom->distributed()) {
-            amrex::Gpu::htod_memcpy_async(d_inj_mom, h_inj_mom.get(), sizeof(InjectorMomentum));
-        }
-#endif
-    }
-
     // Loop through cells and initialize their value
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
 #pragma omp parallel
@@ -217,13 +205,8 @@ void WarpXFluidContainer::InitData(
     for (MFIter mfi(*fields.get(name_mf_N, lev), TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         InjectorDensity* inj_rho = d_inj_rho;
-        if (h_inj_rho && h_inj_rho->distributed()) {
+        if (h_inj_rho->distributed()) {
             h_inj_rho->prepare(mfi.LocalIndex(), &inj_rho);
-        }
-
-        InjectorMomentum* inj_mom = d_inj_mom;
-        if (h_inj_mom && h_inj_mom->distributed()) {
-            h_inj_mom->prepare(mfi.LocalIndex(), &inj_mom);
         }
 
         amrex::Box const tile_box  = mfi.tilebox(fields.get(name_mf_N, lev)->ixType().toIntVect());
@@ -290,12 +273,9 @@ void WarpXFluidContainer::InitData(
             }
         );
 
-        if (h_inj_rho && h_inj_rho->distributed()) {
+        if (h_inj_rho->distributed()) {
             // h_inj_rho is shared by multiple GPU streams. We need to sync
             // to avoid race conditions in h_inj_rho->prepare(int).
-            Gpu::streamSynchronize();
-        }
-        if (h_inj_mom && h_inj_mom->distributed()) {
             Gpu::streamSynchronize();
         }
     }
@@ -392,6 +372,11 @@ void WarpXFluidContainer::ApplyBcFluidsAndComms (ablastr::fields::MultiFabRegist
         //Grow the tilebox
         tile_box.grow(1);
 
+        // In-place update: iterations write only the two outermost boundary
+        // planes (domain end +/- 1) and read two cells inward (+/- 2), so the
+        // written and read index sets are disjoint and the iterations are
+        // independent, as required by ParallelFor. A +/- 1 stencil would break
+        // this and require amrex::For (see issue #7097).
         amrex::ParallelFor(tile_box,
             [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
             {
