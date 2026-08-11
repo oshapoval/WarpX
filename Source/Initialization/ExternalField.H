@@ -274,12 +274,19 @@ private:
  */
 struct ExternalFieldVectorView
 {
+    /**
+     * \brief Construct the view from the readers of the three components.
+     *
+     * A reader may be null, in which case the corresponding component is zero
+     * everywhere. This lets the callers construct this object unconditionally,
+     * even when the data are not read from file.
+     */
     ExternalFieldVectorView (ExternalFieldReader const* x_reader,
                              ExternalFieldReader const* y_reader,
                              ExternalFieldReader const* z_reader) noexcept;
 
-    //! Return the three components for a given position. This returns zero
-    //! for the components for which no data are available.
+    //! Return the three components of the field, linearly interpolated at the
+    //! given position. A component is zero outside the extent of its data.
     [[nodiscard]]
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     amrex::XDim3
