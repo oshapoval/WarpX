@@ -134,5 +134,3 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
             "' (expected 'maxwellian' or 'maxwell_juttner').");
     }
 }
-
-TemperatureProperties::~TemperatureProperties () = default;

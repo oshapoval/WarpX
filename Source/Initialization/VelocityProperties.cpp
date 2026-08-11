@@ -143,5 +143,3 @@ VelocityProperties::VelocityProperties (const amrex::ParmParse& pp, std::string 
             "' (expected 'maxwellian', 'maxwell_juttner', or 'parse_momentum_function').");
     }
 }
-
-VelocityProperties::~VelocityProperties () = default;
