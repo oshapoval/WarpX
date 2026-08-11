@@ -276,17 +276,13 @@ struct ExternalFieldVectorView
 {
     /**
      * \brief Construct the view from the readers of the three components.
-     *
-     * A reader may be null, in which case the corresponding component is zero
-     * everywhere. This lets the callers construct this object unconditionally,
-     * even when the data are not read from file.
      */
     ExternalFieldVectorView (ExternalFieldReader const* x_reader,
                              ExternalFieldReader const* y_reader,
                              ExternalFieldReader const* z_reader) noexcept;
 
     //! Return the three components of the field, linearly interpolated at the
-    //! given position. A component is zero outside the extent of its data.
+    //! given position.
     [[nodiscard]]
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     amrex::XDim3
@@ -305,8 +301,6 @@ struct ExternalFieldVectorView
 #if defined(AMREX_USE_GPU)
         // The views can only be evaluated on device: ExternalFieldView calls
         // the interpolation routines of ablastr::math, which are device-only.
-        // AMREX_IF_ON_DEVICE is therefore needed to keep those calls out of
-        // the host pass, and not merely to emit a more specific message.
         AMREX_IF_ON_HOST((amrex::Abort(
             "For GPU builds, ExternalFieldVectorView only works on device.");))
         AMREX_IF_ON_DEVICE((return amrex::XDim3{m_x_view(pos), m_y_view(pos), m_z_view(pos)};))
