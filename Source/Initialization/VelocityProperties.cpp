@@ -57,16 +57,11 @@ namespace {
                     utils::parser::makeParser(str_uz_mean_function,{"x","y","z"}));
             vel.m_type = VelParserFunctionVector;
         } else if (u_mean_dist_s == "read_from_file") {
-            if (dist_type_param != "maxwellian_u_mean_distribution_type") {
-                WARPX_ABORT_WITH_MESSAGE(
-                    dist_type_param + " = read_from_file is only supported for "
-                    "maxwellian momentum distributions.");
-            }
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
             if (WarpX::gamma_boost > 1.0) {
                 WARPX_ABORT_WITH_MESSAGE(
-                    "maxwellian_u_mean_distribution_type = read_from_file is not "
+                    dist_type_param + " = read_from_file is not "
                     "supported in boosted-frame simulations yet.");
             }
             utils::parser::get(pp, source_name, "read_u_mean_from_path",
