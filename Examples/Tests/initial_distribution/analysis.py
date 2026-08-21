@@ -313,43 +313,44 @@ print("Maxwell-Juttner low-theta distribution difference:", f10_error)
 assert f10_error < tolerance
 
 # ==============================================
-# maxwellian with constant bulk velocity
+# maxwellian with constant bulk (h6/h6uy folders) velocity and constant temperature in eV (h12/h12uy folders)
 # ==============================================
 
-# load data
-bin_value_g, bin_data_g = read_reduced_diags_histogram("h6.txt")[2:]
-bin_value_uy, bin_data_uy = read_reduced_diags_histogram("h6uy.txt")[2:]
+for i in [6, 12]:
+    # load data
+    bin_value_g, bin_data_g = read_reduced_diags_histogram(f"h{i}.txt")[2:]
+    bin_value_uy, bin_data_uy = read_reduced_diags_histogram(f"h{i}uy.txt")[2:]
 
-# Expected values for beta and u = beta*gamma
-beta_const = 0.2
-g_const = 1.0 / np.sqrt(1.0 - beta_const * beta_const)
-uy_const = beta_const * g_const
-g_bin_size = 0.004
-g_bin_min = 1.0
-uy_bin_size = 0.04
-uy_bin_min = -1.0
-V = 8.0  # volume in m^3
-n = 1.0e21  # number density in 1/m^3
+    # Expected values for beta and u = beta*gamma
+    beta_const = 0.2
+    g_const = 1.0 / np.sqrt(1.0 - beta_const * beta_const)
+    uy_const = beta_const * g_const
+    g_bin_size = 0.004
+    g_bin_min = 1.0
+    uy_bin_size = 0.04
+    uy_bin_min = -1.0
+    V = 8.0  # volume in m^3
+    n = 1.0e21  # number density in 1/m^3
 
-f_g = np.zeros_like(bin_value_g)
-i_g = int(np.floor((g_const - g_bin_min) / g_bin_size))
-f_g[i_g] = n * V
-f_peak = np.amax(f_g)
+    f_g = np.zeros_like(bin_value_g)
+    i_g = int(np.floor((g_const - g_bin_min) / g_bin_size))
+    f_g[i_g] = n * V
+    f_peak = np.amax(f_g)
 
-f_uy = np.zeros_like(bin_value_uy)
-i_uy = int(np.floor((-uy_const - uy_bin_min) / uy_bin_size))
-f_uy[i_uy] = n * V
+    f_uy = np.zeros_like(bin_value_uy)
+    i_uy = int(np.floor((-uy_const - uy_bin_min) / uy_bin_size))
+    f_uy[i_uy] = n * V
 
-f6_error = (
-    np.sum(np.abs(f_g - bin_data_g) + np.abs(f_uy - bin_data_uy))
-    / bin_value_g.size
-    / f_peak
-)
-
-print("Maxwell-Boltzmann constant velocity difference:", f6_error)
-
-assert f6_error < tolerance
-
+    error = (
+        np.sum(np.abs(f_g - bin_data_g) + np.abs(f_uy - bin_data_uy))
+        / bin_value_g.size
+        / f_peak
+    )
+    if i == 6:
+        print("Maxwell-Boltzmann constant velocity difference:", error)
+    elif i == 12:
+        print("Maxwell-Boltzmann constant temperature_in_eV difference:", error)
+        assert error < tolerance
 # ============================================
 # maxwellian with parser bulk velocity
 # ============================================
