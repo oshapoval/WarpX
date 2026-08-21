@@ -14,6 +14,8 @@
 
 #include <AMReX.H>
 
+#include <cmath>
+
 /**
  * \brief Get temperature at a point on the grid
  *
@@ -79,9 +81,11 @@ struct GetTemperatureVector
 
     amrex::Real m_ux_std{0}, m_uy_std{0}, m_uz_std{0};
     amrex::ParserExecutor<3> m_ux_std_parser, m_uy_std_parser, m_uz_std_parser;
+    amrex::Real m_T_eV_to_u_std_factor{0}; // m_T_eV_to_u_std_factor = q_e / (m c^2), used to convert scalar temperature_in_eV to u_std
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
-    ExternalFieldVectorView m_from_file;
+    ExternalFieldVectorView m_from_file; // Vector openPMD u_std field, if m_type == TempFromFileVector
+    ExternalFieldView m_temperature_in_eV_from_file; // scalar openPMD temperature_in_eV field, if m_type == TempFromFileScalar
 #endif
     /**
      * \brief Construct the functor with information provided by temp
@@ -120,6 +124,25 @@ struct GetTemperatureVector
             case (TempFromFileVector):
             {
                 return m_from_file.getValue(x, y, z);
+            }
+            case (TempFromFileScalar):
+            {
+#if (AMREX_SPACEDIM < 3)
+                amrex::ignore_unused(x,y,z);
+#endif
+#if (AMREX_SPACEDIM == 1)
+                amrex::RealVect const pos{z};
+#elif defined(WARPX_DIM_XZ)
+                amrex::RealVect const pos{x,z};
+#else
+                amrex::RealVect const pos{x,y,z};
+#endif
+                const amrex::Real T_eV = m_temperature_in_eV_from_file(pos);
+                if (T_eV < 0.0) {
+                    amrex::Abort("The Maxwellian temperature in eV must be non-negative.");
+                }
+                const amrex::Real u_std = std::sqrt(T_eV * m_T_eV_to_u_std_factor);
+                return amrex::XDim3{u_std, u_std, u_std};
             }
 #endif
             default:

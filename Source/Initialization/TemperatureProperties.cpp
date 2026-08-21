@@ -101,7 +101,7 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                                  temperature_in_eV_dist_s);
 
             if (temperature_in_eV_dist_s == "constant") {
-                // Convert temperature_in_eV to u_std at parse time at parse time, and store it as a TempConstantVector.
+                // Convert scalar temperature_in_eV to an isotropic u_std vector.
                 amrex::Real temperature_in_eV = 0.0;
                 WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
                     utils::parser::queryWithParser(pp, source_name, "temperature_in_eV", temperature_in_eV),
@@ -117,7 +117,7 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                 m_type = TempConstantVector;
             }
             else if (temperature_in_eV_dist_s == "parser") {
-                // Convert temperature_in_eV(x,y,z) to u_std(x,y,z) at parse time, and store it as a TempParserFunctionVector.
+                // Convert scalar temperature_in_eV(x,y,z) to an isotropic u_std(x,y,z) parser.
                 std::string str_temperature_in_eV_function;
                 utils::parser::Store_parserString(
                     pp, source_name, "temperature_in_eV_function(x,y,z)",
@@ -136,6 +136,37 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                 m_ptr_uy_std_parser->setConstant("q_e_over_mc2", q_e_over_mc2);
                 m_ptr_uz_std_parser->setConstant("q_e_over_mc2", q_e_over_mc2);
                 m_type = TempParserFunctionVector;
+            }
+            else if (temperature_in_eV_dist_s == "read_from_file") {
+#if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
+    !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
+                if (WarpX::gamma_boost > 1.0) {
+                    WARPX_ABORT_WITH_MESSAGE(
+                        "maxwellian_temperature_in_eV_distribution_type = read_from_file is not "
+                        "supported in boosted-frame simulations yet.");
+                }
+                utils::parser::get(pp, source_name, "read_temperature_in_eV_from_path",
+                                   m_read_temperature_in_eV_path);
+                std::string field_name = "temperature_in_eV";
+                utils::parser::query(pp, source_name, "temperature_in_eV_mesh_name", field_name);
+                amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const problo =
+                    geom.ProbLoArray();
+                amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const dx =
+                    geom.CellSizeArray();
+                amrex::Box const dombox = amrex::convert(geom.Domain(), amrex::IntVect(1));
+                m_temperature_in_eV_reader = std::make_unique<ExternalFieldReader>(
+                    m_read_temperature_in_eV_path, field_name, "", problo, dx, dombox, false);
+                amrex::BoxArray const grids;
+                amrex::DistributionMapping const dmap;
+                m_temperature_in_eV_reader->prepare(grids, dmap, amrex::IntVect(0));
+                m_T_eV_to_u_std_factor = PhysConst::q_e / (mass * PhysConst::c * PhysConst::c);
+                m_type = TempFromFileScalar;
+#else
+                WARPX_ABORT_WITH_MESSAGE(
+                    "maxwellian_temperature_in_eV_distribution_type = read_from_file requires "
+                    "WarpX built with openPMD support and is not supported in "
+                    "RZ/RCYLINDER/RSPHERE geometries.");
+#endif
             }
             else {
                 std::stringstream ss;
