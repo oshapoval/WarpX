@@ -119,12 +119,12 @@
     "particle_weight": 8e+21
   },
   "temperature_in_eV_constant": {
-    "particle_momentum_x": 1.11648887392627e-18,
-    "particle_momentum_y": 1.1162850676261615e-18,
-    "particle_momentum_z": 1.1156179166624973e-18,
-    "particle_position_x": 256013.9727528227,
-    "particle_position_y": 255917.250607293,
-    "particle_position_z": 255873.76981101296,
+    "particle_momentum_x": 3.5285787492061906e-21,
+    "particle_momentum_y": 2.854131991544734e-17,
+    "particle_momentum_z": 3.52328932816798e-21,
+    "particle_position_x": 256013.9399284002,
+    "particle_position_y": 256011.5933546236,
+    "particle_position_z": 255905.84694351768,
     "particle_weight": 8e+21
   }
 }

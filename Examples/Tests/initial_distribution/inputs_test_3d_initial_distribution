@@ -228,7 +228,7 @@ gaussian_momentum_from_file.read_u_std_from_path = "../test_3d_initial_distribut
 # 10 for maxwell-juttner with low theta (Gaussian fallback)
 # 11 for maxwell-juttner with constant diagonal bulk drift
 # 12 for maxwellian with mean and standard deviation from openPMD files
-warpx.reduced_diags_names              = h1x h1y h1z h2x h2y h2z h3 h3_filtered h4x h4y h4z bmmntr h5_neg h5_pos h6 h6uy h7 h7uy_pos h7uy_neg h8x h8y h8z h9x h9y h9z h10 h11
+warpx.reduced_diags_names              = h1x h1y h1z h2x h2y h2z h3 h3_filtered h4x h4y h4z bmmntr h5_neg h5_pos h6 h6uy h7 h7uy_pos h7uy_neg h8x h8y h8z h9x h9y h9z h10 h11 h12 h12uy
 
 h1x.type                                 = ParticleHistogram
 h1x.intervals                            = 1
