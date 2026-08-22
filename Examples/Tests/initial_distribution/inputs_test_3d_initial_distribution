@@ -29,7 +29,7 @@ algo.particle_shape = 1
 #################################
 ############ PLASMA #############
 #################################
-particles.species_names = gaussian maxwell_boltzmann maxwell_juttner maxwell_juttner_drift maxwell_juttner_low_theta beam maxwell_juttner_parser velocity_constant velocity_parser uniform gaussian_parser gaussian_momentum_from_file temperature_in_eV_constant
+particles.species_names = gaussian maxwell_boltzmann maxwell_juttner maxwell_juttner_drift maxwell_juttner_low_theta beam maxwell_juttner_parser velocity_constant velocity_parser uniform gaussian_parser gaussian_momentum_from_file temperature_in_eV_constant gaussian_temperature_in_eV_from_file
 particles.rigid_injected_species = beam
 
 gaussian.charge                     = -q_e
@@ -213,6 +213,18 @@ gaussian_momentum_from_file.maxwellian_u_mean_distribution_type = "read_from_fil
 gaussian_momentum_from_file.read_u_mean_from_path = "../test_3d_initial_distribution_prepare/example-u-mean.h5"
 gaussian_momentum_from_file.maxwellian_u_std_distribution_type = "read_from_file"
 gaussian_momentum_from_file.read_u_std_from_path = "../test_3d_initial_distribution_prepare/example-u-std.h5"
+
+gaussian_temperature_from_file.charge                           = -q_e
+gaussian_temperature_in_eV_from_file.mass                       = m_e
+gaussian_temperature_in_eV_from_file.injection_style            = "NRandomPerCell"
+gaussian_temperature_in_eV_from_file.num_particles_per_cell     = 1000
+gaussian_temperature_in_eV_from_file.profile                    = constant
+gaussian_temperature_in_eV_from_file.density                    = 1.0e21
+gaussian_temperature_in_eV_from_file.momentum_distribution_type = "maxwellian"
+gaussian_temperature_in_eV_from_file.maxwellian_u_mean_distribution_type = "read_from_file"
+gaussian_temperature_in_eV_from_file.read_u_mean_from_path = "../test_3d_initial_distribution_prepare/example-u-mean.h5"
+gaussian_temperature_in_eV_from_file.maxwellian_temperature_in_eV_distribution_type = "read_from_file"
+gaussian_temperature_in_eV_from_file.read_temperature_in_eV_from_path = "../test_3d_initial_distribution_prepare/example-T-eV.h5"
 
 #################################
 ########## DIAGNOSTIC ###########

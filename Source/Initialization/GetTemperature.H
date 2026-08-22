@@ -16,6 +16,19 @@
 
 #include <cmath>
 
+/** Convert a scalar temperature in eV to an isotropic u_std vector. */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::XDim3
+ConvertTemperatureInEvToUStd (amrex::Real const T_eV,
+                              amrex::Real const T_eV_to_u_std_factor) noexcept
+{
+    if (T_eV < 0.0) {
+        amrex::Abort("The Maxwellian temperature in eV must be non-negative.");
+    }
+    const amrex::Real u_std = std::sqrt(T_eV * T_eV_to_u_std_factor);
+    return amrex::XDim3{u_std, u_std, u_std};
+}
+
 /**
  * \brief Get temperature at a point on the grid
  *
@@ -137,12 +150,16 @@ struct GetTemperatureVector
 #else
                 amrex::RealVect const pos{x,y,z};
 #endif
-                const amrex::Real T_eV = m_temperature_in_eV_from_file(pos);
-                if (T_eV < 0.0) {
-                    amrex::Abort("The Maxwellian temperature in eV must be non-negative.");
-                }
-                const amrex::Real u_std = std::sqrt(T_eV * m_T_eV_to_u_std_factor);
-                return amrex::XDim3{u_std, u_std, u_std};
+#if defined(AMREX_USE_GPU)
+                AMREX_IF_ON_HOST((amrex::Abort(
+                    "For GPU builds, TempFromFileScalar only works on device.");))
+                AMREX_IF_ON_DEVICE((return ConvertTemperatureInEvToUStd(
+                    m_temperature_in_eV_from_file(pos), m_T_eV_to_u_std_factor);))
+                return amrex::XDim3{0.0, 0.0, 0.0};
+#else
+                return ConvertTemperatureInEvToUStd(
+                    m_temperature_in_eV_from_file(pos), m_T_eV_to_u_std_factor);
+#endif
             }
 #endif
             default:
