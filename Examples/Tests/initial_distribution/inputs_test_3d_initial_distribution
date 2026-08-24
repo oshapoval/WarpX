@@ -224,7 +224,7 @@ gaussian_temperature_in_eV_from_file.momentum_distribution_type = "maxwellian"
 gaussian_temperature_in_eV_from_file.maxwellian_u_mean_distribution_type = "read_from_file"
 gaussian_temperature_in_eV_from_file.read_u_mean_from_path = "../test_3d_initial_distribution_prepare/example-u-mean.h5"
 gaussian_temperature_in_eV_from_file.maxwellian_temperature_in_eV_distribution_type = "read_from_file"
-gaussian_temperature_in_eV_from_file.read_temperature_in_eV_from_path = "../test_3d_initial_distribution_prepare/example-T-eV.h5"
+gaussian_temperature_in_eV_from_file.read_temperature_in_eV_from_path = "../test_3d_initial_distribution_prepare/example-temperature-in-eV.h5"
 
 #################################
 ########## DIAGNOSTIC ###########
