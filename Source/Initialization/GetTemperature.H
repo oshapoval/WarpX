@@ -94,11 +94,12 @@ struct GetTemperatureVector
 
     amrex::Real m_ux_std{0}, m_uy_std{0}, m_uz_std{0};
     amrex::ParserExecutor<3> m_ux_std_parser, m_uy_std_parser, m_uz_std_parser;
+    GetTemperature m_temperature;
     amrex::Real m_T_eV_to_u_std_factor{0}; // m_T_eV_to_u_std_factor = q_e / (m c^2), used to convert scalar temperature_in_eV to u_std
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
     ExternalFieldVectorView m_from_file; // Vector openPMD u_std field, if m_type == TempFromFileVector
-    ExternalFieldView m_temperature_in_eV_from_file; // scalar openPMD temperature_in_eV field, if m_type == TempFromFileScalar
+    ExternalFieldView m_temperature_in_eV_from_file; // scalar openPMD temperature_in_eV field, if m_type == TempFromFileValue
 #endif
     /**
      * \brief Construct the functor with information provided by temp
@@ -109,15 +110,15 @@ struct GetTemperatureVector
     explicit GetTemperatureVector (TemperatureProperties const& temp) noexcept;
 
     /**
-     * \brief Functor call. Returns the value of temperature at the location (x,y,z)
+     * \brief Returns the thermal spread as normalized momentum standard deviations
+     *        (ux_std, uy_std, uz_std) in the drift frame at (x,y,z).
      *
      * \param[in] x: x-coordinate of given location
      * \param[in] y: y-coordinate of given location
      * \param[in] z: z-cooridnate of given location
      *
-     *\return value of temperature at (x,y,z).
-     *        m_ux_std, m_uy_std, m_uz_std if m_type is TempConstantVector
-     *        m_ux_std_parser(x,y,z), m_uy_std_parser(x,y,z), m_uz_std_parser(x,y,z) if m_type is TempParserFunctionVector
+     * \return amrex::XDim3{ux_std, uy_std, uz_std} — isotropic or anisotropic
+     * depending on m_type (direct u_std, or converted from temperature_in_eV).
      */
     AMREX_GPU_HOST_DEVICE
     amrex::XDim3 operator() (amrex::Real const x, amrex::Real const y, amrex::Real const z) const noexcept
@@ -132,13 +133,19 @@ struct GetTemperatureVector
             {
                 return amrex::XDim3{m_ux_std_parser(x,y,z), m_uy_std_parser(x,y,z), m_uz_std_parser(x,y,z)};
             }
+            case (TempConstantValue):
+            case (TempParserFunction):
+            {
+                return ConvertTemperatureInEvToUStd(
+                    m_temperature(x,y,z), m_T_eV_to_u_std_factor);
+            }
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
             case (TempFromFileVector):
             {
                 return m_from_file.getValue(x, y, z);
             }
-            case (TempFromFileScalar):
+            case (TempFromFileValue):
             {
 #if (AMREX_SPACEDIM < 3)
                 amrex::ignore_unused(x,y,z);
@@ -152,7 +159,7 @@ struct GetTemperatureVector
 #endif
 #if defined(AMREX_USE_GPU)
                 AMREX_IF_ON_HOST((amrex::Abort(
-                    "For GPU builds, TempFromFileScalar only works on device.");))
+                    "For GPU builds, TempFromFileValue only works on device.");))
                 AMREX_IF_ON_DEVICE((return ConvertTemperatureInEvToUStd(
                     m_temperature_in_eV_from_file(pos), m_T_eV_to_u_std_factor);))
                 return amrex::XDim3{0.0, 0.0, 0.0};

@@ -350,7 +350,7 @@ for i in [6, 12]:
         print("Maxwell-Boltzmann constant velocity difference:", error)
     elif i == 12:
         print("Maxwell-Boltzmann constant temperature_in_eV difference:", error)
-        assert error < tolerance
+    assert error < tolerance
 # ============================================
 # maxwellian with parser bulk velocity
 # ============================================
@@ -552,13 +552,8 @@ for timestep in range(h8x.shape[0]):
     check_validity_uniform(bin_value_z, h8z[timestep] / N0, uz_min, uz_max)
 
 # =================================================
-# Gaussian with parser mean and standard deviation
+# Gaussian with parser mean and standard deviation (h9x,h9y,h9z folders) and parser temperature in eV (h13x/h13y/h13z folders)
 # =================================================
-
-# load data
-bin_value_ux, bin_data_ux = read_reduced_diags_histogram("h9x.txt")[2:]
-bin_value_uy, bin_data_uy = read_reduced_diags_histogram("h9y.txt")[2:]
-bin_value_uz, bin_data_uz = read_reduced_diags_histogram("h9z.txt")[2:]
 
 
 def Gaussian(mean, sigma, u):
@@ -569,20 +564,33 @@ def Gaussian(mean, sigma, u):
     )
 
 
-du = 2.0 / 50
-f_ux = Gaussian(0.1, 0.2, bin_value_ux) * du
-f_uy = Gaussian(0.12, 0.21, bin_value_uy) * du
-f_uz = Gaussian(0.14, 0.22, bin_value_uz) * du
+for i, i_tolerance in [(9, tolerance), (13, tolerance)]:
+    # load data
+    bin_value_ux, bin_data_ux = read_reduced_diags_histogram(f"h{i}x.txt")[2:]
+    bin_value_uy, bin_data_uy = read_reduced_diags_histogram(f"h{i}y.txt")[2:]
+    bin_value_uz, bin_data_uz = read_reduced_diags_histogram(f"h{i}z.txt")[2:]
 
-f9_error = (
-    np.sum(
-        np.abs(f_ux - bin_data_ux) / f_ux.max()
-        + np.abs(f_uy - bin_data_uy) / f_ux.max()
-        + np.abs(f_uz - bin_data_uz) / f_uz.max()
+    du = 2.0 / 50
+
+    if i == 9:
+        f_ux = Gaussian(0.1, 0.2, bin_value_ux) * du
+        f_uy = Gaussian(0.12, 0.21, bin_value_uy) * du
+        f_uz = Gaussian(0.14, 0.22, bin_value_uz) * du
+    elif i == 13:
+        f_ux = Gaussian(0.1, 0.2, bin_value_ux) * du
+        f_uy = Gaussian(0.12, 0.2, bin_value_uy) * du
+        f_uz = Gaussian(0.14, 0.2, bin_value_uz) * du
+
+    error = (
+        np.sum(
+            np.abs(f_ux - bin_data_ux) / f_ux.max()
+            + np.abs(f_uy - bin_data_uy) / f_ux.max()
+            + np.abs(f_uz - bin_data_uz) / f_uz.max()
+        )
+        / bin_value_ux.size
     )
-    / bin_value_ux.size
-)
-
-print("maxwellian parser mean/std velocity difference:", f9_error)
-
-assert f9_error < tolerance
+    if i == 9:
+        print("Maxwellian parser mean/std velocity difference:", error)
+    elif i == 13:
+        print("Maxwellian parser mean/temperature_in_eV difference:", error)
+    assert error < i_tolerance

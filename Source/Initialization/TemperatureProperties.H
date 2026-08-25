@@ -26,7 +26,7 @@ enum TemperatureInitType {
     TempParserFunctionVector,
     TempConstantVector,
     TempFromFileVector,
-    TempFromFileScalar
+    TempFromFileValue
 };
 
 /**
@@ -52,7 +52,7 @@ struct TemperatureProperties
     /* Type of temperature initialization */
     TemperatureInitType m_type;
 
-    /* Constant temperature value, if m_type == TempConstantValue */
+    /* Constant value, if m_type == TempConstantValue */
     amrex::Real m_temperature;
     /* Storage of the parser function, if m_type == TempParserFunction */
     std::unique_ptr<amrex::Parser> m_ptr_temperature_parser;

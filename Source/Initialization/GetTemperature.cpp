@@ -23,6 +23,7 @@ GetTemperature::GetTemperature (TemperatureProperties const& temp) noexcept
 // Constructor for three-component (vector) temperature
 GetTemperatureVector::GetTemperatureVector (TemperatureProperties const& temp) noexcept
     : m_type{temp.m_type}
+    , m_temperature{temp}
     , m_T_eV_to_u_std_factor{temp.m_T_eV_to_u_std_factor}
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
@@ -42,7 +43,7 @@ GetTemperatureVector::GetTemperatureVector (TemperatureProperties const& temp) n
     }
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
-    else if (m_type == TempFromFileScalar) {
+    else if (m_type == TempFromFileValue) {
         m_temperature_in_eV_from_file = temp.m_temperature_in_eV_reader->getView();
     }
 #endif

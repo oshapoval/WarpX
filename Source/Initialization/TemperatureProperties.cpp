@@ -101,7 +101,7 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                                  temperature_in_eV_dist_s);
 
             if (temperature_in_eV_dist_s == "constant") {
-                // Convert scalar temperature_in_eV to an isotropic u_std vector.
+                // Store scalar temperature_in_eV; convert to isotropic u_std at evaluation.
                 amrex::Real temperature_in_eV = 0.0;
                 WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
                     utils::parser::queryWithParser(pp, source_name, "temperature_in_eV", temperature_in_eV),
@@ -109,33 +109,22 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                 WARPX_ALWAYS_ASSERT_WITH_MESSAGE(temperature_in_eV >= 0.0,
                     "temperature_in_eV = " + std::to_string(temperature_in_eV) +
                     " is less than zero, which is not allowed");
-                const amrex::Real u_std = std::sqrt(
-                    temperature_in_eV * PhysConst::q_e / (mass * PhysConst::c * PhysConst::c));
-                m_ux_std = u_std;
-                m_uy_std = u_std;
-                m_uz_std = u_std;
-                m_type = TempConstantVector;
+                m_temperature = temperature_in_eV;
+                m_T_eV_to_u_std_factor =
+                    PhysConst::q_e / (mass * PhysConst::c * PhysConst::c);
+                m_type = TempConstantValue;
             }
             else if (temperature_in_eV_dist_s == "parser") {
-                // Convert scalar temperature_in_eV(x,y,z) to an isotropic u_std(x,y,z) parser.
+                // Parse temperature_in_eV(x,y,z); convert to isotropic u_std at evaluation.
                 std::string str_temperature_in_eV_function;
                 utils::parser::Store_parserString(
                     pp, source_name, "temperature_in_eV_function(x,y,z)",
                     str_temperature_in_eV_function);
-                const amrex::Real q_e_over_mc2 =
+                m_ptr_temperature_parser = std::make_unique<amrex::Parser>(
+                    utils::parser::makeParser(str_temperature_in_eV_function, {"x", "y", "z"}));
+                m_T_eV_to_u_std_factor =
                     PhysConst::q_e / (mass * PhysConst::c * PhysConst::c);
-                const std::string u_std_function =
-                    "sqrt((" + str_temperature_in_eV_function + ")*q_e_over_mc2)";
-                m_ptr_ux_std_parser = std::make_unique<amrex::Parser>(
-                    utils::parser::makeParser(u_std_function, {"x", "y", "z"}));
-                m_ptr_uy_std_parser = std::make_unique<amrex::Parser>(
-                    utils::parser::makeParser(u_std_function, {"x", "y", "z"}));
-                m_ptr_uz_std_parser = std::make_unique<amrex::Parser>(
-                    utils::parser::makeParser(u_std_function, {"x", "y", "z"}));
-                m_ptr_ux_std_parser->setConstant("q_e_over_mc2", q_e_over_mc2);
-                m_ptr_uy_std_parser->setConstant("q_e_over_mc2", q_e_over_mc2);
-                m_ptr_uz_std_parser->setConstant("q_e_over_mc2", q_e_over_mc2);
-                m_type = TempParserFunctionVector;
+                m_type = TempParserFunction;
             }
             else if (temperature_in_eV_dist_s == "read_from_file") {
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
@@ -160,7 +149,7 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                 amrex::DistributionMapping const dmap;
                 m_temperature_in_eV_reader->prepare(grids, dmap, amrex::IntVect(0));
                 m_T_eV_to_u_std_factor = PhysConst::q_e / (mass * PhysConst::c * PhysConst::c);
-                m_type = TempFromFileScalar;
+                m_type = TempFromFileValue;
 #else
                 WARPX_ABORT_WITH_MESSAGE(
                     "maxwellian_temperature_in_eV_distribution_type = read_from_file requires "
