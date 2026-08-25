@@ -406,7 +406,9 @@ def check_standard_normal(u, mean_ref, std_ref, tolerance):
     r = (u - mean_ref) / std_ref
     r_mean = np.mean(r)
     r_std = np.std(r)
+    print(" abs(r_mean) = ", abs(r_mean))
     assert abs(r_mean) < tolerance
+    print(" abs(r_std - 1.0) = ", abs(r_std - 1.0))
     assert abs(r_std - 1.0) < tolerance
 
 
