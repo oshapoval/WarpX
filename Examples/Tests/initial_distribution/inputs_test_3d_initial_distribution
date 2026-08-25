@@ -214,7 +214,7 @@ gaussian_momentum_from_file.read_u_mean_from_path = "../test_3d_initial_distribu
 gaussian_momentum_from_file.maxwellian_u_std_distribution_type = "read_from_file"
 gaussian_momentum_from_file.read_u_std_from_path = "../test_3d_initial_distribution_prepare/example-u-std.h5"
 
-gaussian_temperature_from_file.charge                           = -q_e
+gaussian_temperature_in_eV_from_file.charge                           = -q_e
 gaussian_temperature_in_eV_from_file.mass                       = m_e
 gaussian_temperature_in_eV_from_file.injection_style            = "NRandomPerCell"
 gaussian_temperature_in_eV_from_file.num_particles_per_cell     = 1000
