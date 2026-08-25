@@ -126,5 +126,14 @@
     "particle_position_y": 256011.5933546236,
     "particle_position_z": 255905.84694351768,
     "particle_weight": 8e+21
+  },
+  "gaussian_temperature_in_eV_from_file": {
+    "particle_momentum_x": 1.2956059014974661e-17,
+    "particle_momentum_y": 1.3566264317285339e-17,
+    "particle_momentum_z": 1.4185798889934373e-17,
+    "particle_position_x": 255862.65084565995,
+    "particle_position_y": 255935.2699936382,
+    "particle_position_z": 255968.0187925212,
+    "particle_weight": 8e+21
   }
 }
