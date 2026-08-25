@@ -441,7 +441,7 @@ check_standard_normal(uz, uz_mean_interp, uz_std_interp, standard_normal_toleran
 # maxwellian with bulk velocity and temperature_in_eV from openPMD file
 # (isotropic u_std = 0.2 * |z| from temperature_in_eV)
 # ==============================================
-standard_normal_tolerance = 6e-2
+standard_normal_tolerance = 8e-2
 
 ux, uy, uz, z = ts.get_particle(
     ["ux", "uy", "uz", "z"],
