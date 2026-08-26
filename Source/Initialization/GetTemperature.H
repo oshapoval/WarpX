@@ -20,12 +20,12 @@
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 amrex::XDim3
 ConvertTemperatureInEvToUStd (amrex::Real const T_eV,
-                              amrex::Real const T_eV_to_u_std_factor) noexcept
+                              amrex::Real const q_e_over_mc2) noexcept
 {
     if (T_eV < 0.0) {
         amrex::Abort("The Maxwellian temperature in eV must be non-negative.");
     }
-    const amrex::Real u_std = std::sqrt(T_eV * T_eV_to_u_std_factor);
+    const amrex::Real u_std = std::sqrt(T_eV * q_e_over_mc2);
     return amrex::XDim3{u_std, u_std, u_std};
 }
 
@@ -95,7 +95,7 @@ struct GetTemperatureVector
     amrex::Real m_ux_std{0}, m_uy_std{0}, m_uz_std{0};
     amrex::ParserExecutor<3> m_ux_std_parser, m_uy_std_parser, m_uz_std_parser;
     GetTemperature m_temperature;
-    amrex::Real m_T_eV_to_u_std_factor{0}; // m_T_eV_to_u_std_factor = q_e / (m c^2), used to convert scalar temperature_in_eV to u_std
+    amrex::Real m_q_e_over_mc2{0}; // q_e / (m c^2)
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
     ExternalFieldVectorView m_from_file; // Vector openPMD u_std field, if m_type == TempFromFileVector
@@ -137,7 +137,7 @@ struct GetTemperatureVector
             case (TempParserFunction):
             {
                 return ConvertTemperatureInEvToUStd(
-                    m_temperature(x,y,z), m_T_eV_to_u_std_factor);
+                    m_temperature(x,y,z), m_q_e_over_mc2);
             }
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
@@ -161,11 +161,11 @@ struct GetTemperatureVector
                 AMREX_IF_ON_HOST((amrex::Abort(
                     "For GPU builds, TempFromFileValue only works on device.");))
                 AMREX_IF_ON_DEVICE((return ConvertTemperatureInEvToUStd(
-                    m_temperature_in_eV_from_file(pos), m_T_eV_to_u_std_factor);))
+                    m_temperature_in_eV_from_file(pos), m_q_e_over_mc2);))
                 return amrex::XDim3{0.0, 0.0, 0.0};
 #else
                 return ConvertTemperatureInEvToUStd(
-                    m_temperature_in_eV_from_file(pos), m_T_eV_to_u_std_factor);
+                    m_temperature_in_eV_from_file(pos), m_q_e_over_mc2);
 #endif
             }
 #endif

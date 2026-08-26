@@ -110,7 +110,7 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                     "temperature_in_eV = " + std::to_string(temperature_in_eV) +
                     " is less than zero, which is not allowed");
                 m_temperature = temperature_in_eV;
-                m_T_eV_to_u_std_factor =
+                m_q_e_over_mc2 =
                     PhysConst::q_e / (mass * PhysConst::c * PhysConst::c);
                 m_type = TempConstantValue;
             }
@@ -122,7 +122,7 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                     str_temperature_in_eV_function);
                 m_ptr_temperature_parser = std::make_unique<amrex::Parser>(
                     utils::parser::makeParser(str_temperature_in_eV_function, {"x", "y", "z"}));
-                m_T_eV_to_u_std_factor =
+                m_q_e_over_mc2 =
                     PhysConst::q_e / (mass * PhysConst::c * PhysConst::c);
                 m_type = TempParserFunction;
             }
@@ -148,7 +148,7 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                 amrex::BoxArray const grids;
                 amrex::DistributionMapping const dmap;
                 m_temperature_in_eV_reader->prepare(grids, dmap, amrex::IntVect(0));
-                m_T_eV_to_u_std_factor = PhysConst::q_e / (mass * PhysConst::c * PhysConst::c);
+                m_q_e_over_mc2 = PhysConst::q_e / (mass * PhysConst::c * PhysConst::c);
                 m_type = TempFromFileValue;
 #else
                 WARPX_ABORT_WITH_MESSAGE(

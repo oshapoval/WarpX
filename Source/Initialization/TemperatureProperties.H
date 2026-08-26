@@ -64,8 +64,8 @@ struct TemperatureProperties
 
     std::string m_read_u_std_path;
     std::string m_read_temperature_in_eV_path;
-    /* m_T_eV_to_u_std_factor = q_e/(m c^2), used to convert scalar temperature_in_eV to u_std */
-    amrex::Real m_T_eV_to_u_std_factor{0.0};
+    /* q_e/(m c^2), used with temperature_in_eV conversion */
+    amrex::Real m_q_e_over_mc2{0.0};
 
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
