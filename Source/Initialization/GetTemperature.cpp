@@ -11,6 +11,7 @@
 // Constructor for single-component (scalar) temperature
 GetTemperature::GetTemperature (TemperatureProperties const& temp) noexcept
     : m_type{temp.m_type}
+    , m_q_e_over_mc2{temp.m_q_e_over_mc2}
 {
     if (m_type == TempConstantValue) {
         m_temperature = temp.m_temperature;
@@ -24,7 +25,7 @@ GetTemperature::GetTemperature (TemperatureProperties const& temp) noexcept
 GetTemperatureVector::GetTemperatureVector (TemperatureProperties const& temp) noexcept
     : m_type{temp.m_type}
     , m_temperature{temp}
-    , m_T_eV_to_u_std_factor{temp.m_T_eV_to_u_std_factor}
+    , m_q_e_over_mc2{temp.m_q_e_over_mc2}
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
     , m_from_file{temp.m_u_std_x_reader.get(), temp.m_u_std_y_reader.get(),

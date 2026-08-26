@@ -1893,12 +1893,15 @@ Particle initialization
           `this file <https://github.com/BLAST-WarpX/warpx/blob/development/Examples/Tests/initial_distribution/inputs_test_3d_initial_distribution_prepare.py>`__
           for an example of how to prepare the openPMD data file.
 
-      * ``<species_name>.theta_distribution_type`` (`string`, default ``constant``):
-        Specifies the distribution type for the temperature :math:`\theta`.
-        Values less than zero are not allowed.
+      * ``<species_name>.maxwell_juttner_temperature_in_eV_distribution_type`` (`string`, default ``constant``):
+        Specifies the distribution type for the temperature in eV.
+        Internally converted to dimensionless :math:`\theta = \mathrm{temperature\_in\_eV}\, q_e / (m c^2)`,
+        where :math:`m` is the species mass (from ``species_type`` or ``mass``).
+        Values of ``temperature_in_eV`` less than zero are not allowed.
 
-        * If ``constant``, the following is required: ``<species_name>.theta`` (`float`).
-        * If ``parser``, the following is required: ``<species_name>.theta_function(x,y,z)``.
+        * If ``constant``, the following is required: ``<species_name>.temperature_in_eV`` (`float`).
+        * If ``parser``, the following is required:
+          ``<species_name>.temperature_in_eV_function(x,y,z)``.
 
       Sampling uses the Sobol and flipping methods described in :cite:t:`param-ZenitaniPOP2015`.
       For :math:`\theta \lesssim 0.1`, the Sobol method becomes inefficient (its acceptance

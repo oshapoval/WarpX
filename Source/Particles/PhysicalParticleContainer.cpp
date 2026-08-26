@@ -464,6 +464,27 @@ PhysicalParticleContainer::BackwardCompatibility ()
             WARPX_ABORT_WITH_MESSAGE(msg);
         }
     }
+
+    std::string mom_dist_s;
+    if (pp_species_name.query("momentum_distribution_type", mom_dist_s) &&
+        mom_dist_s == "maxwell_juttner") {
+        const std::string juttner_temp_msg =
+            "Maxwell-Juttner thermal spread is now specified with temperature_in_eV. "
+            "Use <species>.maxwell_juttner_temperature_in_eV_distribution_type = constant "
+            "(default) or parser, and provide <species>.temperature_in_eV or "
+            "<species>.temperature_in_eV_function(x,y,z). "
+            "Requires species_type or mass.";
+        for (const std::string old_param :
+             {"theta", "theta_distribution_type", "theta_function(x,y,z)"}) {
+            if (pp_species_name.query(old_param, backward_string)) {
+                std::string msg = "<species>.";
+                msg += old_param;
+                msg += " is no longer supported. ";
+                msg += juttner_temp_msg;
+                WARPX_ABORT_WITH_MESSAGE(msg);
+            }
+        }
+    }
 }
 
 void PhysicalParticleContainer::InitData ()

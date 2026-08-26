@@ -66,7 +66,8 @@ maxwell_juttner.num_particles_per_cell     = 1000
 maxwell_juttner.profile                    = constant
 maxwell_juttner.density                    = 1.0e21
 maxwell_juttner.momentum_distribution_type = "maxwell_juttner"
-maxwell_juttner.theta                      = 1.0
+maxwell_juttner.temperature_in_eV_distribution_type = "constant"
+maxwell_juttner.temperature_in_eV          = m_e * clight**2 / q_e
 
 # Maxwell-Juttner with an asymmetric bulk drift (normalized momentum gamma*v/c).
 # ux_mean=0.5, uy_mean=0.3, uz_mean=0.1 gives |u_mean|^2=0.35, gamma_bulk=sqrt(1.35).
@@ -79,7 +80,8 @@ maxwell_juttner_drift.num_particles_per_cell                 = 1000
 maxwell_juttner_drift.profile                                = constant
 maxwell_juttner_drift.density                                = 1.0e21
 maxwell_juttner_drift.momentum_distribution_type             = "maxwell_juttner"
-maxwell_juttner_drift.theta                                  = 1.0
+maxwell_juttner_drift.temperature_in_eV_distribution_type = "constant"
+maxwell_juttner_drift.temperature_in_eV                      = m_e * clight**2 / q_e
 maxwell_juttner_drift.maxwell_juttner_u_mean_distribution_type = "constant"
 maxwell_juttner_drift.ux_mean                                = 0.5
 maxwell_juttner_drift.uy_mean                                = 0.3
@@ -92,7 +94,8 @@ maxwell_juttner_low_theta.num_particles_per_cell     = 1000
 maxwell_juttner_low_theta.profile                    = constant
 maxwell_juttner_low_theta.density                    = 1.0e21
 maxwell_juttner_low_theta.momentum_distribution_type = "maxwell_juttner"
-maxwell_juttner_low_theta.theta                      = 0.05
+maxwell_juttner_low_theta.temperature_in_eV_distribution_type = "constant"
+maxwell_juttner_low_theta.temperature_in_eV          = 0.05 * m_e * clight**2 / q_e
 
 beam.charge                     = -q_e
 beam.mass                       = m_e
@@ -123,8 +126,8 @@ maxwell_juttner_parser.num_particles_per_cell     = 1000
 maxwell_juttner_parser.profile                    = constant
 maxwell_juttner_parser.density                    = 1.0e21
 maxwell_juttner_parser.momentum_distribution_type = "maxwell_juttner"
-maxwell_juttner_parser.theta_distribution_type    = "parser"
-maxwell_juttner_parser.theta_function(x,y,z)      = "1.0 + heaviside(x,0)"
+maxwell_juttner_parser.maxwell_juttner_temperature_in_eV_distribution_type = "parser"
+maxwell_juttner_parser.temperature_in_eV_function(x,y,z) = "(1.0 + heaviside(x,0)) * m_e * clight**2 / q_e"
 
 velocity_constant.charge                     = -q_e
 velocity_constant.mass                       = m_e
