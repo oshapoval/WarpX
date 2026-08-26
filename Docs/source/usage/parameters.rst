@@ -1835,10 +1835,10 @@ Particle initialization
         non-relativistic in the drift frame. For a relativistic thermal spread, use ``maxwell_juttner`` instead.
 
       * ``<species_name>.maxwellian_temperature_in_eV_distribution_type`` (`string`):
-        Alternative and mutually exclusive with ``maxwellian_u_std_distribution_type`` for specifying the thermal spread
-        from a temperature in eV.
-        The standard deviation of each normalized momentum component in the drift frame is
-        computed as :math:`u_\mathrm{std} = \sqrt{\mathrm{temperature\_in\_eV}\, q_e / (m c^2)}`, where
+        Specifies the temperature in eV for the thermal spread of the particle momentum. This is an alternative to and mutually
+        exclusive with ``<species_name>.maxwellian_u_std_distribution_type`` for specifying the thermal spread.
+        Under the hood, the standard deviation of each normalized momentum component in the drift frame is computed as:
+        :math:`u_\mathrm{std} = \sqrt{\mathrm{temperature\_in\_eV}\, q_e / (m c^2)}`, where
         :math:`m` is the species mass (from ``species_type`` or ``mass``).
 
         * If ``constant``, the following is required: ``<species_name>.temperature_in_eV`` (`float`).
