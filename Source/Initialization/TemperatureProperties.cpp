@@ -28,7 +28,7 @@ void
 parse_temperature_in_eV (
     amrex::ParmParse const& pp,
     std::string const& source_name,
-    amrex::Geometry const& geom,
+    [[maybe_unused]] amrex::Geometry const& geom,
     std::string const& dist_type_param,
     std::string const& mom_dist_s,
     bool const allow_read_from_file,
