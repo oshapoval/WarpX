@@ -28,10 +28,9 @@ void
 parse_temperature_in_eV (
     amrex::ParmParse const& pp,
     std::string const& source_name,
-    [[maybe_unused]] amrex::Geometry const& geom,
+    amrex::Geometry const& geom,
     std::string const& dist_type_param,
     std::string const& mom_dist_s,
-    bool const allow_read_from_file,
     TemperatureProperties& temp)
 {
     amrex::Real mass = 0.0;
@@ -77,12 +76,6 @@ parse_temperature_in_eV (
         temp.m_type = TempParserFunction;
     }
     else if (temperature_in_eV_dist_s == "read_from_file") {
-        if (!allow_read_from_file) {
-            std::stringstream ss;
-            ss << mom_dist_s << " temperature distribution type '"
-               << temperature_in_eV_dist_s << "' not yet implemented.";
-            WARPX_ABORT_WITH_MESSAGE(ss.str());
-        }
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
         if (WarpX::gamma_boost > 1.0) {
@@ -139,7 +132,6 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
             pp, source_name, geom,
             "maxwell_juttner_temperature_in_eV_distribution_type",
             mom_dist_s,
-            /*allow_read_from_file=*/false,
             *this);
     }
     else if (mom_dist_s == "maxwellian") {
@@ -162,7 +154,6 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                 pp, source_name, geom,
                 "maxwellian_temperature_in_eV_distribution_type",
                 mom_dist_s,
-                /*allow_read_from_file=*/true,
                 *this);
         }
         else {

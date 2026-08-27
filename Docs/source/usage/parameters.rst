@@ -1902,6 +1902,14 @@ Particle initialization
         * If ``constant``, the following is required: ``<species_name>.temperature_in_eV`` (`float`).
         * If ``parser``, the following is required:
           ``<species_name>.temperature_in_eV_function(x,y,z)``.
+        * If ``read_from_file``, ``temperature_in_eV`` is read as a scalar function of position
+          from an openPMD file (requires a WarpX build with openPMD; not supported yet in ``RZ`` / ``RCYLINDER`` /
+          ``RSPHERE``). The following is required:
+          ``<species_name>.read_temperature_in_eV_from_path`` (openPMD file path). The file must
+          contain a scalar openPMD mesh with the name given by
+          ``<species_name>.temperature_in_eV_mesh_name`` (default ``temperature_in_eV``). See
+          `this file <https://github.com/BLAST-WarpX/warpx/blob/development/Examples/Tests/initial_distribution/inputs_test_3d_initial_distribution_prepare.py>`__
+          for an example of how to prepare the openPMD data file.
 
       Sampling uses the Sobol and flipping methods described in :cite:t:`param-ZenitaniPOP2015`.
       For :math:`\theta \lesssim 0.1`, the Sobol method becomes inefficient (its acceptance

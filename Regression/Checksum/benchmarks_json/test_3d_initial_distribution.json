@@ -144,5 +144,14 @@
     "particle_position_y": 256018.00713414286,
     "particle_position_z": 256001.97548263433,
     "particle_weight": 8e+21
+  },
+  "maxwell_juttner_read_from_file": {
+    "particle_momentum_x": 3.244021846542388e-16,
+    "particle_momentum_y": 3.234526858649489e-16,
+    "particle_momentum_z": 3.239205080076513e-16,
+    "particle_position_x": 255896.8469270722,
+    "particle_position_y": 255957.21192428755,
+    "particle_position_z": 255999.9386319741,
+    "particle_weight": 8e+21
   }
 }
