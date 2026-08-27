@@ -137,7 +137,7 @@ maxwell_juttner_read_from_file.profile                    = constant
 maxwell_juttner_read_from_file.density                    = 1.0e21
 maxwell_juttner_read_from_file.momentum_distribution_type = "maxwell_juttner"
 maxwell_juttner_read_from_file.maxwell_juttner_temperature_in_eV_distribution_type = "read_from_file"
-maxwell_juttner_read_from_file.read_temperature_in_eV_from_path = "./test_3d_initial_distribution_prepare/example-temperature-in-eV-MJ.h5"
+maxwell_juttner_read_from_file.read_temperature_in_eV_from_path = "../test_3d_initial_distribution_prepare/example-temperature-in-eV-MJ.h5"
 
 velocity_constant.charge                     = -q_e
 velocity_constant.mass                       = m_e
