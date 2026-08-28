@@ -177,6 +177,11 @@ public:
     BinaryCollision ( BinaryCollision&& )                  = delete;
     BinaryCollision& operator= ( BinaryCollision&& )       = delete;
 
+    void AllocData () override
+    {
+        m_binary_collision_functor.AllocData();
+    }
+
     /** Perform the collisions
      *
      * @param cur_time Current time
@@ -296,7 +301,7 @@ public:
 
         ABLASTR_PROFILE("BinaryCollision::doCollisionsWithinTile");
 
-        const auto& binary_collision_functor = m_binary_collision_functor.executor();
+        const auto& binary_collision_functor = m_binary_collision_functor.executor(lev, mfi);
         const bool have_product_species = m_have_product_species;
 
         // Store product species data in vectors
@@ -325,6 +330,8 @@ public:
             amrex::FArrayBox & global_debye_length_fab = global_debye_length[mfi];
             global_debye_length_data = global_debye_length_fab.dataPtr();
         }
+
+        const amrex::Box tilebox = mfi.tilebox();
 
         amrex::Geometry const& geom_lev = WarpX::GetInstance().Geom(lev);
         // dV is level-specific: cell volume at this refinement level (smaller on fine levels).
@@ -652,6 +659,7 @@ public:
 
                     // Use a bisection algorithm to find the index of the cell in which this pair is located
                     const int i_cell = amrex::bisect( p_coll_offsets, 0, n_cells, ui_coll );
+                    const amrex::IntVect global_index = tilebox.atOffset(i_cell);
 
                     // The particles from species1 that are in the cell `i_cell` are
                     // given by the `indices_1[cell_start_1:cell_stop_1]`
@@ -691,7 +699,7 @@ public:
                         soa_1, soa_1, get_position_1, get_position_1,
                         n1, n1, T1, T1, global_lamdb,
                         q1, q1, m1, m1, dt, dV*volume_factor(i_cell), coll_idx,
-                        cell_start_pair, p_mask, p_pair_indices_1, p_pair_indices_2,
+                        cell_start_pair, global_index, p_mask, p_pair_indices_1, p_pair_indices_2,
                         p_pair_reaction_weight, p_product_data, engine);
                 }
             );
@@ -1238,6 +1246,7 @@ public:
 
                     // Use a bisection algorithm to find the index of the cell in which this pair is located
                     const int i_cell = amrex::bisect( p_coll_offsets, 0, n_cells, ui_coll );
+                    const amrex::IntVect global_index = tilebox.atOffset(i_cell);
 
                     // The particles from species1 that are in the cell `i_cell` are
                     // given by the `indices_1[cell_start_1:cell_stop_1]`
@@ -1284,7 +1293,7 @@ public:
                         soa_1, soa_2, get_position_1, get_position_2,
                         n1, n2, T1, T2, global_lamdb,
                         q1, q2, m1, m2, dt, dV*volume_factor(i_cell), coll_idx,
-                        cell_start_pair, p_mask, p_pair_indices_1, p_pair_indices_2,
+                        cell_start_pair, global_index, p_mask, p_pair_indices_1, p_pair_indices_2,
                         p_pair_reaction_weight, p_product_data, engine);
                 }
             );
