@@ -76,12 +76,12 @@ void setMassMatricesKernels (const amrex::ParticleReal qs,
 
     constexpr auto inv_c2 = PhysConst::inv_c2_v<amrex::ParticleReal>;
 
-    // Convert Cartesian B on particle to normalized cyclotron units with dt/2.0
-    const amrex::ParticleReal gamma_bar = std::sqrt(1._prt + (upx*upx + upy*upy + upz*upz)*inv_c2);
-    const amrex::ParticleReal alpha = qs/ms*0.5_prt*dt/gamma_bar;
-    const amrex::ParticleReal bpx = alpha*Bpx;
-    const amrex::ParticleReal bpy = alpha*Bpy;
-    const amrex::ParticleReal bpz = alpha*Bpz;
+    // Convert Cartesian B on particle to normalized cyclotron units with dt/2.0.
+    const amrex::ParticleReal inv_gamma_bar = 1._prt/std::sqrt(1._prt + (upx*upx + upy*upy + upz*upz)*inv_c2);
+    const amrex::ParticleReal alpha = qs/ms*0.5_prt*dt;
+    const amrex::ParticleReal bpx = alpha*Bpx*inv_gamma_bar;
+    const amrex::ParticleReal bpy = alpha*Bpy*inv_gamma_bar;
+    const amrex::ParticleReal bpz = alpha*Bpz*inv_gamma_bar;
 
     const amrex::ParticleReal bpsq = bpx*bpx + bpy*bpy + bpz*bpz;
     const amrex::ParticleReal arogp = alpha*rhop/(1.0_prt + bpsq);
@@ -642,8 +642,9 @@ void doDirectSigmaDeposition (const GetParticlePosition<PIdx>& GetPosition,
     enum exteb_flags : int { no_exteb, has_exteb };
     const int exteb_runtime_flag = getExternalEB.isNoOp() ? no_exteb : has_exteb;
 
-    // Loop over particles and deposit mass matrices
-    amrex::ParallelFor(
+    // Loop over particles and deposit mass matrices.
+    // amrex::For: iterations scatter-add into shared J/Sigma nodes (no SIMD pragma, see issue #7097)
+    amrex::For(
         amrex::TypeList<amrex::CompileTimeOptions<no_exteb, has_exteb>>{},
         {exteb_runtime_flag},
         np_to_deposit,
@@ -1882,8 +1883,9 @@ void doVillasenorSigmaDeposition ([[maybe_unused]] const amrex::ParticleReal* xp
     enum exteb_flags : int { no_exteb, has_exteb };
     const int exteb_runtime_flag = getExternalEB.isNoOp() ? no_exteb : has_exteb;
 
-    // Loop over particles and deposit mass matrices
-    amrex::ParallelFor(
+    // Loop over particles and deposit mass matrices.
+    // amrex::For: iterations scatter-add into shared J/Sigma nodes (no SIMD pragma, see issue #7097)
+    amrex::For(
         amrex::TypeList<amrex::CompileTimeOptions<no_exteb, has_exteb>>{},
         {exteb_runtime_flag},
         np_to_deposit,

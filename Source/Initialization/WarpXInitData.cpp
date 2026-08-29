@@ -815,6 +815,9 @@ WarpX::InitData ()
     /** create object for reduced diagnostics */
     reduced_diags = std::make_unique<MultiReducedDiags>();
 
+    // Set the header for the file saving dt_update data
+    WriteDtUpdateFileHeader();
+
     // WarpX::computeMaxStepBoostAccelerator
     // needs to start from the initial zmin_domain_boost,
     // even if restarting from a checkpoint file
@@ -879,8 +882,10 @@ WarpX::InitData ()
     }
     ::WriteUsedInputsFile();
 
-    // Run div cleaner here on loaded external fields
-    if (m_do_initial_div_cleaning) {
+    // Run div cleaner here on loaded external fields (fresh starts only: on
+    // restart the B field is the checkpoint-restored EVOLVED field, and
+    // re-running the t=0 projection would corrupt it)
+    if (m_do_initial_div_cleaning && restart_chkfile.empty()) {
         WarpX::ProjectionCleanDivB();
     }
 
@@ -900,8 +905,9 @@ WarpX::InitData ()
              has_boundary_potential)
             && WarpX::electromagnetic_solver_id != ElectromagneticSolverAlgo::HybridPIC)
         {
-            bool const reset_fields = false; // Do not erase previous user-specified values on the grid
-            ComputeSpaceChargeField(reset_fields);
+            bool const reset_E_field = false; // Do not erase previous user-specified values on the grid
+            bool const reset_B_field = false; // Do not erase previous user-specified values on the grid
+            ComputeSpaceChargeField(reset_E_field, reset_B_field);
             if (electrostatic_solver_id == ElectrostaticSolverAlgo::LabFrameElectroMagnetostatic) {
                 ComputeMagnetostaticField();
             }

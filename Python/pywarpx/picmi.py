@@ -51,6 +51,23 @@ class constants:
 picmistandard.register_constants(constants)
 
 
+def _set_refined_region_inputs(refined_regions):
+    if refined_regions:
+        assert len(refined_regions) == 1, Exception(
+            "WarpX only supports one refined region."
+        )
+        assert refined_regions[0][0] == 1, Exception(
+            "The one refined region can only be level 1"
+        )
+        pywarpx.amr.max_level = 1
+        pywarpx.warpx.fine_tag_lo = refined_regions[0][1]
+        pywarpx.warpx.fine_tag_hi = refined_regions[0][2]
+        if len(refined_regions[0]) == 4:
+            pywarpx.amr.ref_ratio_vect = refined_regions[0][3]
+    else:
+        pywarpx.amr.max_level = 0
+
+
 class Species(picmistandard.PICMI_Species):
     """
     See `Input Parameters <https://warpx.readthedocs.io/en/latest/usage/parameters.html>`__ for more information.
@@ -1102,19 +1119,7 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
             pywarpx.warpx.start_moving_window_step = self.start_moving_window_step
             pywarpx.warpx.end_moving_window_step = self.end_moving_window_step
 
-        if self.refined_regions:
-            assert len(self.refined_regions) == 1, Exception(
-                "WarpX only supports one refined region."
-            )
-            assert self.refined_regions[0][0] == 1, Exception(
-                "The one refined region can only be level 1"
-            )
-            pywarpx.amr.max_level = 1
-            pywarpx.warpx.fine_tag_lo = self.refined_regions[0][1]
-            pywarpx.warpx.fine_tag_hi = self.refined_regions[0][2]
-            # The refinement_factor is ignored (assumed to be [2,2])
-        else:
-            pywarpx.amr.max_level = 0
+        _set_refined_region_inputs(self.refined_regions)
 
 
 class Cartesian1DGrid(picmistandard.PICMI_Cartesian1DGrid):
@@ -1217,19 +1222,7 @@ class Cartesian1DGrid(picmistandard.PICMI_Cartesian1DGrid):
             pywarpx.warpx.start_moving_window_step = self.start_moving_window_step
             pywarpx.warpx.end_moving_window_step = self.end_moving_window_step
 
-        if self.refined_regions:
-            assert len(self.refined_regions) == 1, Exception(
-                "WarpX only supports one refined region."
-            )
-            assert self.refined_regions[0][0] == 1, Exception(
-                "The one refined region can only be level 1"
-            )
-            pywarpx.amr.max_level = 1
-            pywarpx.warpx.fine_tag_lo = self.refined_regions[0][1]
-            pywarpx.warpx.fine_tag_hi = self.refined_regions[0][2]
-            # The refinement_factor is ignored (assumed to be [2,2])
-        else:
-            pywarpx.amr.max_level = 0
+        _set_refined_region_inputs(self.refined_regions)
 
 
 class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
@@ -1353,19 +1346,7 @@ class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
             pywarpx.warpx.start_moving_window_step = self.start_moving_window_step
             pywarpx.warpx.end_moving_window_step = self.end_moving_window_step
 
-        if self.refined_regions:
-            assert len(self.refined_regions) == 1, Exception(
-                "WarpX only supports one refined region."
-            )
-            assert self.refined_regions[0][0] == 1, Exception(
-                "The one refined region can only be level 1"
-            )
-            pywarpx.amr.max_level = 1
-            pywarpx.warpx.fine_tag_lo = self.refined_regions[0][1]
-            pywarpx.warpx.fine_tag_hi = self.refined_regions[0][2]
-            # The refinement_factor is ignored (assumed to be [2,2])
-        else:
-            pywarpx.amr.max_level = 0
+        _set_refined_region_inputs(self.refined_regions)
 
 
 class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
@@ -1510,19 +1491,7 @@ class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
             pywarpx.warpx.start_moving_window_step = self.start_moving_window_step
             pywarpx.warpx.end_moving_window_step = self.end_moving_window_step
 
-        if self.refined_regions:
-            assert len(self.refined_regions) == 1, Exception(
-                "WarpX only supports one refined region."
-            )
-            assert self.refined_regions[0][0] == 1, Exception(
-                "The one refined region can only be level 1"
-            )
-            pywarpx.amr.max_level = 1
-            pywarpx.warpx.fine_tag_lo = self.refined_regions[0][1]
-            pywarpx.warpx.fine_tag_hi = self.refined_regions[0][2]
-            # The refinement_factor is ignored (assumed to be [2,2,2])
-        else:
-            pywarpx.amr.max_level = 0
+        _set_refined_region_inputs(self.refined_regions)
 
 
 class ElectromagneticSolver(picmistandard.PICMI_ElectromagneticSolver):
@@ -1701,8 +1670,9 @@ class GMRESLinearSolver(LinearSolverBase):
         self.relative_tolerance = relative_tolerance
         self.max_iterations = max_iterations
 
-    def linear_solver_initialize_inputs(self, nonlinear_solver):
-        nonlinear_solver.liner_solver = "amrex_gmres"
+    def linear_solver_initialize_inputs(self, nonlinear_solver=None):
+        if nonlinear_solver is not None:
+            nonlinear_solver.linear_solver = "amrex_gmres"
         amrex_gmres = pywarpx.warpx.get_bucket("amrex_gmres")
         amrex_gmres.verbose_int = self.verbose_int
         amrex_gmres.restart_length = self.restart_length
@@ -1719,8 +1689,9 @@ class PETScKSPLinearSolver(LinearSolverBase):
     ----------
     """
 
-    def linear_solver_initialize_inputs(self, nonlinear_solver):
-        nonlinear_solver.liner_solver = "petsc_ksp"
+    def linear_solver_initialize_inputs(self, nonlinear_solver=None):
+        if nonlinear_solver is not None:
+            nonlinear_solver.linear_solver = "petsc_ksp"
 
 
 class PreconditionerBase(picmistandard.base._ClassWithInit):
@@ -1776,7 +1747,9 @@ class CurlCurlMLMGPreconditioner(PreconditionerBase):
         self.relative_tolerance = relative_tolerance
         self.absolute_tolerance = absolute_tolerance
 
-    def preconditioner_type_initialize_inputs(self):
+    def preconditioner_type_initialize_inputs(self, jacobian=None):
+        if jacobian is not None:
+            jacobian.pc_type = "pc_curl_curl_mlmg"
         pc_curl_curl_mlmg = pywarpx.warpx.get_bucket("pc_curl_curl_mlmg")
         pc_curl_curl_mlmg.verbose = self.verbose
         pc_curl_curl_mlmg.bottom_verbose = self.bottom_verbose
@@ -1819,7 +1792,9 @@ class JacobiPreconditioner(PreconditionerBase):
         self.relative_tolerance = relative_tolerance
         self.absolute_tolerance = absolute_tolerance
 
-    def preconditioner_type_initialize_inputs(self):
+    def preconditioner_type_initialize_inputs(self, jacobian=None):
+        if jacobian is not None:
+            jacobian.pc_type = "pc_jacobi"
         pc_jacobi = pywarpx.warpx.get_bucket("pc_jacobi")
         pc_jacobi.verbose = self.verbose
         pc_jacobi.max_iter = self.max_iter
@@ -1868,7 +1843,9 @@ class PETScPreconditioner(PreconditionerBase):
         self.hypre_type = hypre_type
         self.euclid_factor_levels = euclid_factor_levels
 
-    def preconditioner_type_initialize_inputs(self):
+    def preconditioner_type_initialize_inputs(self, jacobian=None):
+        if jacobian is not None:
+            jacobian.pc_type = "pc_petsc"
         pc_petsc = pywarpx.warpx.get_bucket("pc_petsc")
         pc_petsc.type = self.type
         pc_petsc.asm_overlap = self.asm_overlap
@@ -2010,7 +1987,8 @@ class NewtonNonlinearSolver(NonlinearSolverBase):
             self.linear_solver.linear_solver_initialize_inputs(newton)
 
         if self.pc_type is not None:
-            self.pc_type.preconditioner_type_initialize_inputs()
+            jacobian = pywarpx.warpx.get_bucket("jacobian")
+            self.pc_type.preconditioner_type_initialize_inputs(jacobian)
 
 
 class PicardNonlinearSolver(NonlinearSolverBase):
@@ -2121,6 +2099,31 @@ class SemiImplicitEMEvolveScheme(picmistandard.base._ClassWithInit):
         self.nonlinear_solver.nonlinear_solver_initialize_inputs()
 
 
+class SemiImplicitDarwinEvolveScheme(picmistandard.base._ClassWithInit):
+    """
+    Sets up the semi-implicit Darwin evolve scheme.
+
+    linear_solver:
+        GMRESLinearSolver instance.
+    """
+
+    def __init__(
+        self,
+        linear_solver,
+    ):
+        if not isinstance(linear_solver, GMRESLinearSolver):
+            raise TypeError(
+                "SemiImplicitDarwinEvolveScheme only supports GMRESLinearSolver "
+                "as its linear_solver (there is no nonlinear solver for the "
+                "linear solver to attach to, which PETScKSPLinearSolver requires)"
+            )
+        self.linear_solver = linear_solver
+
+    def solver_scheme_initialize_inputs(self):
+        pywarpx.algo.evolve_scheme = "semi_implicit_darwin"
+        self.linear_solver.linear_solver_initialize_inputs()
+
+
 class HybridPICSolver(picmistandard.base._ClassWithInit):
     """
     Hybrid-PIC solver based on Ohm's law.
@@ -2150,43 +2153,85 @@ class HybridPICSolver(picmistandard.base._ClassWithInit):
         Can be a constant value or an expression depending on ``rho`` (charge density)
         and ``B`` (magnetic field magnitude).
 
+    solve_electron_energy_equation: bool, default=False
+        Solve the electron energy equation instead of the algebraic adiabatic
+        pressure closure: the electron entropy ``K = Te * ne**(1-gamma)`` is
+        transported each step by QDSMC markers advected with the electron
+        fluid velocity, the source terms below are applied per cell, and
+        ``Pe = ne * kB * Te`` is fed back into the Ohm's-law E-solve.
+
+    include_joule_heating: bool, default=False
+        Add the resistive (Joule) heating source to the electron temperature.
+        Reduces to ``eta * J**2`` for a single ion species. Only used when
+        ``solve_electron_energy_equation`` is True.
+
+    joule_redirect_Te_threshold: float, optional
+        Electron temperature threshold in eV above which the Joule heating of
+        a cell is routed to the ions (as an energy-conserving stochastic kick)
+        instead of the electrons, allowing ``Ti > Te`` to develop. Specifying
+        a value >= 0 enables the redirect (off by default). Requires
+        ``include_joule_heating``.
+
+    electron_ion_relaxation_rate: float or str, optional
+        Value or expression for the electron-ion energy-equilibration rate
+        ``nu_ei`` in 1/s. Specifying it enables the electron-ion thermal
+        equilibration ``Q_ei`` on the electron temperature, with the conjugate
+        ion heating applied as an energy-conserving drag-diffusion kick on
+        each ion (the required shape-aware ion temperature deposition is
+        enabled automatically on every charged species). The expression may
+        depend on ``rho`` (charge density in C/m^3), ``Te`` and ``Ti``
+        (temperatures in eV) and ``t`` (time). Only used when
+        ``solve_electron_energy_equation`` is True.
+
     substeps: int, default=10
         Total number of substeps used to advance the B-field over one full
         timestep (split evenly between the two half-steps, so ``substeps/2``
         RK4 steps are taken per half-step, each of duration
         ``dt / substeps``). Must be divisible by 2; if not, the value is
         automatically rounded up to the next even number.
-        When ``use_rkf45=True``, this is instead used only as the initial
-        substep count estimate for the adaptive solver.
+        When ``use_rkf45`` is active (True or a non-empty interval string),
+        this is instead used only as the initial substep count estimate for
+        the adaptive solver. After each timestep on which ``use_rkf45`` is
+        active, this value is updated based on ``n_attempts``, the total number
+        of RKF45 sub-step attempts (accepted and rejected) taken in the most
+        recent half-step: if the current value is less than ``2 * n_attempts``,
+        it jumps immediately to ``2 * n_attempts``; otherwise it decays slowly
+        toward that target via exponential smoothing (95% old, 5% of
+        ``2 * n_attempts``). This warm-start guess also carries over to
+        RK4 steps on timesteps where ``use_rkf45`` is not active.
 
-    use_rkf45: bool, default=False
-        If True, use the adaptive Runge-Kutta-Fehlberg 4(5) (RKF45)
-        integrator (Fehlberg 1969, NASA Technical Report R-315,
+    use_rkf45: bool or str, default=False
+        If True (or the WarpX time-interval string ``"::"``), use the
+        adaptive Runge-Kutta-Fehlberg 4(5) (RKF45) integrator (Fehlberg
+        1969, NASA Technical Report R-315,
         https://ntrs.nasa.gov/citations/19690021375) for the B-field substep
         advance, with step-size control governed by ``substep_rtol`` and
         ``substep_atol``. If False, use the fixed-step classical RK4
         integrator with ``substeps`` total substeps per timestep.
+        A WarpX time-interval string (e.g. ``"1::5"`` to enable from step
+        every 5 steps starting from step 1) may also be passed to activate
+        RKF45 only on specific timesteps.
 
     substep_rtol: float, default=1e-4
         Relative tolerance for the RKF45 adaptive step-size control.
-        Only used when ``use_rkf45=True``.
+        Only used when ``use_rkf45`` is active.
 
     substep_atol: float, default=1e-8
         Absolute tolerance for the RKF45 adaptive step-size control.
-        Only used when ``use_rkf45=True``.
+        Only used when ``use_rkf45`` is active.
 
     substep_safety: float, default=0.9
         Safety factor applied to the step-size adjustment formula.
-        Only used when ``use_rkf45=True``.
+        Only used when ``use_rkf45`` is active.
 
     substep_max_growth: float, default=5.0
         Maximum factor by which the substep size may grow after an accepted
-        step. Only used when ``use_rkf45=True``.
+        step. Only used when ``use_rkf45`` is active.
 
     max_substep_attempts: int, default=250
         Maximum number of substep attempts (accepted + rejected combined) per
         half-step before the simulation aborts. Only used when
-        ``use_rkf45=True``.
+        ``use_rkf45`` is active.
 
     holmstrom_vacuum_region: bool, default=False
         Flag to determine handling of vacuum region (where rho < n_floor*q_e). Setting to True will solve the simplified Generalized Ohm's Law dropping the Hall and pressure terms in the vacuum region. See `Holmstrom (2013) <https://arxiv.org/abs/1301.0272v1>`_.
@@ -2239,6 +2284,10 @@ class HybridPICSolver(picmistandard.base._ClassWithInit):
         n_floor=None,
         plasma_resistivity=None,
         plasma_hyper_resistivity=None,
+        solve_electron_energy_equation=None,
+        include_joule_heating=None,
+        joule_redirect_Te_threshold=None,
+        electron_ion_relaxation_rate=None,
         substeps=None,
         use_rkf45=None,
         substep_rtol=None,
@@ -2263,6 +2312,11 @@ class HybridPICSolver(picmistandard.base._ClassWithInit):
         self.n_floor = n_floor
         self.plasma_resistivity = plasma_resistivity
         self.plasma_hyper_resistivity = plasma_hyper_resistivity
+
+        self.solve_electron_energy_equation = solve_electron_energy_equation
+        self.include_joule_heating = include_joule_heating
+        self.joule_redirect_Te_threshold = joule_redirect_Te_threshold
+        self.electron_ion_relaxation_rate = electron_ion_relaxation_rate
 
         self.substeps = substeps
         self.use_rkf45 = use_rkf45
@@ -2316,6 +2370,26 @@ class HybridPICSolver(picmistandard.base._ClassWithInit):
                 self.plasma_hyper_resistivity, self.mangle_dict
             ),
         )
+        # Only emit the electron-energy-equation attributes that were
+        # explicitly set, so the generated input deck contains only
+        # user-specified parameters.
+        if self.solve_electron_energy_equation is not None:
+            pywarpx.hybridpicmodel.solve_electron_energy_equation = (
+                self.solve_electron_energy_equation
+            )
+        if self.include_joule_heating is not None:
+            pywarpx.hybridpicmodel.include_joule_heating = self.include_joule_heating
+        if self.joule_redirect_Te_threshold is not None:
+            pywarpx.hybridpicmodel.joule_redirect_Te_threshold = (
+                self.joule_redirect_Te_threshold
+            )
+        if self.electron_ion_relaxation_rate is not None:
+            pywarpx.hybridpicmodel.__setattr__(
+                "electron_ion_relaxation_rate(rho,Te,Ti,t)",
+                pywarpx.my_constants.mangle_expression(
+                    self.electron_ion_relaxation_rate, self.mangle_dict
+                ),
+            )
         pywarpx.hybridpicmodel.substeps = self.substeps
         pywarpx.hybridpicmodel.use_rkf45 = self.use_rkf45
         pywarpx.hybridpicmodel.substep_rtol = self.substep_rtol
@@ -3479,6 +3553,139 @@ class EmbeddedBoundary(picmistandard.base._ClassWithInit):
             pywarpx.warpx.__setattr__("eb_potential(x,y,z,t)", expression)
 
 
+class MacroscopicProperty(picmistandard.base._ClassWithInit):
+    """
+    Custom class to handle set up of material property specific to WarpX.
+    If macroscopic properties initialization is added to picmistandard this can be
+    changed to inherit that functionality. The geometry can be specified either as
+    an implicit function.  STL file (ASCII or binary) will be added in future. In
+    the latter case the geometry specified in the STL file can be scaled,
+    translated and inverted.
+
+    This can be used for both Electromagnetic and electrostatic solvers.
+
+    Parameters
+    ----------
+    name: string
+        the macroscopic property name to set. One of "sigma", "epsilon", or "mu"
+
+    implicit_function: string
+        Analytic expression f(x,y,z) describing the sigma, epsilon, or mu
+
+    value: float
+        Value of sigma, epsilon, or mu if it is a constant
+
+    method: string
+        The algorithm for updating electric field when algo.em_solver_medium is macroscopic.
+        Available options for name = sigma are: backwardeuler and laxwendroff
+
+    Parameters used in the analytic expressions should be given as additional keyword arguments.
+
+    Unimplemented Parameters
+    ------------------------
+    stl_file: string
+        STL file path (string),  file contains the embedded boundary geometry
+
+    stl_scale: float
+        Factor by which the STL geometry is scaled
+
+    stl_center: vector of floats
+        Vector by which the STL geometry is translated (in meters)
+
+    stl_reverse_normal: bool
+        If True inverts the orientation of the STL geometry
+
+    """
+
+    def __init__(
+        self,
+        name="epsilon",
+        implicit_function=None,
+        value=None,
+        method=None,
+        stl_file=None,
+        stl_scale=None,
+        stl_center=None,
+        stl_reverse_normal=False,
+        **kw,
+    ):
+        assert (
+            sum(
+                [stl_file is not None, implicit_function is not None, value is not None]
+            )
+            == 1
+        ), Exception(
+            "Exactly one one of implicit_function, stl_file, and value must be specified"
+        )
+        self.name = name
+        self.implicit_function = implicit_function
+        self.stl_file = stl_file
+        self.value = value
+        if stl_file is None:
+            assert stl_scale is None, Exception(
+                "Material property can only be scaled only when using an stl file"
+            )
+            assert stl_center is None, Exception(
+                "Material property  can only be translated only when using an stl file"
+            )
+            assert stl_reverse_normal is False, Exception(
+                "Material property  can only be reversed only when using an stl file"
+            )
+
+        self.stl_scale = stl_scale
+        self.stl_center = stl_center
+        self.stl_reverse_normal = stl_reverse_normal
+
+        # Validate method for conductivity (sigma)
+        if method is not None:
+            if self.name != "sigma":
+                raise ValueError("Input 'method' can only be used with 'sigma'")
+            if method not in ["backwardeuler", "laxwendroff"]:
+                raise ValueError(
+                    "Input 'method' must be one of 'backwardeuler' or 'laxwendroff'"
+                )
+
+        self.method = method
+
+        # Handle keyword arguments used in expressions
+        self.user_defined_kw = {}
+        for k in list(kw.keys()):
+            if implicit_function is not None and re.search(
+                r"\b%s\b" % k, implicit_function
+            ):
+                self.user_defined_kw[k] = kw[k]
+                del kw[k]
+
+        self.handle_init(kw)
+
+    def material_property_initialize_inputs(self, solver):
+        # Add the user defined keywords to my_constants
+        # The keywords are mangled if there is a conflicting variable already
+        # defined in my_constants with the same name but different value.
+        self.mangle_dict = pywarpx.my_constants.add_keywords(self.user_defined_kw)
+        macroscopic = pywarpx.warpx.get_bucket("macroscopic")
+        if self.implicit_function is not None:
+            expression = pywarpx.my_constants.mangle_expression(
+                self.implicit_function, self.mangle_dict
+            )
+            setattr(macroscopic, self.name + "_function(x,y,z)", expression)
+
+        if self.value is not None:
+            setattr(macroscopic, self.name, self.value)
+
+        if self.stl_file is not None:
+            raise NotImplementedError(
+                "material property definition with stl file is not implemented yet"
+            )
+
+        if self.method is not None:
+            setattr(
+                pywarpx.algo,
+                "macroscopic_" + self.name + "_method",
+                self.method,
+            )
+
+
 class PlasmaLens(picmistandard.base._ClassWithInit):
     """
     Custom class to setup a plasma lens lattice.
@@ -3817,8 +4024,18 @@ class Simulation(picmistandard.PICMI_Simulation):
 
         self.inputs_initialized = False
         self.warpx_initialized = False
+        self.finalized = False
+        self.macroscopic_properties = []
+
+    def _check_not_finalized(self):
+        if self.finalized:
+            raise RuntimeError(
+                "This Simulation was finalized. Create new PICMI objects to "
+                "set up another simulation."
+            )
 
     def initialize_inputs(self):
+        self._check_not_finalized()
         if self.inputs_initialized:
             return
 
@@ -3986,7 +4203,13 @@ class Simulation(picmistandard.PICMI_Simulation):
         if self.do_device_synchronize is not None:
             pywarpx.warpx.do_device_synchronize = self.do_device_synchronize
 
+        if len(self.macroscopic_properties) > 0:
+            pywarpx.algo.em_solver_medium = "macroscopic"
+            for prop in self.macroscopic_properties:
+                prop.material_property_initialize_inputs(self.solver)
+
     def initialize_warpx(self, mpi_comm=None):
+        self._check_not_finalized()
         if self.warpx_initialized:
             return
 
@@ -4010,9 +4233,19 @@ class Simulation(picmistandard.PICMI_Simulation):
         pywarpx.warpx.step(nsteps)
 
     def finalize(self):
-        if self.warpx_initialized:
-            self.warpx_initialized = False
-            pywarpx.warpx.finalize()
+        # unconditional: tearing down WarpX is a no-op if it was never
+        # initialized, but the input state still needs to be cleared
+        self.warpx_initialized = False
+        self.finalized = True
+        pywarpx.warpx.finalize()
+
+    def add_macroscopic_property(self, macroscopic_property):
+        if isinstance(macroscopic_property, MacroscopicProperty):
+            self.macroscopic_properties.append(macroscopic_property)
+        else:
+            raise TypeError(
+                "Expected a MacroscopicProperty instance, got f {type(macroscopic_property)}"
+            )
 
     @property
     def fields(self):
@@ -4197,7 +4430,6 @@ class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic, WarpXDiagnosticBase):
                 "Jz_displacement",
             ]
             A_fields_list = ["Ar", "At", "Az"]
-            T_fields_list = ["Tr_", "Tt_", "Tz_"]
         else:
             E_fields_list = ["Ex", "Ey", "Ez"]
             B_fields_list = ["Bx", "By", "Bz"]
@@ -4208,7 +4440,6 @@ class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic, WarpXDiagnosticBase):
                 "Jz_displacement",
             ]
             A_fields_list = ["Ax", "Ay", "Az"]
-            T_fields_list = ["Tx_", "Ty_", "Tz_"]
         if self.data_list is not None:
             for dataname in self.data_list:
                 if dataname == "E":
@@ -4226,40 +4457,16 @@ class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic, WarpXDiagnosticBase):
                 elif dataname == "A":
                     for field_name in A_fields_list:
                         fields_to_plot.add(field_name)
-                elif dataname in E_fields_list:
-                    fields_to_plot.add(dataname)
-                elif dataname in B_fields_list:
-                    fields_to_plot.add(dataname)
-                elif dataname in A_fields_list:
-                    fields_to_plot.add(dataname)
-                elif dataname in [
-                    "rho",
-                    "phi",
-                    "F",
-                    "G",
-                    "divE",
-                    "divB",
-                    "proc_number",
-                    "part_per_cell",
-                    "eb_covered",
-                ]:
-                    fields_to_plot.add(dataname)
                 elif dataname in J_fields_list:
                     fields_to_plot.add(dataname.lower())
                 elif dataname in J_displacement_fields_list:
                     fields_to_plot.add(dataname.lower())
-                elif dataname.startswith("rho_"):
-                    # Adds rho_species diagnostic
-                    fields_to_plot.add(dataname)
-                elif dataname.startswith("T_"):
-                    # Adds T_species diagnostic
-                    fields_to_plot.add(dataname)
-                elif any([dataname.startswith(tstr) for tstr in T_fields_list]):
-                    fields_to_plot.add(dataname)
                 elif dataname == "dive":
                     fields_to_plot.add("divE")
                 elif dataname == "divb":
                     fields_to_plot.add("divB")
+                elif dataname == "proc_number":
+                    fields_to_plot.add("proc_num")
                 elif dataname == "raw_fields":
                     self.plot_raw_fields = 1
                 elif dataname == "raw_fields_guards":
@@ -4268,8 +4475,12 @@ class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic, WarpXDiagnosticBase):
                     self.plot_finepatch = 1
                 elif dataname == "crsepatch":
                     self.plot_crsepatch = 1
-                elif dataname == "none":
-                    fields_to_plot = set(("none",))
+                else:
+                    # Pass field names through to C++ for resolution and validation.
+                    # This includes known diagnostic quantities as well as fields
+                    # registered in the MultiFabRegister. C++ raises a descriptive
+                    # error if the name is not valid.
+                    fields_to_plot.add(dataname)
 
             # --- Convert the set to a sorted list so that the order
             # --- is the same on all processors.

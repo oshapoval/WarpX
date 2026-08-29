@@ -69,14 +69,14 @@ class CMakeBuild(build_ext):
             out = subprocess.check_output(["cmake", "--version"])
         except OSError:
             raise RuntimeError(
-                "CMake 3.24.0+ must be installed to build the following "
+                "CMake 3.25.0+ must be installed to build the following "
                 + "extensions: "
                 + ", ".join(e.name for e in self.extensions)
             )
 
         cmake_version = parse(re.search(r"version\s*([\d.]+)", out.decode()).group(1))
-        if cmake_version < parse("3.24.0"):
-            raise RuntimeError("CMake >= 3.24.0 is required")
+        if cmake_version < parse("3.25.0"):
+            raise RuntimeError("CMake >= 3.25.0 is required")
 
         for ext in self.extensions:
             self.build_extension(ext)
@@ -187,7 +187,10 @@ class CMakeBuild(build_ext):
                     cfg.upper(), os.path.join(extdir, "pywarpx")
                 )
             ]
-            if sys.maxsize > 2**32:
+            generator_platform = os.environ.get("CMAKE_GENERATOR_PLATFORM")
+            if generator_platform:
+                cmake_args += ["-A", generator_platform]
+            elif sys.maxsize > 2**32:
                 cmake_args += ["-A", "x64"]
         else:
             cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
