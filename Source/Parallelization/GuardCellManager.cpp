@@ -365,7 +365,9 @@ guardCellManager::Init (
         ng_FieldGather = ng_FieldGather_noNCI + ng_NCIFilter;
 
         if (use_filter) {
-            ng_FieldGather += bilinear_filter_stencil_length - amrex::IntVect(1);
+            const amrex::IntVect extra = bilinear_filter_stencil_length - amrex::IntVect(1);
+            ng_FieldGather += extra;
+            ng_alloc_EB += extra;
         }
         // Guard cells for auxiliary grid.
         // Not sure why there is a 2* here...
