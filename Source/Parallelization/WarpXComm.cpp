@@ -159,6 +159,34 @@ namespace
         }
     }
 
+    /** Filter aux over ng_FieldGather; extra stencil cells stay local. */
+    void FilterAuxGather (
+        ablastr::fields::VectorField const& field_aux,
+        BilinearFilter& bilinear_filter,
+        amrex::IntVect const& ng_gather,
+        int const lev,
+        amrex::Periodicity const& period)
+    {
+        const amrex::IntVect extra =
+            bilinear_filter.stencil_length_each_dir - amrex::IntVect(1);
+        const amrex::IntVect ng_src = ng_gather + extra;
+
+        for (int idim = 0; idim < 3; ++idim) {
+            amrex::MultiFab& aux = *field_aux[idim];
+            const int ncomp = aux.nComp();
+
+            amrex::MultiFab src(aux.boxArray(), aux.DistributionMap(), ncomp, ng_src);
+            src.setVal(0.0_rt);
+            amrex::MultiFab::Copy(src, aux, 0, 0, ncomp, ng_gather);
+            ablastr::utils::communication::FillBoundary(
+                src, ng_src, WarpX::do_single_precision_comms, period);
+
+            amrex::MultiFab dst(aux.boxArray(), aux.DistributionMap(), ncomp, ng_gather);
+            bilinear_filter.ApplyStencil(dst, src, lev);
+            amrex::MultiFab::Copy(aux, dst, 0, 0, ncomp, ng_gather);
+        }
+    }
+
     /**
      * \brief Update level-0 aux fields from averaged fine-patch fields or regular fine fields.
      *
@@ -496,7 +524,6 @@ WarpX::UpdateAuxiliaryData ()
     ABLASTR_PROFILE("WarpX::UpdateAuxiliaryData()");
 
     using ablastr::fields::Direction;
-    using warpx::fields::FieldType;
 
     amrex::MultiFab *Bfield_aux_lvl0_0 = m_fields.get(FieldType::Bfield_aux, Direction{0}, 0);
 
@@ -568,10 +595,15 @@ WarpX::UpdateAuxiliaryData ()
             }
         }
     }
-    if (WarpX::use_filter) {
+    if (UseFilterEBAux()) {
         const int lev = 0;
-        ApplyFilterMF(m_fields.get_mr_levels_alldirs(FieldType::Bfield_aux, finest_level), lev);
-        ApplyFilterMF(m_fields.get_mr_levels_alldirs(FieldType::Efield_aux, finest_level), lev);
+        const amrex::Periodicity& period = Geom(lev).periodicity();
+        FilterAuxGather(
+            m_fields.get_alldirs(FieldType::Bfield_aux, lev),
+            bilinear_filter, guard_cells.ng_FieldGather, lev, period);
+        FilterAuxGather(
+            m_fields.get_alldirs(FieldType::Efield_aux, lev),
+            bilinear_filter, guard_cells.ng_FieldGather, lev, period);
     }
 
 }
