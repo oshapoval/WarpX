@@ -31,6 +31,7 @@ Resampling::Resampling (const std::string& species_name)
     else if (resampling_algorithm_string == "particle_splitting")
     {
         m_resampling_algorithm =  std::make_unique<ParticleSplitting>(species_name);
+        m_is_particle_splitting = true;
     }
     else
     { WARPX_ABORT_WITH_MESSAGE("Unknown resampling algorithm."); }

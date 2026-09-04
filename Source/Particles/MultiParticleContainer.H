@@ -213,6 +213,15 @@ public:
     */
     void doResampling (const amrex::Vector<amrex::Geometry>& geom, int timestep, bool verbose);
 
+    /** True if any species uses particle_splitting. */
+    bool hasParticleSplitting () const;
+
+    /** Split particle-splitting species and add child remap current. Does not reset J. */
+    void doParticleSplittingAndDepositRemap (
+        ablastr::fields::MultiLevelVectorField const& J,
+        const amrex::Vector<amrex::Geometry>& geom,
+        int timestep, amrex::Real dt, bool verbose, bool deposit_virtual_j);
+
 #ifdef WARPX_QED
     /** If Schwinger process is activated, this function is called at every
      * timestep in Evolve and is used to create Schwinger electron-positron pairs.

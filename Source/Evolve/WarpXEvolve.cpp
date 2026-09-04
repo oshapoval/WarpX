@@ -442,6 +442,10 @@ void WarpX::OneStep (
                     MomentumPushType::Full
                 );
             }
+            if (mypc->hasParticleSplitting()) {
+                SplitParticlesAndDepositRemappingCurrent(a_step + 1, a_dt,
+                                                         /*deposit_virtual_j=*/false);
+            }
         }
         // electromagnetic solver
         else {
@@ -551,6 +555,10 @@ WarpX::OneStep_nosub (
             PositionPushType::Full,
             MomentumPushType::Full
         );
+    }
+
+    if (mypc->hasParticleSplitting()) {
+        SplitParticlesAndDepositRemappingCurrent(a_step + 1, a_dt);
     }
 
     ExecutePythonCallback("afterdeposition");
@@ -1307,6 +1315,25 @@ WarpX::doQEDEvents ()
     }
 }
 #endif
+
+void
+WarpX::SplitParticlesAndDepositRemappingCurrent (int timestep, amrex::Real a_dt,
+                                                 bool deposit_virtual_j)
+{
+    using warpx::fields::FieldType;
+
+    std::string current_string = "current_fp";
+    if (WarpX::do_current_centering) {
+        current_string = "current_fp_nodal";
+    } else if (WarpX::current_deposition_algo == CurrentDepositionAlgo::Vay) {
+        current_string = "current_fp_vay";
+    }
+
+    auto const& J = m_fields.get_mr_levels_alldirs(current_string, finest_level);
+    bool const verbose_step = static_cast<bool>(verbose);
+    mypc->doParticleSplittingAndDepositRemap(
+        J, Geom(), timestep, a_dt, verbose_step, deposit_virtual_j);
+}
 
 void
 WarpX::PushParticlesandDeposit (

@@ -184,6 +184,19 @@ void ParticleSplitting::operator() (
 #if defined(WARPX_ZINDEX)
     auto * const AMREX_RESTRICT z = soa.GetRealData(PIdx::z).data();
 #endif
+    // Virtual remap: child prev_* = parent SoA (already x^{n+1} after the push).
+#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_XZ)
+    auto * const AMREX_RESTRICT x_old = pc->HasRealComp("prev_x") ?
+        pti.GetAttribs("prev_x").dataPtr() : nullptr;
+#endif
+#if defined(WARPX_DIM_3D)
+    auto * const AMREX_RESTRICT y_old = pc->HasRealComp("prev_y") ?
+        pti.GetAttribs("prev_y").dataPtr() : nullptr;
+#endif
+#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_XZ) || defined(WARPX_DIM_1D_Z)
+    auto * const AMREX_RESTRICT z_old = pc->HasRealComp("prev_z") ?
+        pti.GetAttribs("prev_z").dataPtr() : nullptr;
+#endif
 #if defined(WARPX_DIM_RZ)|| defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
     auto * const AMREX_RESTRICT theta = soa.GetRealData(PIdx::theta).data();
 #endif
@@ -439,6 +452,28 @@ void ParticleSplitting::operator() (
                         );
                     }
                 }
+                // Child remap segment: prev = parent new (x^{n+1}), SoA = x_c.
+#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_XZ)
+                if (x_old) {
+                    for (int k = 0; k < np_split_per_parent; ++k) {
+                        x_old[child_base + k] = xp;
+                    }
+                }
+#endif
+#if defined(WARPX_DIM_3D)
+                if (y_old) {
+                    for (int k = 0; k < np_split_per_parent; ++k) {
+                        y_old[child_base + k] = yp;
+                    }
+                }
+#endif
+#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_XZ) || defined(WARPX_DIM_1D_Z)
+                if (z_old) {
+                    for (int k = 0; k < np_split_per_parent; ++k) {
+                        z_old[child_base + k] = zp;
+                    }
+                }
+#endif
                 // mark parent particles as invalid
                 idcpu[parent_idx] = amrex::ParticleIdCpus::Invalid;
                 ++split_count;

@@ -1128,8 +1128,32 @@ void MultiParticleContainer::doResampling (
     {
         // do_resampling can only be true for PhysicalParticleContainers
         if (!pc->do_resampling){ continue; }
+        // Particle splitting runs inside OneStep, before J is synced.
+        if (pc->doParticleSplitting()) { continue; }
 
         pc->resample(geom, timestep, verbose);
+    }
+}
+
+bool MultiParticleContainer::hasParticleSplitting () const
+{
+    for (auto const& pc : allcontainers)
+    {
+        if (pc->doParticleSplitting()) { return true; }
+    }
+    return false;
+}
+
+void MultiParticleContainer::doParticleSplittingAndDepositRemap (
+    ablastr::fields::MultiLevelVectorField const& J,
+    const amrex::Vector<amrex::Geometry>& geom,
+    const int timestep, const amrex::Real dt, const bool verbose,
+    const bool deposit_virtual_j)
+{
+    for (auto& pc : allcontainers)
+    {
+        if (!pc->doParticleSplitting()) { continue; }
+        pc->splitAndDepositRemappingCurrent(J, geom, timestep, dt, verbose, deposit_virtual_j);
     }
 }
 

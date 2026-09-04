@@ -231,6 +231,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 
     pp_species_name.query("do_resampling", do_resampling);
     if (do_resampling) { m_resampler = Resampling(species_name); }
+    pp_species_name.query("do_remapping_current", m_do_remapping_current);
 
     //check if Radiation Reaction is enabled and do consistency checks
     pp_species_name.query("do_classical_radiation_reaction", do_classical_radiation_reaction);
@@ -313,6 +314,12 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 
     // If old particle positions should be saved add the needed components
     pp_species_name.query("save_previous_position", m_save_previous_position);
+    // Particle-splitting remap deposits x^{n+1} → x_c from stored prev_*.
+#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_XZ) || defined(WARPX_DIM_1D_Z)
+    if (do_resampling && m_resampler.isParticleSplitting()) {
+        m_save_previous_position = true;
+    }
+#endif
     if (m_save_previous_position) {
 #if !defined(WARPX_DIM_1D_Z)
         AddRealComp("prev_x");
@@ -1723,6 +1730,73 @@ void PhysicalParticleContainer::resample (const amrex::Vector<amrex::Geometry>& 
         }
     }
     ABLASTR_PROFILE_VAR_STOP(blp_resample_actual);
+}
+
+void PhysicalParticleContainer::splitAndDepositRemappingCurrent (
+    ablastr::fields::MultiLevelVectorField const& J,
+    const amrex::Vector<amrex::Geometry>& geom,
+    const int timestep, const amrex::Real dt, const bool verbose,
+    const bool deposit_virtual_j)
+{
+    if (!doParticleSplitting()) { return; }
+
+    ABLASTR_PROFILE("PhysicalParticleContainer::splitAndDepositRemappingCurrent");
+
+    const amrex::Real global_numparts = TotalNumberOfParticles();
+    if (!m_resampler.triggered(timestep, global_numparts)) { return; }
+
+    Redistribute();
+
+#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_XZ) || defined(WARPX_DIM_1D_Z)
+    const bool do_child_deposit = deposit_virtual_j && m_do_remapping_current &&
+        (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov);
+#else
+    const bool do_child_deposit = false;
+    amrex::ignore_unused(deposit_virtual_j, J);
+#endif
+
+    for (int lev = 0; lev <= maxLevel(); ++lev)
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
+#endif
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            auto& ptile = ParticlesAt(lev, pti);
+            const long old_np = ptile.numParticles();
+            m_resampler(geom[lev], pti, lev, this);
+            const long num_new = ptile.numParticles() - old_np;
+            if (!do_child_deposit || num_new == 0) { continue; }
+
+#ifdef AMREX_USE_OMP
+            const int thread_num = omp_get_thread_num();
+#else
+            const int thread_num = 0;
+#endif
+            const auto& wp = pti.GetAttribs(PIdx::w);
+            const auto& uxp = pti.GetAttribs(PIdx::ux);
+            const auto& uyp = pti.GetAttribs(PIdx::uy);
+            const auto& uzp = pti.GetAttribs(PIdx::uz);
+            const int* ion_lev = (do_field_ionization) ?
+                pti.GetiAttribs("ionizationLevel").dataPtr() : nullptr;
+
+            // relative_time = 0: deposit the stored prev → SoA segment as-is.
+            DepositCurrent(pti, wp, uxp, uyp, uzp, ion_lev,
+                           J[lev][0], J[lev][1], J[lev][2],
+                           old_np, num_new, thread_num,
+                           lev, lev, dt, amrex::Real(0.0), PushType::Explicit,
+                           /*use_stored_old_position=*/true);
+        }
+    }
+
+    deleteInvalidParticles();
+    if (verbose) {
+        amrex::Print() << Utils::TextMsg::Info(
+            "Resampled " + species_name + " at step " + std::to_string(timestep)
+            + ": macroparticle count decreased by "
+            + std::to_string(static_cast<int>(global_numparts - TotalNumberOfParticles()))
+        );
+    }
 }
 
 bool
