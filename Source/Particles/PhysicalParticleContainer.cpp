@@ -830,6 +830,63 @@ PhysicalParticleContainer::Evolve (ablastr::fields::MultiFabRegister& fields,
 }
 
 void
+PhysicalParticleContainer::DepositChargeComponent (
+    ablastr::fields::MultiFabRegister& fields, int lev, int rho_comp)
+{
+    using warpx::fields::FieldType;
+
+    ABLASTR_PROFILE("PhysicalParticleContainer::DepositChargeComponent()");
+
+    if (do_not_deposit || !fields.has(FieldType::rho_fp, lev)) { return; }
+
+    const bool has_J_buf = fields.has_vector(FieldType::current_buf, lev);
+    const bool has_E_cax = fields.has_vector(FieldType::Efield_cax, lev);
+    const bool has_buffer = has_E_cax || has_J_buf;
+
+    const iMultiFab* current_masks = WarpX::CurrentBufferMasks(lev);
+    const iMultiFab* gather_masks = WarpX::GatherBufferMasks(lev);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+    {
+#ifdef AMREX_USE_OMP
+        const int thread_num = omp_get_thread_num();
+#else
+        const int thread_num = 0;
+#endif
+
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            const auto& wp = pti.GetAttribs(PIdx::w);
+            const long np = pti.numParticles();
+
+            long nfine_deposit = np;
+            long nfine_gather = np;
+            if (has_buffer && !do_not_push) {
+                PartitionParticlesInBuffers( nfine_deposit, nfine_gather, np,
+                    pti, lev, WarpX::n_field_gather_buffer,
+                    WarpX::n_current_deposition_buffer, current_masks, gather_masks );
+            }
+
+            const long np_to_deposit = has_J_buf ? nfine_deposit : np;
+
+            const int* const AMREX_RESTRICT ion_lev = (do_field_ionization)?
+                pti.GetiAttribs("ionizationLevel").dataPtr():nullptr;
+
+            amrex::MultiFab* rho = fields.get(FieldType::rho_fp, lev);
+            DepositCharge(pti, wp, ion_lev, rho, rho_comp, 0,
+                          np_to_deposit, thread_num, lev, lev);
+            if (has_buffer) {
+                amrex::MultiFab* crho = fields.get(FieldType::rho_buf, lev);
+                DepositCharge(pti, wp, ion_lev, crho, rho_comp, np_to_deposit,
+                              np-np_to_deposit, thread_num, lev, lev-1);
+            }
+        }
+    }
+}
+
+void
 PhysicalParticleContainer::DepositMassMatrices (ablastr::fields::MultiFabRegister& fields,
                                                 int lev, Real dt)
 {

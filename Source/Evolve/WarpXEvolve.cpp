@@ -559,6 +559,9 @@ WarpX::OneStep_nosub (
 
     if (mypc->hasParticleSplitting()) {
         SplitParticlesAndDepositRemappingCurrent(a_step + 1, a_dt);
+        if (do_dive_cleaning) {
+            mypc->DepositChargeComponent(m_fields, /*rho_comp=*/1);
+        }
     }
 
     ExecutePythonCallback("afterdeposition");

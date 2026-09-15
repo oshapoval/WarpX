@@ -118,6 +118,8 @@ public:
         ImplicitOptions const * implicit_options = nullptr
     );
 
+    void DepositChargeComponent (ablastr::fields::MultiFabRegister& fields, int rho_comp);
+
     /**
      * \brief Deposit mass matrices.
     */

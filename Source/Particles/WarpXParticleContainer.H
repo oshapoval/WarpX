@@ -237,6 +237,12 @@ public:
                          MomentumPushType momentum_push_type=MomentumPushType::Full,
                          ImplicitOptions const * implicit_options = nullptr) = 0;
 
+    virtual void DepositChargeComponent (
+        ablastr::fields::MultiFabRegister& fields, int lev, int rho_comp)
+    {
+        amrex::ignore_unused(fields, lev, rho_comp);
+    }
+
     /**
      * \brief virtual function to deposit mass matrices for charged particles
      */

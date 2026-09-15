@@ -111,6 +111,9 @@ public:
                  MomentumPushType momentum_push_type=MomentumPushType::Full,
                  ImplicitOptions const * implicit_options = nullptr) override;
 
+    void DepositChargeComponent (
+        ablastr::fields::MultiFabRegister& fields, int lev, int rho_comp) override;
+
     /**
      * \brief Deposit mass matrices.
      */
