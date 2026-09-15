@@ -56,7 +56,7 @@ private:
     /** if m_split_max_ppc > 0, do not split in cells with more than this many macroparticles */
     int m_split_max_ppc = -1; // -1: no limit
     bool m_do_random_splitting_angle = false;
-    amrex::Real m_splitting_angle = 0.0_rt;
+    amrex::Real m_splitting_angle = 0.0;
     std::string m_splitting_type = "axis_aligned";
     int m_splitting_type_id = 1; // 0: trivial (nothing changes except of weight); 1: axis-aligned (default), 2: velocity-aligned splitting type
 };
