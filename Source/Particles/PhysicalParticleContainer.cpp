@@ -86,7 +86,6 @@
 #include <AMReX_ParticleContainerBase.H>
 #include <AMReX_AmrParticles.H>
 #include <AMReX_ParticleTile.H>
-#include <AMReX_PlotFileUtil.H>
 #include <AMReX_Print.H>
 #include <AMReX_Random.H>
 #include <AMReX_SPACE.H>
@@ -233,8 +232,6 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp_species_name.query("do_resampling", do_resampling);
     if (do_resampling) { m_resampler = Resampling(species_name); }
     pp_species_name.query("do_remapping_current", m_do_remapping_current);
-    pp_species_name.query(
-        "check_remapping_charge_conservation", m_check_remapping_charge_conservation);
 
     //check if Radiation Reaction is enabled and do consistency checks
     pp_species_name.query("do_classical_radiation_reaction", do_classical_radiation_reaction);
@@ -1735,196 +1732,6 @@ void PhysicalParticleContainer::resample (const amrex::Vector<amrex::Geometry>& 
     ABLASTR_PROFILE_VAR_STOP(blp_resample_actual);
 }
 
-#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_XZ) || defined(WARPX_DIM_1D_Z)
-namespace
-{
-amrex::MultiFab
-MakeNodalMF (int const lev, int const ng)
-{
-    auto const& warpx = WarpX::GetInstance();
-    return amrex::MultiFab(
-        amrex::convert(warpx.boxArray(lev), amrex::IntVect::TheNodeVector()),
-        warpx.DistributionMap(lev), 1, ng);
-}
-
-bool
-CopyJ (
-    ablastr::fields::VectorField const& Jsrc,
-    std::array<amrex::MultiFab, 3>& Jdst)
-{
-    for (int idim = 0; idim < 3; ++idim)
-    {
-        Jdst[idim].define(
-            Jsrc[idim]->boxArray(), Jsrc[idim]->DistributionMap(),
-            Jsrc[idim]->nComp(), Jsrc[idim]->nGrowVect());
-        amrex::MultiFab::Copy(
-            Jdst[idim], *Jsrc[idim], 0, 0,
-            Jsrc[idim]->nComp(), Jsrc[idim]->nGrowVect());
-    }
-}
-
-void
-SyncJ (std::array<amrex::MultiFab, 3>& Jdst, amrex::Geometry const& geom)
-{
-    for (int idim = 0; idim < 3; ++idim)
-    {
-        ablastr::utils::communication::SumBoundary(
-            Jdst[idim], 0, Jdst[idim].nComp(),
-            Jdst[idim].nGrowVect(), Jdst[idim].nGrowVect(),
-            WarpX::do_single_precision_comms, geom.periodicity());
-        Jdst[idim].FillBoundary(geom.periodicity());
-    }
-}
-
-void
-ComputeNodalDivJ (
-    std::array<amrex::MultiFab, 3> const& J,
-    amrex::MultiFab& divJ,
-    amrex::Geometry const& geom)
-{
-    auto const dxi = geom.InvCellSize();
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
-#endif
-    for (amrex::MFIter mfi(divJ, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        amrex::Box const box = mfi.tilebox(divJ.ixType().toIntVect());
-        auto const jx = J[0].const_array(mfi);
-        auto const jy = J[1].const_array(mfi);
-        auto const jz = J[2].const_array(mfi);
-        auto const dj = divJ.array(mfi);
-        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k)
-        {
-#if defined(WARPX_DIM_1D_Z)
-            amrex::ignore_unused(jx, jy);
-            dj(i, j, k) = dxi[0] * (jz(i, j, k) - jz(i - 1, j, k));
-#elif defined(WARPX_DIM_XZ)
-            amrex::ignore_unused(jy);
-            dj(i, j, k) = dxi[0] * (jx(i, j, k) - jx(i - 1, j, k))
-                        + dxi[1] * (jz(i, j, k) - jz(i, j - 1, k));
-#else
-            dj(i, j, k) = dxi[0] * (jx(i, j, k) - jx(i - 1, j, k))
-                        + dxi[1] * (jy(i, j, k) - jy(i, j - 1, k))
-                        + dxi[2] * (jz(i, j, k) - jz(i, j, k - 1));
-#endif
-        });
-    }
-}
-
-/** Isolated remapping identity, independent of do_not_deposit / J_phys:
- *  (rho(x_c) - rho(x^{n+1}))/dt + div(J_child) = 0 on the nodal charge grid.
- */
-void
-CheckRemappingCurrent (
-    PhysicalParticleContainer& pc,
-    std::string const& species_name,
-    ablastr::fields::MultiLevelVectorField const& J,
-    amrex::Vector<std::array<amrex::MultiFab, 3>> const& J_before,
-    amrex::Vector<amrex::MultiFab> const& rho_before,
-    amrex::Vector<amrex::Geometry> const& geom,
-    int const timestep,
-    amrex::Real const dt,
-    bool const remapping_on)
-{
-    using namespace amrex::literals;
-    auto const& warpx = WarpX::GetInstance();
-    int const ng_rho = warpx.get_ng_depos_rho().max();
-
-    for (int lev = 0; lev <= pc.maxLevel(); ++lev)
-    {
-        amrex::MultiFab rho_after = MakeNodalMF(lev, ng_rho);
-        pc.DepositCharge(&rho_after, lev, false, true, true, 0);
-
-        std::array<amrex::MultiFab, 3> J_child;
-        CopyJ(J[lev], J_child);
-        for (int idim = 0; idim < 3; ++idim)
-        {
-            amrex::MultiFab::Subtract(
-                J_child[idim], J_before[lev][idim], 0, 0,
-                J_child[idim].nComp(), J_child[idim].nGrowVect());
-        }
-        SyncJ(J_child, geom[lev]);
-
-        amrex::MultiFab divJ = MakeNodalMF(lev, 0);
-        divJ.setVal(0._rt);
-        ComputeNodalDivJ(J_child, divJ, geom[lev]);
-
-        amrex::MultiFab residual = MakeNodalMF(lev, 0);
-        amrex::MultiFab drho_dt = MakeNodalMF(lev, 0);
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
-#endif
-        for (amrex::MFIter mfi(residual, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            amrex::Box const box = mfi.tilebox(residual.ixType().toIntVect());
-            auto const r0 = rho_before[lev].const_array(mfi);
-            auto const r1 = rho_after.const_array(mfi);
-            auto const dj = divJ.const_array(mfi);
-            auto const dr = drho_dt.array(mfi);
-            auto const res = residual.array(mfi);
-            amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k)
-            {
-                amrex::Real const d = (r1(i, j, k) - r0(i, j, k)) / dt;
-                dr(i, j, k) = d;
-                res(i, j, k) = d + dj(i, j, k);
-            });
-        }
-
-        std::string const dirname =
-            "remap_charge_conservation/" + species_name + "_step"
-            + std::to_string(timestep) + "_lev" + std::to_string(lev);
-        amrex::MultiFab plotmf(residual.boxArray(), residual.DistributionMap(), 5, 0);
-        amrex::MultiFab::Copy(plotmf, rho_before[lev], 0, 0, 1, 0);
-        amrex::MultiFab::Copy(plotmf, rho_after, 0, 1, 1, 0);
-        amrex::MultiFab::Copy(plotmf, drho_dt, 0, 2, 1, 0);
-        amrex::MultiFab::Copy(plotmf, divJ, 0, 3, 1, 0);
-        amrex::MultiFab::Copy(plotmf, residual, 0, 4, 1, 0);
-        amrex::WriteSingleLevelPlotfile(
-            dirname, plotmf,
-            {"rho_before", "rho_after", "drho_dt", "divJ_child", "residual"},
-            geom[lev], 0._rt, timestep);
-
-        amrex::Real const max_drho_dt = drho_dt.norm0();
-        amrex::Real const max_divJ = divJ.norm0();
-        amrex::Real const max_res = residual.norm0();
-        amrex::Real const max_rho = amrex::max(
-            rho_before[lev].norm0(), rho_after.norm0());
-        amrex::Real const delta_rho = max_drho_dt * std::abs(dt);
-        // In-place splits leave rho unchanged at roundoff; only a spatial
-        // split produces a remapping current that can be tested.
-        bool const spatial_split = (delta_rho > 1.e-12_rt * amrex::max(max_rho, 1.e-30_rt));
-
-        amrex::Real const signal = amrex::max(max_drho_dt, max_divJ);
-        // Relative cut plus an absolute floor: DepositCharge / Esirkepov
-        // leave ~1e-13 nodal noise, which exceeds 1e-8*signal when the
-        // remapping current is small (small weight or small split offset).
-        amrex::Real const tol = 1.e-8_rt * signal + 1.e-12_rt;
-
-        amrex::Print()
-            << "Remap-J check  remap=" << (remapping_on ? "ON" : "OFF")
-            << "  do_not_deposit=" << pc.do_not_deposit
-            << "  max|J_child|="
-            << J_child[0].norm0() << "," << J_child[1].norm0() << ","
-            << J_child[2].norm0()
-            << "  max|drho/dt|=" << max_drho_dt
-            << "  max|divJ_child|=" << max_divJ
-            << "  max|residual|=" << max_res
-            << "  tol=" << tol
-            << "  -> " << dirname << "\n";
-
-        if (remapping_on && spatial_split)
-        {
-            WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
-                max_res <= tol,
-                "Remapping current failed the nodal continuity check "
-                "(rho(x_c)-rho(x^{n+1}))/dt + div(J_child) = 0. "
-                "This is independent of plotfile rho/j and of do_not_deposit.");
-        }
-    }
-}
-}
-#endif
-
 void PhysicalParticleContainer::splitAndDepositRemappingCurrent (
     ablastr::fields::MultiLevelVectorField const& J,
     const amrex::Vector<amrex::Geometry>& geom,
@@ -1941,36 +1748,13 @@ void PhysicalParticleContainer::splitAndDepositRemappingCurrent (
     Redistribute();
 
 #if defined(WARPX_DIM_3D) || defined(WARPX_DIM_XZ) || defined(WARPX_DIM_1D_Z)
-    const bool do_child_deposit = deposit_virtual_j && m_do_remapping_current &&
-        (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov);
-    const bool do_check = m_check_remapping_charge_conservation;
+    const bool do_child_deposit = (
+        !do_not_deposit && deposit_virtual_j && m_do_remapping_current &&
+        (WarpX::current_deposition_algo == CurrentDepositionAlgo::Esirkepov));
 #else
     const bool do_child_deposit = false;
     amrex::ignore_unused(deposit_virtual_j, J);
 #endif
-
-#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_XZ) || defined(WARPX_DIM_1D_Z)
-    amrex::Vector<amrex::MultiFab> rho_before;
-    amrex::Vector<std::array<amrex::MultiFab, 3>> J_before;
-    if (do_check)
-    {
-        auto const& warpx = WarpX::GetInstance();
-        int const ng_rho = warpx.get_ng_depos_rho().max();
-        rho_before.resize(maxLevel() + 1);
-        J_before.resize(maxLevel() + 1);
-        for (int lev = 0; lev <= maxLevel(); ++lev)
-        {
-            rho_before[lev] = MakeNodalMF(lev, ng_rho);
-            DepositCharge(&rho_before[lev], lev, false, true, true, 0);
-            CopyJ(J[lev], J_before[lev]);
-        }
-    }
-#endif
-
-    // Remapping J is independent of <species>.do_not_deposit (that flag
-    // only skips the regular PIC deposit in Evolve).
-    int const saved_do_not_deposit = do_not_deposit;
-    if (do_child_deposit) { do_not_deposit = 0; }
 
     for (int lev = 0; lev <= maxLevel(); ++lev)
     {
@@ -2004,18 +1788,8 @@ void PhysicalParticleContainer::splitAndDepositRemappingCurrent (
                            /*use_stored_old_position=*/true);
         }
     }
-    do_not_deposit = saved_do_not_deposit;
 
     deleteInvalidParticles();
-
-#if defined(WARPX_DIM_3D) || defined(WARPX_DIM_XZ) || defined(WARPX_DIM_1D_Z)
-    if (do_check)
-    {
-        CheckRemappingCurrent(
-            *this, species_name, J, J_before, rho_before, geom, timestep, dt,
-            do_child_deposit);
-    }
-#endif
 
     if (verbose) {
         amrex::Print() << Utils::TextMsg::Info(

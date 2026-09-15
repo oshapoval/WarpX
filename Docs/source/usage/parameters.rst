@@ -1452,8 +1452,6 @@ Particle initialization
 * ``<species_name>.do_not_deposit`` (`0` or `1` optional; default `0`)
     If `1` is given, both charge deposition and current deposition will
     not be done, thus that species does not contribute to the fields.
-    Particle-splitting remapping current is independent of this flag
-    (see ``do_remapping_current``).
 
 * ``<species_name>.do_not_gather`` (`0` or `1` optional; default `0`)
     If `1` is given, field gather from grids will not be done,
@@ -1586,19 +1584,9 @@ Particle initialization
       :math:`x^{n+1}` to the child location :math:`x_c`.
 
         * ``<species_name>.do_remapping_current`` (`0` or `1`) optional (default `1`)
-            If `1`, deposit that child remapping current. Independent of
-            ``do_not_deposit``. If `0`, children are created with no extra current.
-
-        * ``<species_name>.check_remapping_charge_conservation`` (`0` or `1`) optional (default `0`)
-            After the remapping deposit, evaluate the nodal identity
-            :math:`(\rho(x_c)-\rho(x^{n+1}))/\Delta t + \nabla\cdot J_\mathrm{child}=0`
-            on the same Yee nodes used by Esirkepov (not plotfile ``rho`` / raw ``j``,
-            which are staggered / interpolated and are not comparable).
-            Prints max norms and writes
-            ``remap_charge_conservation/<species>_step<n>_lev<l>``.
-            With remapping on and a spatial split, a residual above roundoff aborts.
-            In-place splits (e.g. ``trivial``) are skipped. Set
-            ``warpx.use_filter = 0`` for a roundoff-level residual.
+            If `1`, deposit that child remapping current when regular deposition
+            is enabled for the species. If `0`, children are created with no extra
+            current.
 
 * ``<species_name>.resampling_min_ppc`` (`int`) optional (default `1`)
     Resampling is not performed in cells with a number of macroparticles strictly smaller

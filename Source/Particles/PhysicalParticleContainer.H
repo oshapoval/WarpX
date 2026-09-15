@@ -493,8 +493,6 @@ protected:
 
     /** If false, split children but do not deposit remapping current. */
     bool m_do_remapping_current = true;
-    /** Write nodal (rho_c - rho_{n+1})/dt + div(J_remap) after the child deposit. */
-    bool m_check_remapping_charge_conservation = false;
 
     // Inject particles during the whole simulation
     void ContinuousInjection (const amrex::RealBox& injection_box) override;
