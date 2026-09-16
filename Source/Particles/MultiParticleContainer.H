@@ -228,7 +228,7 @@ public:
     void doResampling (const amrex::Vector<amrex::Geometry>& geom, int timestep, bool verbose);
 
     /** True if any species uses particle_splitting. */
-    bool hasParticleSplitting () const;
+    [[nodiscard]] bool hasParticleSplitting () const;
 
     /** Split particle-splitting species and add child remap current. Does not reset J. */
     void doParticleSplittingAndDepositRemap (
