@@ -696,7 +696,11 @@ void doDepositionSharedShapeN (const GetParticlePosition<PIdx>& GetPosition,
  * \param reduced_particle_shape_mask  Array4 of int, Mask that indicates whether a particle
  * should use its regular shape factor or a reduced, order-1 shape factor instead in a given cell.
  * \param enable_reduced_shape Flag to indicate whether to use the reduced shape factor
- * \param xp_old,yp_old,zp_old Optional stored old positions. When non-null (Cartesian),
+ * \param xp_old_data Optional stored old x positions. When non-null (Cartesian),
+ *        Esirkepov uses these as the segment start instead of reconstructing from velocity.
+ * \param yp_old_data Optional stored old y positions. When non-null (Cartesian),
+ *        Esirkepov uses these as the segment start instead of reconstructing from velocity.
+ * \param zp_old_data Optional stored old z positions. When non-null (Cartesian),
  *        Esirkepov uses these as the segment start instead of reconstructing from velocity.
  */
 template <int depos_order>

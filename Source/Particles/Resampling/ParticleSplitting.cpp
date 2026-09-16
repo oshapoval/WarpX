@@ -16,7 +16,6 @@
 #include <AMReX_ParmParse.H>
 
 using namespace amrex;
-using warpx::fields::FieldType;
 
 ParticleSplitting::ParticleSplitting (const std::string& species_name)
 {
@@ -79,7 +78,9 @@ void ParticleSplitting::operator() (
     auto& ptile = pc->ParticlesAt(lev, pti);
     const auto num_particles_tile = ptile.numParticles();
 
-    if (num_particles_tile == 0) return;
+    if (num_particles_tile == 0) {
+        return;
+    }
     // Bin particles by cell
     auto bins = ParticleUtils::findParticlesInEachCell(geom_lev, pti, ptile);
     const auto n_cells = static_cast<int>(bins.numBins());
@@ -88,22 +89,14 @@ void ParticleSplitting::operator() (
 
     const std::array<amrex::Real,3>& dx = WarpX::CellSize(lev);
 
-    int np_split_per_parent = 2;
-
-    if (m_splitting_type_id == 0 || m_splitting_type_id == 1) {
-    #if defined(WARPX_DIM_3D)
-        np_split_per_parent = 6;
-    #elif defined(WARPX_DIM_XZ) || defined(WARPX_DIM_RZ)
-        np_split_per_parent = 4;
-    #else
-        np_split_per_parent = 2; // cases: WARPX_DIM_1D_Z, WARPX_DIM_RCYLINDER, WARPX_DIM_RSPHERE
-    #endif
-    }
-    else if (m_splitting_type_id == 2) {
-        np_split_per_parent = 2;
-    }
-
-    int splitting_type_id = m_splitting_type_id;
+    const int splitting_type_id = m_splitting_type_id;
+#if defined(WARPX_DIM_3D)
+    const int np_split_per_parent = (splitting_type_id == 2) ? 2 : 6;
+#elif defined(WARPX_DIM_XZ) || defined(WARPX_DIM_RZ)
+    const int np_split_per_parent = (splitting_type_id == 2) ? 2 : 4;
+#else
+    const int np_split_per_parent = 2;
+#endif
     const auto split_min_ppc = m_min_ppc;
     const auto do_random_splitting_angle = m_do_random_splitting_angle;
     const amrex::Real splitting_angle_fixed = m_splitting_angle;
@@ -167,9 +160,12 @@ void ParticleSplitting::operator() (
     amrex::Gpu::DeviceVector<int> offsets(n_cells);
     int* offset_ptr = offsets.data();
 
-    int num_new_children_tile = amrex::Scan::ExclusiveSum(n_cells, num_new_children_ptr, offset_ptr);
+    const int num_new_children_tile =
+        amrex::Scan::ExclusiveSum(n_cells, num_new_children_ptr, offset_ptr);
 
-    if (num_new_children_tile == 0) return;
+    if (num_new_children_tile == 0) {
+        return;
+    }
 
     ptile.resize(num_particles_tile + num_new_children_tile);
 
@@ -234,13 +230,13 @@ void ParticleSplitting::operator() (
             // calculate cell-dependent position offset
             const amrex::Real offset_fraction = 1.0_prt / (5.0_prt);
 #if !defined(WARPX_DIM_1D_Z)
-            amrex::ParticleReal offset_x = dx[0] * offset_fraction;
+            const amrex::ParticleReal offset_x = dx[0] * offset_fraction;
 #endif
 #if defined(WARPX_DIM_3D)
-            amrex::ParticleReal offset_y = dx[1] * offset_fraction;
+            const amrex::ParticleReal offset_y = dx[1] * offset_fraction;
 #endif
 #if defined(WARPX_ZINDEX)
-            amrex::ParticleReal offset_z = dx[2] * offset_fraction;
+            const amrex::ParticleReal offset_z = dx[2] * offset_fraction;
 #endif
             const amrex::Real splitting_angle =
             do_random_splitting_angle
@@ -259,19 +255,19 @@ void ParticleSplitting::operator() (
                 const int parent_idx = indices[i];
                 // splitting threshold condition: split if particle weight is above the splitting threshold
                 // defined as split_weight_koef * (cell average weight)
-                bool split_heavy_particle = (w[parent_idx] > split_weight_koef * w_avg);
+                const bool split_heavy_particle = (w[parent_idx] > split_weight_koef * w_avg);
                 if (!split_heavy_particle ) {
                     continue;
                 }
 
 #if !defined(WARPX_DIM_1D_Z)
-                amrex::ParticleReal xp  =  x[parent_idx];
+                const amrex::ParticleReal xp  =  x[parent_idx];
 #endif
 #if defined(WARPX_DIM_3D)
-                amrex::ParticleReal yp  =  y[parent_idx];
+                const amrex::ParticleReal yp  =  y[parent_idx];
 #endif
 #if defined(WARPX_ZINDEX)
-                amrex::ParticleReal zp  =  z[parent_idx];
+                const amrex::ParticleReal zp  =  z[parent_idx];
 #endif
                 // get parent particle properties
                 const amrex::Real parent_weight = w[parent_idx];
@@ -312,7 +308,7 @@ void ParticleSplitting::operator() (
                     bool do_trivial_split = false;
                     for (int k = 0; k < np_split_per_parent; ++k) {
                         const int sx = (k & 1) ? 1 : -1;
-                        amrex::Real r_child = xp + sx * offset_x;
+                        const amrex::Real r_child = xp + sx * offset_x;
                         if (r_child < 0.0) {
                             do_trivial_split = true;
                             break;
@@ -383,7 +379,6 @@ void ParticleSplitting::operator() (
                 }
                 else if (splitting_type_id == 2) {
                     // split particle in 2 along the particle momentum direction
-                    amrex::Real u_norm = 0._rt;
                     amrex::Real u2 = 0._rt;
                     amrex::ParticleReal offset = std::numeric_limits<amrex::Real>::max();
 
@@ -399,19 +394,22 @@ void ParticleSplitting::operator() (
                     u2  += uz[parent_idx] * uz[parent_idx];
                     offset = amrex::min(offset, offset_z);
 #endif
-                    u_norm = std::sqrt(u2);
-                    bool do_trivial_split = (u_norm == 0._rt);
+                    const amrex::Real u_norm = std::sqrt(u2);
 #if defined(WARPX_DIM_RZ) || defined(WARPX_DIM_RCYLINDER) || defined(WARPX_DIM_RSPHERE)
+                    bool do_trivial_split = (u_norm == 0._rt);
                     if (!do_trivial_split) {
                         for (int k = 0; k < np_split_per_parent; ++k) {
                             const int sx = (k & 1) ? 1 : -1;
-                            amrex::Real r_child = xp + sx * offset * ux[parent_idx] / u_norm;
+                            const amrex::Real r_child =
+                                xp + sx * offset * ux[parent_idx] / u_norm;
                             if (r_child< 0.0_rt) {
                                 do_trivial_split = true;
                                 break;
                             }
                         }
                     }
+#else
+                    const bool do_trivial_split = (u_norm == 0._rt);
 #endif
                     for (int k = 0; k < 2; ++k) {
                         const int sign_offset = (k == 0) ? -1 : 1;

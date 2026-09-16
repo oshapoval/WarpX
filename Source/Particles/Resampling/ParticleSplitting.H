@@ -34,7 +34,7 @@ public:
      *
      * @param[in] species_name the name of the resampled species
      */
-    ParticleSplitting (const std::string& species_name);
+    explicit ParticleSplitting (const std::string& species_name);
 
     /**
      * \brief A method that performs merging for the considered species.

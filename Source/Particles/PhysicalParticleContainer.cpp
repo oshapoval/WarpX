@@ -1856,10 +1856,15 @@ void PhysicalParticleContainer::splitAndDepositRemappingCurrent (
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             auto& ptile = ParticlesAt(lev, pti);
+            if (!do_child_deposit) {
+                m_resampler(geom[lev], pti, lev, this);
+                continue;
+            }
+
             const long old_np = ptile.numParticles();
             m_resampler(geom[lev], pti, lev, this);
             const long num_new = ptile.numParticles() - old_np;
-            if (!do_child_deposit || num_new == 0) { continue; }
+            if (num_new == 0) { continue; }
 
 #ifdef AMREX_USE_OMP
             const int thread_num = omp_get_thread_num();

@@ -344,7 +344,7 @@ public:
     void resample (
         const amrex::Vector<amrex::Geometry>& geom, int timestep, bool verbose=true) final;
 
-    bool doParticleSplitting () const final
+    [[nodiscard]] bool doParticleSplitting () const final
     {
         return do_resampling && m_resampler.isParticleSplitting();
     }

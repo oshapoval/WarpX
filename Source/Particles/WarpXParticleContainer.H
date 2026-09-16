@@ -637,7 +637,7 @@ public:
     virtual void resample (const amrex::Vector<amrex::Geometry>& /*geom*/, const int /*timestep*/, bool /*verbose*/) {}
 
     /** True when this species uses particle-splitting remapping. */
-    virtual bool doParticleSplitting () const { return false; }
+    [[nodiscard]] virtual bool doParticleSplitting () const { return false; }
 
     /** Split and add remap current on new children only. Does not reset J. */
     virtual void splitAndDepositRemappingCurrent (
