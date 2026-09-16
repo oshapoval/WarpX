@@ -719,9 +719,9 @@ void doEsirkepovDepositionShapeN (const GetParticlePosition<PIdx>& GetPosition,
                                   [[maybe_unused]] int n_rz_azimuthal_modes,
                                   const amrex::Array4<const int>& reduced_particle_shape_mask,
                                   bool enable_reduced_shape,
-                                  [[maybe_unused]] const amrex::ParticleReal * const xp_old = nullptr,
-                                  [[maybe_unused]] const amrex::ParticleReal * const yp_old = nullptr,
-                                  [[maybe_unused]] const amrex::ParticleReal * const zp_old = nullptr
+                                  [[maybe_unused]] const amrex::ParticleReal * const xp_old_data = nullptr,
+                                  [[maybe_unused]] const amrex::ParticleReal * const yp_old_data = nullptr,
+                                  [[maybe_unused]] const amrex::ParticleReal * const zp_old_data = nullptr
                                   )
 {
     using namespace amrex;
@@ -820,9 +820,9 @@ void doEsirkepovDepositionShapeN (const GetParticlePosition<PIdx>& GetPosition,
 #if !defined(WARPX_DIM_1D_Z)
             // Keep these double to avoid bug in single precision
             double x_new, x_old;
-            if (xp_old) {
+            if (xp_old_data) {
                 x_new = (xp - xyzmin.x)*dinv.x;
-                x_old = (xp_old[ip] - xyzmin.x)*dinv.x;
+                x_old = (xp_old_data[ip] - xyzmin.x)*dinv.x;
             } else {
                 x_new = (xp - xyzmin.x + (relative_time + 0.5_rt*dt)*uxp[ip]*gaminv)*dinv.x;
                 x_old = x_new - dt*dinv.x*uxp[ip]*gaminv;
@@ -832,9 +832,9 @@ void doEsirkepovDepositionShapeN (const GetParticlePosition<PIdx>& GetPosition,
 #if defined(WARPX_DIM_3D)
             // Keep these double to avoid bug in single precision
             double y_new, y_old;
-            if (yp_old) {
+            if (yp_old_data) {
                 y_new = (yp - xyzmin.y)*dinv.y;
-                y_old = (yp_old[ip] - xyzmin.y)*dinv.y;
+                y_old = (yp_old_data[ip] - xyzmin.y)*dinv.y;
             } else {
                 y_new = (yp - xyzmin.y + (relative_time + 0.5_rt*dt)*uyp[ip]*gaminv)*dinv.y;
                 y_old = y_new - dt*dinv.y*uyp[ip]*gaminv;
@@ -843,9 +843,9 @@ void doEsirkepovDepositionShapeN (const GetParticlePosition<PIdx>& GetPosition,
 #if !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
             // Keep these double to avoid bug in single precision
             double z_new, z_old;
-            if (zp_old) {
+            if (zp_old_data) {
                 z_new = (zp - xyzmin.z)*dinv.z;
-                z_old = (zp_old[ip] - xyzmin.z)*dinv.z;
+                z_old = (zp_old_data[ip] - xyzmin.z)*dinv.z;
             } else {
                 z_new = (zp - xyzmin.z + (relative_time + 0.5_rt*dt)*uzp[ip]*gaminv)*dinv.z;
                 z_old = z_new - dt*dinv.z*uzp[ip]*gaminv;
