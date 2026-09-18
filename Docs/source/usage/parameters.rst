@@ -2145,7 +2145,8 @@ Particle initialization
             is enabled for the species. If `0`, children are created with no extra
             current.
 
-* ``<species_name>.resampling_min_ppc`` (`int`) optional (default `1`)
+        * ``<species_name>.resampling_min_ppc`` (`int`) optional (default `1`)
+
 .. pp:param:: <species_name>.resampling_min_ppc
     :type: ``int``
     :default: ``1``
