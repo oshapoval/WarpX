@@ -217,7 +217,7 @@ void LabFrameExplicitES::computePhiTriDiagonal (
                 // so set the upper boundary to zero to force a value.
                 phi1d_arr(nx_full_domain,0,0) = 0.;
             } else {
-                phi1d_arr(nx_full_domain,0,0) = (rho1d_arr(nx_full_domain,0,0) - (-1._rt)*phi1d_arr(nx_full_domain-1,0,0))/diag;
+                phi1d_arr(nx_full_domain,0,0) = (rho1d_arr(nx_full_domain,0,0) - (-2._rt)*phi1d_arr(nx_full_domain-1,0,0))/diag;
             }
 
         }
