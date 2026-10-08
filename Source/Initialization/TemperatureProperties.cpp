@@ -90,6 +90,9 @@ TemperatureProperties::TemperatureProperties (const amrex::ParmParse& pp, std::s
                 const auto physical_species_from_string = species::from_string(physical_species_s);
                 WARPX_ALWAYS_ASSERT_WITH_MESSAGE(physical_species_from_string,
                     physical_species_s + " does not exist!");
+                WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
+                    physical_species_from_string.value() != PhysicalSpecies::photon,
+                    "Maxwellian temperature in eV initialization is not supported for photons. One can use maxwellian_u_std_distribution_type instead.");
                 mass = species::get_mass(physical_species_from_string.value());
             }
             utils::parser::queryWithParser(pp, "mass", mass);
