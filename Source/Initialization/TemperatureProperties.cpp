@@ -39,6 +39,9 @@ parse_temperature_in_eV (
         const auto physical_species_from_string = species::from_string(physical_species_s);
         WARPX_ALWAYS_ASSERT_WITH_MESSAGE(physical_species_from_string,
             physical_species_s + " does not exist!");
+        WARPX_ALWAYS_ASSERT_WITH_MESSAGE(
+            physical_species_from_string.value() != PhysicalSpecies::photon,
+            "The " + mom_dist_s + " temperature in eV initialization is not supported for photons.");
         mass = species::get_mass(physical_species_from_string.value());
     }
     utils::parser::queryWithParser(pp, "mass", mass);
@@ -49,8 +52,7 @@ parse_temperature_in_eV (
     std::string temperature_in_eV_dist_s = "constant";
     utils::parser::query(pp, source_name, dist_type_param.c_str(), temperature_in_eV_dist_s);
 
-    const amrex::Real q_e_over_mc2 =
-        PhysConst::q_e / (mass * PhysConst::c * PhysConst::c);
+    temp.m_q_e_over_mc2 = PhysConst::q_e / (mass * PhysConst::c * PhysConst::c);
 
     if (temperature_in_eV_dist_s == "constant") {
         amrex::Real temperature_in_eV = 0.0;
@@ -62,7 +64,6 @@ parse_temperature_in_eV (
             "temperature_in_eV = " + std::to_string(temperature_in_eV) +
             " is less than zero, which is not allowed");
         temp.m_temperature = temperature_in_eV;
-        temp.m_q_e_over_mc2 = q_e_over_mc2;
         temp.m_type = TempConstantValue;
     }
     else if (temperature_in_eV_dist_s == "parser") {
@@ -72,7 +73,6 @@ parse_temperature_in_eV (
             str_temperature_in_eV_function);
         temp.m_ptr_temperature_parser = std::make_unique<amrex::Parser>(
             utils::parser::makeParser(str_temperature_in_eV_function, {"x", "y", "z"}));
-        temp.m_q_e_over_mc2 = q_e_over_mc2;
         temp.m_type = TempParserFunction;
     }
     else if (temperature_in_eV_dist_s == "read_from_file") {
@@ -97,7 +97,6 @@ parse_temperature_in_eV (
         amrex::BoxArray const grids;
         amrex::DistributionMapping const dmap;
         temp.m_temperature_in_eV_reader->prepare(grids, dmap, amrex::IntVect(0));
-        temp.m_q_e_over_mc2 = q_e_over_mc2;
         temp.m_type = TempFromFileValue;
 #else
         WARPX_ABORT_WITH_MESSAGE(

@@ -267,7 +267,7 @@ struct InjectorMomentumJuttner
         amrex::Real const theta =
             temperature(x,y,z) * temperature.m_q_e_over_mc2;
         if (theta < 0) {
-            amrex::Abort("Temperature parameter theta is less than zero, "
+            amrex::Abort("temperature_in_eV is less than zero, "
                 "which is not allowed for Maxwell-Juttner distribution.");
         }
         // The bulk drift is specified as the normalized momentum u_mean = gamma*v/c.

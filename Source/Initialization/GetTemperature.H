@@ -32,8 +32,9 @@ ConvertTemperatureInEvToUStd (amrex::Real const T_eV,
 /**
  * \brief Get temperature at a point on the grid
  *
- * Functor to return temperature at a point on the grid, either constant (m_temperature)
- * or a spatially varying value computed using the parser function (m_temperature_parser).
+ * Functor to return temperature at a point on the grid, either constant (m_temperature),
+ * a spatially varying value computed using the parser function (m_temperature_parser),
+ * or interpolated from an openPMD file (m_temperature_in_eV_from_file).
  * It provides the temperature information held by the TemperatureProperties instance
  * passed to the constructor.
  *
@@ -122,12 +123,10 @@ struct GetTemperatureVector
 
     amrex::Real m_ux_std{0}, m_uy_std{0}, m_uz_std{0};
     amrex::ParserExecutor<3> m_ux_std_parser, m_uy_std_parser, m_uz_std_parser;
-    GetTemperature m_temperature;
-    amrex::Real m_q_e_over_mc2{0}; // q_e / (m c^2)
+    GetTemperature m_temperature; // scalar temperature_in_eV, if m_type is TempConstantValue, TempParserFunction or TempFromFileValue
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
     ExternalFieldVectorView m_u_std_from_file; // Vector openPMD u_std field, if m_type == TempFromFileVector
-    ExternalFieldView m_temperature_in_eV_from_file; // scalar openPMD temperature_in_eV field, if m_type == TempFromFileValue
 #endif
     /**
      * \brief Construct the functor with information provided by temp
@@ -163,38 +162,16 @@ struct GetTemperatureVector
             }
             case (TempConstantValue):
             case (TempParserFunction):
+            case (TempFromFileValue):
             {
                 return ConvertTemperatureInEvToUStd(
-                    m_temperature(x,y,z), m_q_e_over_mc2);
+                    m_temperature(x,y,z), m_temperature.m_q_e_over_mc2);
             }
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
             case (TempFromFileVector):
             {
                 return m_u_std_from_file.getValue(x, y, z);
-            }
-            case (TempFromFileValue):
-            {
-#if (AMREX_SPACEDIM < 3)
-                amrex::ignore_unused(x,y,z);
-#endif
-#if (AMREX_SPACEDIM == 1)
-                amrex::RealVect const pos{z};
-#elif defined(WARPX_DIM_XZ)
-                amrex::RealVect const pos{x,z};
-#else
-                amrex::RealVect const pos{x,y,z};
-#endif
-#if defined(AMREX_USE_GPU)
-                AMREX_IF_ON_HOST((amrex::Abort(
-                    "For GPU builds, TempFromFileValue only works on device.");))
-                AMREX_IF_ON_DEVICE((return ConvertTemperatureInEvToUStd(
-                    m_temperature_in_eV_from_file(pos), m_q_e_over_mc2);))
-                return amrex::XDim3{0.0, 0.0, 0.0};
-#else
-                return ConvertTemperatureInEvToUStd(
-                    m_temperature_in_eV_from_file(pos), m_q_e_over_mc2);
-#endif
             }
 #endif
             default:
