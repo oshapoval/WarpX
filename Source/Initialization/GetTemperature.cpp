@@ -34,8 +34,8 @@ GetTemperatureVector::GetTemperatureVector (TemperatureProperties const& temp) n
     , m_q_e_over_mc2{temp.m_q_e_over_mc2}
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
-    , m_from_file{temp.m_u_std_x_reader.get(), temp.m_u_std_y_reader.get(),
-                  temp.m_u_std_z_reader.get()}
+    , m_u_std_from_file{temp.m_u_std_x_reader.get(), temp.m_u_std_y_reader.get(),
+                        temp.m_u_std_z_reader.get()}
 #endif
 {
     if (m_type == TempConstantVector) {

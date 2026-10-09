@@ -126,7 +126,7 @@ struct GetTemperatureVector
     amrex::Real m_q_e_over_mc2{0}; // q_e / (m c^2)
 #if defined(WARPX_USE_OPENPMD) && !defined(WARPX_DIM_RZ) && \
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
-    ExternalFieldVectorView m_from_file; // Vector openPMD u_std field, if m_type == TempFromFileVector
+    ExternalFieldVectorView m_u_std_from_file; // Vector openPMD u_std field, if m_type == TempFromFileVector
     ExternalFieldView m_temperature_in_eV_from_file; // scalar openPMD temperature_in_eV field, if m_type == TempFromFileValue
 #endif
     /**
@@ -171,7 +171,7 @@ struct GetTemperatureVector
     !defined(WARPX_DIM_RCYLINDER) && !defined(WARPX_DIM_RSPHERE)
             case (TempFromFileVector):
             {
-                return m_from_file.getValue(x, y, z);
+                return m_u_std_from_file.getValue(x, y, z);
             }
             case (TempFromFileValue):
             {

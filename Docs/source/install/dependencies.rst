@@ -7,7 +7,7 @@ WarpX depends on the following popular third party software.
 Please see installation instructions below.
 
 - a mature `C++20 <https://en.wikipedia.org/wiki/C%2B%2B20>`__ compiler, e.g., GCC 12+, Clang 14, NVCC 12.4, MSVC 19.44 or newer
-- `CMake 3.24.0+ <https://cmake.org>`__
+- `CMake 3.25.0+ <https://cmake.org>`__
 - `Git 2.18+ <https://git-scm.com>`__
 - `AMReX <https://amrex-codes.github.io>`__: we automatically download and compile a copy of AMReX
 - `PICSAR <https://github.com/ECP-WarpX/picsar>`__: we automatically download and compile a copy of PICSAR
@@ -30,7 +30,7 @@ Optional dependencies include:
 
   - also needs the ``pkg-config`` tool on Unix
 - `BLAS++ <https://github.com/icl-utk-edu/blaspp>`__ and `LAPACK++ <https://github.com/icl-utk-edu/lapackpp>`__: for spectral solver (PSATD) support in RZ geometry
-- `Boost 1.66.0+ <https://www.boost.org/>`__: for QED lookup tables generation support
+- `Boost 1.71.0+ <https://www.boost.org/>`__: for QED lookup tables generation support
 - `openPMD-api 0.17.0+ <https://github.com/openPMD/openPMD-api>`__: we automatically download and compile a copy of openPMD-api for openPMD I/O support
 
   - see `optional I/O backends <https://github.com/openPMD/openPMD-api#dependencies>`__, i.e., ADIOS2 and/or HDF5
